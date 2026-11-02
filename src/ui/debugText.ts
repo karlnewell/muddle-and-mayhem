@@ -1,0 +1,87 @@
+/**
+ * Text for the debug overlay (issue #7): pure functions from simulation
+ * state to lines, so the layout is unit-tested and the drawing code only
+ * places strings. Fixed-width columns, meant for a monospace font.
+ */
+import { soldierById, worldToTile } from '../sim';
+import type { BattleState, Soldier } from '../sim';
+import { formatClock } from './text';
+
+export interface DebugHeaderInfo {
+  seed: number;
+  paused: boolean;
+  /** `hashState(state)`, computed by the caller once per frame. */
+  hash: number;
+}
+
+/** Column widths, in characters, shared by the header row and the soldier rows. */
+const COL = { id: 2, name: 4, side: 4, cls: 8, hp: 3, status: 8, cooldown: 3, medic: 3 } as const;
+
+function cells(id: string, name: string, side: string, cls: string, hp: string, status: string, cooldown: string, medic: string, order: string): string {
+  return [
+    id.padStart(COL.id),
+    name.padEnd(COL.name),
+    side.padEnd(COL.side),
+    cls.padEnd(COL.cls),
+    hp.padStart(COL.hp),
+    status.padEnd(COL.status),
+    cooldown.padStart(COL.cooldown),
+    medic.padEnd(COL.medic),
+    order,
+  ].join(' ');
+}
+
+export const DEBUG_COLUMNS = cells('ID', 'NAME', 'SIDE', 'CLASS', 'HP', 'STATUS', 'CD', 'MED', 'ORDER');
+
+/** A 32-bit hash as eight lower-case hex digits. */
+export function formatHash(hash: number): string {
+  return (hash >>> 0).toString(16).padStart(8, '0');
+}
+
+/** `hold`, `move to (tx, ty)` or `attack <name>` (`attack #id` when the target is missing). */
+export function formatOrder(state: BattleState, s: Soldier): string {
+  const order = s.order;
+  if (order.kind === 'move') {
+    const t = worldToTile(order.x, order.y);
+    return `move to (${t.tx}, ${t.ty})`;
+  }
+  if (order.kind === 'attack') {
+    const target = soldierById(state, order.targetId);
+    return target === undefined ? `attack #${order.targetId}` : `attack ${target.name}`;
+  }
+  return 'hold';
+}
+
+/** One soldier as a fixed-column row; `+` in the MED column when a medic run is heading for it. */
+export function formatSoldierRow(state: BattleState, s: Soldier): string {
+  const medic = state.medics.some((m) => m.targetId === s.id) ? '+' : '';
+  return cells(
+    String(s.id),
+    s.name,
+    s.side,
+    s.cls,
+    String(Math.round(s.hp)),
+    s.status,
+    String(s.cooldown),
+    medic,
+    formatOrder(state, s),
+  );
+}
+
+/** Seed, tick and clock, pause flag, medic calls per side, hash, and the winner once set. */
+export function formatDebugHeader(state: BattleState, info: DebugHeaderInfo): string[] {
+  const lines = [
+    `seed ${info.seed}   tick ${state.tick}   ${formatClock(state.tick)}   ${info.paused ? 'PAUSED' : 'RUNNING'}`,
+    `medic calls   blue ${state.sides.blue.medicCalls}   red ${state.sides.red.medicCalls}`,
+    `hash ${formatHash(info.hash)}`,
+  ];
+  if (state.winner !== null) {
+    lines.push(`winner ${state.winner}`);
+  }
+  return lines;
+}
+
+/** The column header followed by one row per soldier, in id order. */
+export function formatDebugRows(state: BattleState): string[] {
+  return [DEBUG_COLUMNS, ...state.soldiers.map((s) => formatSoldierRow(state, s))];
+}

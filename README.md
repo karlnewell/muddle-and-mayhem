@@ -39,6 +39,10 @@ Add `?seed=123` to the URL to replay the same battle. The page exposes
 `window.__mm` with the seed, tick, command log and state, so a bug report
 can carry everything needed to reproduce a battle.
 
+Press D during a battle for a debug overlay listing every soldier's HP,
+status, order and cooldown, with the seed, tick and state hash; add
+`?debug=1` to the URL to start with it showing.
+
 ## Run locally
 
 ```bash

@@ -52,6 +52,11 @@ export const PALETTE = {
   buttonEdge: '#5c6773',
   buttonText: '#f2f2f2',
   pausedBanner: 'rgba(14, 17, 22, 0.75)',
+  debugPanel: 'rgba(14, 17, 22, 0.82)',
+  debugPanelEdge: 'rgba(185, 190, 199, 0.5)',
+  debugText: '#f2f2f2',
+  debugDim: '#8a919c',
+  debugHeading: '#ffe66d',
 } as const;
 
 export const SIDE_COLOUR: Readonly<Record<Side, string>> = { blue: '#3d7bd6', red: '#d64545' };

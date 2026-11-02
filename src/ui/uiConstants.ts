@@ -19,6 +19,7 @@ export const FONT = {
   button: `bold 18px ${FONT_FAMILY}`,
   banner: `bold 22px ${FONT_FAMILY}`,
   portrait: `bold 40px ${FONT_FAMILY}`,
+  debug: `12px ${FONT_FAMILY}`,
 } as const;
 
 export const HUD = {
@@ -54,6 +55,18 @@ export const BUTTON = {
 export const PANEL = {
   width: 560,
   radius: 12,
+} as const;
+
+/** The debug overlay: a translucent panel in the top-right corner of the battlefield, below the paused banner. */
+export const DEBUG_OVERLAY = {
+  right: LOGICAL_WIDTH - 12,
+  top: TOP_BAR_HEIGHT + 64,
+  padding: 10,
+  lineHeight: 15,
+  radius: 6,
+  swatch: 8,
+  /** Fallback character width when the context cannot measure text. */
+  charWidth: 7.2,
 } as const;
 
 export const CONTROLS_HINT =

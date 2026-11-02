@@ -7,6 +7,7 @@
 import { createApp } from './game/app';
 import { createDebugHook, installDebugHook } from './game/debug';
 import { seedFromSearch } from './game/seed';
+import { debugFromSearch } from './game/urlFlags';
 import { attachInput } from './input/dom';
 import { LOGICAL_HEIGHT, LOGICAL_WIDTH } from './render/renderConstants';
 import { clientToLogical, fitViewport, logicalToClientOffset } from './render/viewport';
@@ -26,7 +27,9 @@ if (!context) {
 }
 const ctx: CanvasRenderingContext2D = context;
 
-const app = createApp(seedFromSearch(window.location.search, Math.random), Math.random);
+const app = createApp(seedFromSearch(window.location.search, Math.random), Math.random, {
+  debugOverlay: debugFromSearch(window.location.search),
+});
 
 let viewport: Viewport = fitViewport(window.innerWidth, window.innerHeight, window.devicePixelRatio || 1, LOGICAL_WIDTH, LOGICAL_HEIGHT);
 
