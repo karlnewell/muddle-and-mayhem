@@ -229,8 +229,8 @@ describe('advanceProjectiles, direct kind', () => {
     const w = WEAPONS.launcher;
     place(shooter, 100, 256);
     place(enemyHit, 200, 256);
-    // Entry point is (188, 256): the friend sits 32.3 away (inside 40), the far enemy 46.6 away.
-    place(friendNear, 200, 286);
+    // Entry point is (188, 256): the friend sits 26.8 away (inside the 32 radius), the far enemy 46.6 away.
+    place(friendNear, 200, 280);
     place(enemyFar, 200, 301);
     shoot(state, shooter, 'launcher', 200, 256);
     flyUntilDone(state, 20);
@@ -250,7 +250,7 @@ describe('advanceProjectiles, direct kind', () => {
     const w = WEAPONS.launcher;
     place(shooter, 400, 112);
     place(state.soldiers[5], 560, 112);   // aimed at, behind the wall, outside the splash
-    place(state.soldiers[6], 515, 112);   // just behind the wall, 35 from the impact point
+    place(state.soldiers[6], 510, 112);   // at the wall's far face, 30 from the impact point, inside the 32 splash
     shoot(state, shooter, 'launcher', 560, 112);
     flyUntilDone(state, 20);
     expect(state.soldiers[5].hp).toBe(MAX_HP);
@@ -320,7 +320,7 @@ describe('advanceProjectiles, direct kind', () => {
     const neighbour = state.soldiers[6];
     place(shooter, 100, 256);
     place(enemyHit, 200, 256);
-    place(neighbour, 200, 286); // 32.3 from the entry point (188, 256), inside the splash
+    place(neighbour, 200, 280); // 26.8 from the entry point (188, 256), inside the 32 splash
     enemyHit.hp = 1;
     neighbour.hp = 1;
     shoot(state, shooter, 'launcher', 200, 256);

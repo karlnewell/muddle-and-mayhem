@@ -12,6 +12,7 @@
     "test": "vitest run",
     "test:e2e": "playwright test",
     "lint:sim": "node scripts/check-sim-math.mjs",
+    "measure": "node --import ./scripts/ts-resolve.mjs scripts/measure-pacing.mts",
     "check": "npm run typecheck && npm run lint:sim && npm run test && npm run build"
   },
   "devDependencies": {

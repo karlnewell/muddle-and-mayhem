@@ -40,8 +40,9 @@ describe('moveSoldiers', () => {
     const destX = s.x + 64;
     const destY = s.y;
     applyCommand(state, { tick: 0, side: 'blue', type: 'move', soldierIds: [0], x: destX, y: destY });
+    const budget = Math.ceil(64 / MOVE_SPEED) + 5;
     let arrivedAt = -1;
-    for (let t = 0; t < 25; t++) {
+    for (let t = 0; t < budget; t++) {
       step(state, []);
       if (s.order.kind === 'hold') {
         arrivedAt = state.tick;
@@ -49,7 +50,7 @@ describe('moveSoldiers', () => {
       }
     }
     expect(arrivedAt).toBeGreaterThan(0);
-    expect(arrivedAt).toBeLessThanOrEqual(25);
+    expect(arrivedAt).toBeLessThanOrEqual(budget);
     expect(arrivedAt).toBeGreaterThanOrEqual(Math.floor(64 / MOVE_SPEED));
     expect(s.x).toBe(destX);
     expect(s.y).toBe(destY);
@@ -71,7 +72,9 @@ describe('moveSoldiers', () => {
     s.prevY = start.y;
     applyCommand(state, { tick: 0, side: 'blue', type: 'move', soldierIds: [0], x: dest.x, y: dest.y });
     expect(s.path.length).toBeGreaterThan(7); // longer than the straight line of 7 tiles
-    for (let t = 0; t < 200 && s.order.kind !== 'hold'; t++) {
+    // Generous budget: a detour of about 11 tiles plus slack at MOVE_SPEED.
+    const budget = Math.ceil((14 * 32) / MOVE_SPEED);
+    for (let t = 0; t < budget && s.order.kind !== 'hold'; t++) {
       step(state, []);
       expect(circleOverlapsCover(map, s.x, s.y, SOLDIER_RADIUS)).toBe(false);
     }
@@ -166,7 +169,7 @@ describe('moveSoldiers', () => {
     dead.y = walker.y;
     const before = JSON.stringify([downed, dead]);
     applyCommand(state, { tick: 0, side: 'blue', type: 'move', soldierIds: [0], x: walker.x + 96, y: walker.y });
-    for (let t = 0; t < 40; t++) {
+    for (let t = 0; t < Math.ceil(96 / MOVE_SPEED) + 5; t++) {
       step(state, []);
     }
     expect(walker.order).toEqual({ kind: 'hold' });

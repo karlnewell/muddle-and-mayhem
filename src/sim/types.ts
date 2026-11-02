@@ -38,6 +38,7 @@ export interface Soldier {
   firing: boolean;                  // true on ticks the weapon discharged (flame: cone active)
   stuckTicks: number;
   lastRepathTick: number;
+  downedTick: number;               // tick the soldier went down or died, -1 while standing
 }
 
 export interface Projectile {

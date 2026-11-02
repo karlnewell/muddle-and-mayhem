@@ -219,7 +219,7 @@ describe('advanceMedics', () => {
     expect(body.status).toBe('standing');
   });
 
-  it('revives at half hp, standing, holding, with the run removed and a revived event', () => {
+  it('revives at REVIVE_FRACTION of full hp, standing, holding, with the run removed and a revived event', () => {
     const state = field();
     const body = state.soldiers[1];
     body.order = { kind: 'move', x: 1, y: 1 };
@@ -232,7 +232,6 @@ describe('advanceMedics', () => {
     callMedic(state, 'blue', 1);
     state.events = [];
     advanceMedics(state);
-    expect(body.hp).toBe(50);
     expect(body.hp).toBe(Math.floor(MAX_HP * REVIVE_FRACTION));
     expect(body.status).toBe('standing');
     expect(body.order).toEqual({ kind: 'hold' });
@@ -363,7 +362,7 @@ describe('medics through step', () => {
     expect(revivedAt).toBeGreaterThan(notBefore);
     expect(revivedAt).toBeLessThanOrEqual(by);
     expect(body.status).toBe('standing');
-    expect(body.hp).toBe(50);
+    expect(body.hp).toBe(Math.floor(MAX_HP * REVIVE_FRACTION));
     expect(body.order).toEqual({ kind: 'hold' });
     expect(state.medics).toEqual([]);
     expect(state.winner).toBeNull();

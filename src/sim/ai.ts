@@ -11,7 +11,10 @@
 import type { Rng } from './rng';
 import type { BattleState, Command, Order, Side, Soldier } from './types';
 import { bestFiringTile, occupancy } from './aiPositions';
-import { AI_LOBBER_TARGET_REACH, AI_REVIVE_PRIORITY, AI_SEED_SALT, AI_THINK_TICKS, WEAPONS } from './constants';
+import {
+  AI_LOBBER_TARGET_REACH, AI_MEDIC_DESPERATE_STANDING, AI_MEDIC_PATIENCE_TICKS, AI_REVIVE_PRIORITY, AI_SEED_SALT,
+  AI_THINK_TICKS, WEAPONS,
+} from './constants';
 import { hasLineOfSight } from './los';
 import { tileCenter, worldToTile } from './map';
 import { createRng } from './rng';
@@ -141,10 +144,27 @@ function revivePriority(s: Soldier): number {
 }
 
 /**
- * The medic command for this think, if any: the first downed friendly with
- * no run under way, by revive priority then id, whose body is safe.
+ * True when the AI should revive this body now: it is safe, or the squad is
+ * down to fewer than `AI_MEDIC_DESPERATE_STANDING` standing, or the body has
+ * lain there for `AI_MEDIC_PATIENCE_TICKS`. Without the last two cases the
+ * AI never revived in the mid-map brawl it creates, and ended battles with
+ * every call unused.
  */
-function medicCommand(state: BattleState, side: Side, enemies: readonly Soldier[]): Command | null {
+function worthReviving(state: BattleState, s: Soldier, standing: number, enemies: readonly Soldier[]): boolean {
+  if (standing < AI_MEDIC_DESPERATE_STANDING) {
+    return true;
+  }
+  if (state.tick - s.downedTick >= AI_MEDIC_PATIENCE_TICKS) {
+    return true;
+  }
+  return bodyIsSafe(s.x, s.y, enemies);
+}
+
+/**
+ * The medic command for this think, if any: the first downed friendly with
+ * no run under way, by revive priority then id, that `worthReviving` accepts.
+ */
+function medicCommand(state: BattleState, side: Side, standing: number, enemies: readonly Soldier[]): Command | null {
   if (state.sides[side].medicCalls <= 0) {
     return null;
   }
@@ -160,7 +180,7 @@ function medicCommand(state: BattleState, side: Side, enemies: readonly Soldier[
     return pa !== pb ? pa - pb : a.id - b.id;
   });
   for (const s of downed) {
-    if (bodyIsSafe(s.x, s.y, enemies)) {
+    if (worthReviving(state, s, standing, enemies)) {
       return { tick: state.tick, side, type: 'medic', targetId: s.id };
     }
   }
@@ -178,9 +198,10 @@ export function createAi(side: Side, seed: number): Controller {
     }
     const commands: Command[] = [];
     const enemies = standingOf(state, enemySide);
+    const own = standingOf(state, side);
     if (enemies.length > 0) {
       const occupied = occupancy(state);
-      for (const s of standingOf(state, side)) {
+      for (const s of own) {
         const target = preferredTarget(state, s, enemies);
         const desired = desiredOrder(state, s, target, occupied, rng);
         if (alreadyHolds(s.order, desired)) {
@@ -193,7 +214,7 @@ export function createAi(side: Side, seed: number): Controller {
         }
       }
     }
-    const medic = medicCommand(state, side, enemies);
+    const medic = medicCommand(state, side, own.length, enemies);
     if (medic !== null) {
       commands.push(medic);
     }

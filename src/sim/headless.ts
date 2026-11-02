@@ -13,6 +13,8 @@ export interface RunOptions {
   maxTicks: number;
   controllers: Controller[];
   map?: TileMap;
+  /** Called after every step with the state, whose `events` hold that tick's events; for measurement, never for play. */
+  onStep?: (state: BattleState) => void;
 }
 
 export interface RunResult {
@@ -23,8 +25,8 @@ export interface RunResult {
 
 /**
  * Create a battle, and each tick collect every controller's commands (in
- * controller order), append them to the log, and step. Stops at a winner or
- * maxTicks.
+ * controller order), append them to the log, step, and tell `onStep` if
+ * given. Stops at a winner or maxTicks.
  */
 export function runBattle(options: RunOptions): RunResult {
   const state = createBattle({ seed: options.seed, map: options.map });
@@ -40,6 +42,9 @@ export function runBattle(options: RunOptions): RunResult {
       log.push(cmd);
     }
     step(state, commands);
+    if (options.onStep !== undefined) {
+      options.onStep(state);
+    }
   }
   return { state, log, ticks: state.tick };
 }

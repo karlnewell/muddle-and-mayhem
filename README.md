@@ -66,6 +66,15 @@ npm run test:e2e
 If your Playwright has no browser of its own, point it at one with
 `PW_CHROMIUM_PATH=/path/to/chromium`.
 
+To see how the tuning plays out, `npm run measure` runs sixty computer-
+versus-computer battles headless and prints battle length, time to first
+damage, downs, medic use and the winner split. Pass a JSON object to try
+other values without editing the code:
+
+```bash
+npm run measure -- '{"MOVE_SPEED":2,"WEAPONS":{"gunner":{"cooldown":12}}}'
+```
+
 ## Headless simulation
 
 The whole battle runs without a browser. `runBattle` drives it with

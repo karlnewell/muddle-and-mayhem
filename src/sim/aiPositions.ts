@@ -1,7 +1,8 @@
 /**
  * Firing-position search for the computer opponent: the best tile from
  * which a soldier could fire at its target, scored for cover, distance
- * (Launcher only), travel, and a little seeded jitter.
+ * (Launcher only), travel, spacing from friendlies, and a little seeded
+ * jitter.
  *
  * The scan runs over the bounding box of the target's position plus the
  * weapon range, rows outer and columns inner, and draws exactly one rng
@@ -15,13 +16,14 @@ import {
   AI_JITTER,
   AI_LAUNCHER_DISTANCE_WEIGHT,
   AI_RANGE_FRACTION,
+  AI_SPACING_PENALTY,
   AI_TRAVEL_WEIGHT,
   TILE_OPEN,
   WEAPONS,
 } from './constants';
 import { hasLineOfSight } from './los';
 import { isBlocked, tileCenter, tileIndex, worldToTile } from './map';
-import { isActive } from './soldiers';
+import { isActive, soldierById } from './soldiers';
 import { clamp, dist2 } from './vec';
 
 /** A tile that holds no standing soldier. */
@@ -59,6 +61,40 @@ export function isCover(map: TileMap, tx: number, ty: number): boolean {
 /** True when any of the four orthogonal neighbours of (tx, ty) is a cover tile. */
 export function besideCover(map: TileMap, tx: number, ty: number): boolean {
   return isCover(map, tx - 1, ty) || isCover(map, tx + 1, ty) || isCover(map, tx, ty - 1) || isCover(map, tx, ty + 1);
+}
+
+/**
+ * True when one of the eight tiles around (tx, ty) holds a standing friendly
+ * of `s` other than `s` itself. Two soldiers on neighbouring tiles stand a
+ * tile apart, inside every splash radius, so `bestFiringTile` marks such a
+ * tile down by `AI_SPACING_PENALTY`.
+ */
+export function besideFriendly(state: BattleState, occupied: readonly number[], s: Soldier, tx: number, ty: number): boolean {
+  const map = state.map;
+  for (let dy = -1; dy <= 1; dy++) {
+    for (let dx = -1; dx <= 1; dx++) {
+      if (dx === 0 && dy === 0) {
+        continue;
+      }
+      const nx = tx + dx;
+      const ny = ty + dy;
+      if (nx < 0 || ny < 0 || nx >= map.width || ny >= map.height) {
+        continue;
+      }
+      const holder = occupied[tileIndex(map, nx, ny)];
+      if (holder === TILE_SHARED) {
+        return true;
+      }
+      if (holder === TILE_FREE || holder === s.id) {
+        continue;
+      }
+      const other = soldierById(state, holder);
+      if (other !== undefined && other.side === s.side) {
+        return true;
+      }
+    }
+  }
+  return false;
 }
 
 /**
@@ -109,6 +145,9 @@ export function bestFiringTile(
         continue;
       }
       let score = besideCover(map, tx, ty) ? AI_COVER_BONUS : 0;
+      if (besideFriendly(state, occupied, s, tx, ty)) {
+        score -= AI_SPACING_PENALTY;
+      }
       if (isLauncher) {
         score += (AI_LAUNCHER_DISTANCE_WEIGHT * Math.sqrt(toTarget2)) / range;
       }
