@@ -24,9 +24,10 @@ Recorded in `docs/decisions.md` as the work lands.
 
 1. **Measurement script.** `scripts/measure-pacing.mts` runs `runBattle` AI versus AI over 60 seeds by default and prints median and range of battle length in seconds, median tick of first damage, downs per side, medic calls spent per side, the winner split, and the share of draws or tick-cap hits. It takes constant overrides as a JSON argument (`npm run measure -- '{"MOVE_SPEED":2}'`) or the `MM_OVERRIDES` environment variable, so candidate sets are compared without editing the file. To make that possible, the gameplay tunables in `constants.ts` are `let` bindings and `overrideTuning` reassigns them; ES module live bindings mean every sim module sees the new value. The game never calls it. `runBattle` gains an optional `onStep` observer so the script can count events without copying the runner.
 2. **Runner.** The script is plain TypeScript run by Node's own type stripping, with `scripts/ts-resolve.mjs` adding the `.ts` extension to the extensionless relative imports under `src/`. No new dependency.
-3. **AI medic use.** `bodyIsSafe` stays as the preferred case, and two more cases let the AI revive under pressure: the side has fewer than `AI_MEDIC_DESPERATE_STANDING` soldiers standing, or the body has been down for at least `AI_MEDIC_PATIENCE_TICKS`. The AI tracks down ticks by remembering the tick it first saw each body, which is a pure function of the state sequence it observed, so the AI stays deterministic.
+3. **AI medic use.** `bodyIsSafe` stays as the preferred case, and two more cases let the AI revive under pressure: the side has fewer than `AI_MEDIC_DESPERATE_STANDING` soldiers standing, or the body has been down for at least `AI_MEDIC_PATIENCE_TICKS`. Soldiers carry a `downedTick` field in the simulation state (the tick they went down, -1 while standing), so the AI stays a pure function of state and needs no memory of its own.
 4. **Double `M`.** The key skips downed soldiers that already have a medic run under way (`state.medics` entries carry `targetId`), so a second press targets the next downed selected soldier, or does nothing when none is left. Right-click on a downed friendly already fails inside the sim (`callMedic` rejects a duplicate), so it needs no change.
-5. **Tuning direction.** Slow the approach (`MOVE_SPEED`), lengthen cooldowns, trim Gunner and Scorcher damage per second, widen Gunner spread, and slow the AI's rush if the numbers show the mid-map pile-up is the main cause. The exact values are whatever the script says reaches the goal across seeds; the starting candidate is listed in Task 4.
+5. **Tuning direction.** Slow the approach (`MOVE_SPEED`), lengthen cooldowns, trim damage, widen spread so most rounds miss, shrink splash so one grenade rarely catches two, and raise `MAX_HP` once the weapons are weak enough for it to matter. The exact values are whatever the script says reaches the goal across seeds; the starting candidate is listed in Task 4.
+6. **AI spacing.** The one AI behaviour added: `bestFiringTile` penalises a tile with a standing friendly on any of its eight neighbours by `AI_SPACING_PENALTY`. The measurements showed splash on the AI's own bunching accounted for most downs, which is the collapse the task describes.
 
 ## Tasks
 
@@ -58,26 +59,41 @@ With a passive blue squad that never moves: median 17.7 s, first damage 9.2 s, r
 
 ### Task 3: Fix the two defects, tests first
 
-- [ ] `tests/sim/ai.test.ts`: a soldier downed in the middle of a fight, with enemies in range of the body, gets a medic call within `AI_MEDIC_PATIENCE_TICKS` plus one think interval; a side down to fewer than `AI_MEDIC_DESPERATE_STANDING` standing calls at once; a safe body still calls at once; a body with a run under way is still skipped.
-- [ ] `src/sim/ai.ts`: implement, keep determinism (the AI test that compares two runs stays green).
-- [ ] `tests/input/interpret.test.ts`: `M` with two downed soldiers selected and a run already heading for the first targets the second; with runs for both, emits nothing.
-- [ ] `src/input/interpret.ts`: implement.
-- [ ] `npm run check`, commit `Plan 4 task 3: AI uses its medic calls; M skips soldiers already being revived`.
+- [x] `tests/sim/ai.test.ts`: a soldier downed in the middle of a fight, with enemies in range of the body, gets a medic call within `AI_MEDIC_PATIENCE_TICKS` plus one think interval; a side down to fewer than `AI_MEDIC_DESPERATE_STANDING` standing calls at once; a safe body still calls at once; a body with a run under way is still skipped.
+- [x] `src/sim/ai.ts`: implement, keep determinism (the AI test that compares two runs stays green).
+- [x] `tests/input/interpret.test.ts`: `M` with two downed soldiers selected and a run already heading for the first targets the second; with runs for both, emits nothing.
+- [x] `src/input/interpret.ts`: implement.
+- [x] `npm run check`, commit `Plan 4 task 3: AI uses its medic calls; M skips soldiers already being revived`.
 
 ### Task 4: Tune
 
 Starting candidate, measured first and then adjusted from the numbers: `MOVE_SPEED` 3.2 to 2.0; Gunner cooldown 6 to 10, damage 8 to 6, spread 14 to 24; Launcher cooldown 75 to 120; Chucker cooldown 60 to 90; Blaster cooldown 105 to 150; Scorcher damage per tick 1 to 0.6. `AI_THINK_TICKS` may rise if the AI's rush needs slowing. One small deterministic AI behaviour is allowed, behind constants, if the straight-line group rush is what collapses fights.
 
-- [ ] Iterate with `npm run measure` until median battle length is 60 to 90 seconds with first contact near 10 seconds over 60 seeds.
-- [ ] Check that a passive blue squad (never moves) still loses, so the AI is not neutered.
-- [ ] Update tests that are legitimately about the old numbers. `npm run check` and `npm run test:e2e` green.
-- [ ] Commit `Plan 4 task 4: pacing constants`.
+- [x] Iterate with `npm run measure` until median battle length is 60 to 90 seconds with first contact near 10 seconds over 60 seeds.
+- [x] Check that a passive blue squad (never moves) still loses, so the AI is not neutered.
+- [x] Update tests that are legitimately about the old numbers. `npm run check` and `npm run test:e2e` green.
+- [x] Commit `Plan 4 task 4: pacing constants and AI spacing`.
 
-**Final (60 seeds):** filled in by Task 4.
+**Final (seeds 1 to 60, AI versus AI):**
+
+| Statistic | Baseline | Final |
+|---|---|---|
+| Battle length, median | 14.6 s | 62.8 s |
+| Battle length, range | 9.9 to 19.5 s | 49.9 to 101.1 s |
+| First damage, median | 5.4 s | 9.6 s |
+| Contact to end, median | 9.2 s | 53.5 s |
+| Downs per battle, median | blue 5, red 4 | blue 7, red 8 |
+| Medic calls used, total of 180 each | blue 16, red 11 | blue 180, red 180 |
+| Winner split | blue 29, red 31 | blue 36, red 24 |
+| Draws, tick-cap hits | 0, 0 | 0, 0 |
+
+Seeds 61 to 160 give a median of 64.1 s. A passive blue squad still loses 60 of 60, median 59.7 s, first damage 15.6 s.
+
+Constants: `MOVE_SPEED` 3.2 to 1.8; `MAX_HP` 100 to 160; Gunner cooldown 6 to 18, damage 8 to 5, spread 14 to 40; Launcher cooldown 75 to 270, damage 45 to 35, splash radius 40 to 32, splash damage 25 to 20, spread 10 to 16; Chucker cooldown 60 to 210, splash radius 48 to 40, splash damage 35 to 30, spread 20 to 36; Blaster cooldown 105 to 300, splash radius 40 to 32, splash damage 70 to 55, spread 16 to 30; Scorcher damage per tick 1 to 0.2. New: `AI_SPACING_PENALTY` 3, `AI_MEDIC_PATIENCE_TICKS` 90, `AI_MEDIC_DESPERATE_STANDING` 3. Ranges unchanged.
 
 ### Task 5: Docs
 
-- [ ] A dated line in `docs/decisions.md` for every constant change and for both fixes. README updated only where it states a changed number. Tick every box here. Commit `Plan 4 task 5: decisions and docs`.
+- [x] A dated line in `docs/decisions.md` for every constant change and for both fixes. README updated only where it states a changed number. Tick every box here. Commit `Plan 4 task 5: decisions and docs`.
 
 ## Self-review
 

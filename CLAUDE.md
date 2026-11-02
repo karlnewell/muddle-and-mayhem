@@ -20,6 +20,8 @@ engine, no UI framework.
 - `npm run check` runs typecheck, `lint:sim`, unit tests, and build. Run it before every commit.
 - `npm run test:e2e` runs the Playwright tests against the built site. Run `npm run build` first.
   Set `PW_CHROMIUM_PATH` to a Chromium binary if the local Playwright has none of its own.
+- `npm run measure` runs 60 AI-vs-AI battles headless and prints pacing statistics; pass a JSON
+  object of constant overrides to compare candidates. Judge every tuning change by its output.
 - Open the game with `?seed=N` to pin a battle; `window.__mm` exposes seed, tick, log and state.
 
 ## Architecture rules
@@ -85,6 +87,8 @@ this repository's foundation. Plan 2 (headless deterministic simulation,
 implemented: `src/sim/index.ts` is its public surface. Plan 3 (playable
 game, `docs/superpowers/plans/2026-11-02-plan-3-playable-game.md`) is
 implemented: `src/game/`, `src/render/`, `src/input/` and `src/ui/` on top
-of the sim, with `src/main.ts` as the entry point. v1 is complete; what
-comes next is the roadmap in `docs/decisions.md`, one design conversation
-and one plan per item.
+of the sim, with `src/main.ts` as the entry point. Plan 4 (pacing tuning,
+`docs/superpowers/plans/2026-11-02-plan-4-pacing-tuning.md`) set the
+constants for 60 to 90 second battles and added `npm run measure`. v1 is
+complete; what comes next is the roadmap in `docs/decisions.md`, one design
+conversation and one plan per item.
