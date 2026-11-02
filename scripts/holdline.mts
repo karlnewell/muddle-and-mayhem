@@ -1,7 +1,7 @@
 /**
  * A scripted blue squad for `npm run measure -- --blue=holdline`: plays
  * more like a person than the shipped AI does. At tick 0 every soldier
- * walks to a fixed post beside cover west of the left wall gap. At post it
+ * walks to a fixed post by cover west of the left wall gap. At post it
  * holds; when a majority of the standing squad can fire at the enemy
  * nearest the squad's centre it focuses fire on that one, and a soldier
  * whose target slips away holds again. It calls the medic for the first
@@ -18,13 +18,21 @@
 import type { BattleState, Command, Controller, Order, Side, Soldier, SoldierClass, TileCoord } from '../src/sim/index.ts';
 import { AI_REVIVE_PRIORITY, AI_THINK_TICKS, TILE_SIZE, WEAPONS, canFireAt, tileCenter, worldToTile } from '../src/sim/index.ts';
 
-/** Posts on Crossroads: the road mouth west of the left wall arms, with the Scorcher and Blaster tucked beside the arm ends. */
+/**
+ * Posts on Crossroads (Plan 6). The Gunner and Chucker stand on the west
+ * faces of the two wall arms, with the wall between them and the road east
+ * of the gap; the Scorcher waits in the open at the road mouth where a
+ * charger through the gap must pass it; the Launcher is rearmost on the road
+ * axis with a clear view down the road; the Blaster sits north of the
+ * southern crate group, the crate at its back, with the gap's west end at
+ * the edge of its range.
+ */
 export const HOLD_TILES: Readonly<Record<SoldierClass, TileCoord>> = {
-  gunner: { tx: 9, ty: 8 },
-  launcher: { tx: 7, ty: 10 },
-  chucker: { tx: 9, ty: 12 },
-  scorcher: { tx: 10, ty: 10 },
-  blaster: { tx: 11, ty: 12 },
+  gunner: { tx: 11, ty: 8 },
+  launcher: { tx: 8, ty: 10 },
+  chucker: { tx: 11, ty: 12 },
+  scorcher: { tx: 11, ty: 10 },
+  blaster: { tx: 8, ty: 13 },
 };
 
 /** A soldier within this of its post counts as there; a stuck arrival (ARRIVE_SLACK) is inside it. */
