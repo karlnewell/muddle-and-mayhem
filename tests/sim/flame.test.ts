@@ -154,9 +154,10 @@ describe('flame cone', () => {
     const state = createBattle({ seed: 2, map: arena() });
     isolate(state, [3, 5, 6]);
     const scorcher = state.soldiers[3];
-    place(scorcher, 440, 236);
-    const visible = bystander(state, 5, 500, 236);
-    const covered = bystander(state, 6, 530, 205);
+    // Both targets inside the Scorcher's range (72); the covered one sits past the wall's far edge.
+    place(scorcher, 464, 236);
+    const visible = bystander(state, 5, 528, 236);
+    const covered = bystander(state, 6, 526, 206);
     expect(hasLineOfSight(state.map, scorcher.x, scorcher.y, visible.x, visible.y)).toBe(true);
     expect(hasLineOfSight(state.map, scorcher.x, scorcher.y, covered.x, covered.y)).toBe(false);
 
