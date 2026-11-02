@@ -1,47 +1,45 @@
 /**
- * Pacing measurement: runs the real simulation (src/sim) AI versus AI over
- * many seeds and prints the numbers the tuning pass is judged by: battle
- * length, tick of first damage, downs and medic calls per side, winner split,
- * and the share of battles that hit the tick cap or ended in a draw.
+ * Pacing measurement: runs the real simulation (src/sim) over many seeds and
+ * prints the numbers a tuning change is judged by: battle length, tick of
+ * first damage, downs and medic calls per side, winner split, the share of
+ * battles that hit the tick cap or ended in a draw, and per side and class
+ * the shots, hits, hit rate, damage dealt and downs inflicted, as totals
+ * over every seed and as per-battle medians. The per-class numbers come
+ * from the same collector (src/stats/battleStats.ts) the browser's result
+ * screen uses, so the two agree.
  *
  * Usage:
  *   npm run measure                                  defaults: 60 seeds, AI versus AI
  *   npm run measure -- '{"MOVE_SPEED":2}'           override tunables for this run
  *   MM_OVERRIDES='{"WEAPONS":{"gunner":{"cooldown":10}}}' npm run measure
  *   npm run measure -- --seeds=100 --blue=passive    a blue squad that never moves
+ *   npm run measure -- --blue=holdline               a scripted blue squad that holds the left wall gap
  *   npm run measure -- --cap=300                     tick cap in seconds (default 600)
  *
  * Overrides are applied through `overrideTuning` in src/sim/constants.ts, so
- * every battle here runs the shipped code with the candidate values.
+ * every battle here runs the shipped code with the candidate values; the
+ * same JSON in the game's `?tune=` parameter gives the same battle.
  */
-import type { BattleEvent, BattleState, Controller, Side, SoldierClass, TuningOverrides } from '../src/sim/index.ts';
-import { CLASS_ORDER, MEDIC_CALLS, TICK_RATE, createAi, overrideTuning, runBattle } from '../src/sim/index.ts';
+import type { BattleState, Controller, Side, TuningOverrides } from '../src/sim/index.ts';
+import { CLASS_ORDER, SIDES, TICK_RATE, createAi, overrideTuning, runBattle } from '../src/sim/index.ts';
+import { createStatsCollector, sideTotals } from '../src/stats/battleStats.ts';
+import type { BattleStats, ClassStats } from '../src/stats/battleStats.ts';
+import { createHoldLine } from './holdline.mts';
+
+type BlueKind = 'ai' | 'passive' | 'holdline';
 
 interface Options {
   seeds: number;
   firstSeed: number;
   capSeconds: number;
-  blue: 'ai' | 'passive';
+  blue: BlueKind;
   overrides: TuningOverrides;
 }
 
-interface BattleStats {
-  seed: number;
-  ticks: number;
+/** One battle's statistics plus the outcome as the report counts it. */
+interface Measured {
+  stats: BattleStats;
   winner: Side | 'draw' | 'cap';
-  firstDamageTick: number | null;
-  downs: Record<Side, number>;
-  medicCalls: Record<Side, number>;
-  /** Downs and kills credited to the weapon of the last damage event on that soldier. */
-  downsByWeapon: Record<SoldierClass, number>;
-}
-
-function zeroByClass(): Record<SoldierClass, number> {
-  const out = {} as Record<SoldierClass, number>;
-  for (const cls of CLASS_ORDER) {
-    out[cls] = 0;
-  }
-  return out;
 }
 
 function parseArgs(argv: readonly string[]): Options {
@@ -57,10 +55,8 @@ function parseArgs(argv: readonly string[]): Options {
       options.firstSeed = Number(arg.slice('--first-seed='.length));
     } else if (arg.startsWith('--cap=')) {
       options.capSeconds = Number(arg.slice('--cap='.length));
-    } else if (arg === '--blue=passive') {
-      options.blue = 'passive';
-    } else if (arg === '--blue=ai') {
-      options.blue = 'ai';
+    } else if (arg === '--blue=passive' || arg === '--blue=ai' || arg === '--blue=holdline') {
+      options.blue = arg.slice('--blue='.length) as BlueKind;
     } else if (arg.startsWith('{')) {
       options.overrides = { ...options.overrides, ...(JSON.parse(arg) as TuningOverrides) };
     } else {
@@ -75,47 +71,24 @@ function passive(side: Side): Controller {
   return { side, think: () => [] };
 }
 
-function sideOf(state: BattleState, soldierId: number): Side {
-  return state.soldiers[soldierId].side;
+function blueController(kind: BlueKind, seed: number): Controller {
+  if (kind === 'ai') {
+    return createAi('blue', seed);
+  }
+  return kind === 'holdline' ? createHoldLine('blue') : passive('blue');
 }
 
-function measureBattle(seed: number, options: Options): BattleStats {
-  const stats: BattleStats = {
-    seed,
-    ticks: 0,
-    winner: 'cap',
-    firstDamageTick: null,
-    downs: { blue: 0, red: 0 },
-    medicCalls: { blue: 0, red: 0 },
-    downsByWeapon: zeroByClass(),
-  };
-  let lastWeapon: SoldierClass | null = null;
-  const blue = options.blue === 'ai' ? createAi('blue', seed) : passive('blue');
+function measureBattle(seed: number, options: Options): Measured {
+  const collector = createStatsCollector(seed, options.overrides);
   const run = runBattle({
     seed,
     maxTicks: options.capSeconds * TICK_RATE,
-    controllers: [blue, createAi('red', seed)],
+    controllers: [blueController(options.blue, seed), createAi('red', seed)],
     onStep(state: BattleState) {
-      for (const e of state.events as readonly BattleEvent[]) {
-        if (e.kind === 'damage') {
-          lastWeapon = e.weapon;
-          if (stats.firstDamageTick === null) {
-            stats.firstDamageTick = state.tick - 1;
-          }
-        } else if (e.kind === 'downed' || e.kind === 'killed') {
-          stats.downs[sideOf(state, e.soldierId)]++;
-          if (lastWeapon !== null) {
-            stats.downsByWeapon[lastWeapon]++;
-          }
-        }
-      }
+      collector.observe(state);
     },
   });
-  stats.ticks = run.ticks;
-  stats.winner = run.state.winner ?? 'cap';
-  stats.medicCalls.blue = MEDIC_CALLS - run.state.sides.blue.medicCalls;
-  stats.medicCalls.red = MEDIC_CALLS - run.state.sides.red.medicCalls;
-  return stats;
+  return { stats: collector.stats(), winner: run.state.winner ?? 'cap' };
 }
 
 function median(values: readonly number[]): number {
@@ -135,47 +108,81 @@ function row(label: string, value: string): void {
   console.log(`${label.padEnd(30)} ${value}`);
 }
 
-function report(all: readonly BattleStats[], options: Options): void {
-  const lengths = all.map((s) => s.ticks);
-  const firstDamage = all.filter((s) => s.firstDamageTick !== null).map((s) => s.firstDamageTick as number);
+/** `total (median)` for one class field over every battle. */
+function totalAndMedian(all: readonly Measured[], pick: (s: BattleStats) => number): string {
+  const values = all.map((m) => pick(m.stats));
+  const total = values.reduce((n, v) => n + v, 0);
+  return `${Math.round(total)} (${median(values).toFixed(1)})`;
+}
+
+/** Per side, one row per class: shots, hits, hit rate, damage dealt and downs inflicted, totals with per-battle medians in brackets. */
+function reportClasses(all: readonly Measured[]): void {
+  console.log('');
+  console.log('per class: total over all battles (median per battle)');
+  console.log(`${'side class'.padEnd(16)} ${'shots'.padEnd(14)} ${'hits'.padEnd(14)} ${'hit%'.padEnd(5)} ${'dealt'.padEnd(14)} downs`);
+  for (const side of SIDES) {
+    for (const cls of CLASS_ORDER) {
+      const pick = (s: BattleStats): ClassStats => s.sides[side][cls];
+      const shots = all.reduce((n, m) => n + pick(m.stats).shots, 0);
+      const hits = all.reduce((n, m) => n + pick(m.stats).hits, 0);
+      const rate = shots === 0 ? '-' : `${Math.round((100 * hits) / shots)}%`;
+      console.log(
+        `${`${side} ${cls}`.padEnd(16)} ${totalAndMedian(all, (s) => pick(s).shots).padEnd(14)} ` +
+          `${totalAndMedian(all, (s) => pick(s).hits).padEnd(14)} ${rate.padEnd(5)} ` +
+          `${totalAndMedian(all, (s) => pick(s).damageDealt).padEnd(14)} ${totalAndMedian(all, (s) => pick(s).downsInflicted)}`,
+      );
+    }
+  }
+}
+
+function report(all: readonly Measured[], options: Options): void {
+  const lengths = all.map((m) => m.stats.ticks);
+  const contact = all.map((m) => m.stats.firstContactTick).filter((t): t is number => t !== null);
   const afterContact = all
-    .filter((s) => s.firstDamageTick !== null)
-    .map((s) => s.ticks - (s.firstDamageTick as number));
-  const count = (winner: BattleStats['winner']): number => all.filter((s) => s.winner === winner).length;
+    .filter((m) => m.stats.firstContactTick !== null)
+    .map((m) => m.stats.ticks - (m.stats.firstContactTick as number));
+  const count = (winner: Measured['winner']): number => all.filter((m) => m.winner === winner).length;
   const share = (n: number): string => `${((100 * n) / all.length).toFixed(0)}%`;
-  const perSide = (pick: (s: BattleStats) => Record<Side, number>): string =>
-    `blue ${median(all.map((s) => pick(s).blue)).toFixed(1)}  red ${median(all.map((s) => pick(s).red)).toFixed(1)}`;
+  const perSide = (pick: (s: BattleStats, side: Side) => number): string =>
+    `blue ${median(all.map((m) => pick(m.stats, 'blue'))).toFixed(1)}  red ${median(all.map((m) => pick(m.stats, 'red'))).toFixed(1)}`;
+  const sum = (pick: (s: BattleStats, side: Side) => number, side: Side): number => all.reduce((n, m) => n + pick(m.stats, side), 0);
+  const downs = (s: BattleStats, side: Side): number => sideTotals(s, side).timesDowned;
+  const medics = (s: BattleStats, side: Side): number => sideTotals(s, side).medicCalls;
 
   console.log(`seeds ${options.firstSeed}..${options.firstSeed + options.seeds - 1}, blue ${options.blue}, cap ${options.capSeconds}s`);
   console.log(`overrides ${JSON.stringify(options.overrides)}`);
   console.log('');
   row('battle length (s) median', seconds(median(lengths)));
   row('battle length (s) range', `${seconds(Math.min(...lengths))} to ${seconds(Math.max(...lengths))}`);
-  row('first damage (s) median', firstDamage.length > 0 ? seconds(median(firstDamage)) : 'never');
-  row('first damage (s) range', firstDamage.length > 0 ? `${seconds(Math.min(...firstDamage))} to ${seconds(Math.max(...firstDamage))}` : 'never');
+  row('first damage (s) median', contact.length > 0 ? seconds(median(contact)) : 'never');
+  row('first damage (s) range', contact.length > 0 ? `${seconds(Math.min(...contact))} to ${seconds(Math.max(...contact))}` : 'never');
   row('contact to end (s) median', afterContact.length > 0 ? seconds(median(afterContact)) : 'never');
-  row('downs per battle median', perSide((s) => s.downs));
-  row('medic calls used median', perSide((s) => s.medicCalls));
-  row('medic calls used total', `blue ${all.reduce((n, s) => n + s.medicCalls.blue, 0)}  red ${all.reduce((n, s) => n + s.medicCalls.red, 0)}`);
-  const byWeapon = CLASS_ORDER.map((cls) => `${cls} ${all.reduce((n, s) => n + s.downsByWeapon[cls], 0)}`).join('  ');
+  row('downs per battle median', perSide(downs));
+  row('medic calls used median', perSide(medics));
+  row('medic calls used total', `blue ${sum(medics, 'blue')}  red ${sum(medics, 'red')}`);
+  const byWeapon = CLASS_ORDER.map((cls) => `${cls} ${sum((s, side) => s.sides[side][cls].downsInflicted, 'blue') + sum((s, side) => s.sides[side][cls].downsInflicted, 'red')}`).join('  ');
   row('downs by weapon total', byWeapon);
   row('winner split', `blue ${count('blue')} (${share(count('blue'))})  red ${count('red')} (${share(count('red'))})`);
   row('draws', `${count('draw')} (${share(count('draw'))})`);
   row('hit the tick cap', `${count('cap')} (${share(count('cap'))})`);
+  reportClasses(all);
 }
 
 function main(): void {
   const options = parseArgs(process.argv.slice(2));
   overrideTuning(options.overrides);
-  const all: BattleStats[] = [];
+  const all: Measured[] = [];
   for (let i = 0; i < options.seeds; i++) {
     all.push(measureBattle(options.firstSeed + i, options));
   }
   report(all, options);
   if (process.env.MM_VERBOSE !== undefined) {
     console.log('');
-    for (const s of all) {
-      console.log(`seed ${String(s.seed).padStart(4)}  ${seconds(s.ticks).padStart(6)}s  first ${s.firstDamageTick === null ? '  n/a' : seconds(s.firstDamageTick).padStart(5)}s  downs b${s.downs.blue} r${s.downs.red}  medics b${s.medicCalls.blue} r${s.medicCalls.red}  ${s.winner}`);
+    for (const m of all) {
+      const s = m.stats;
+      const b = sideTotals(s, 'blue');
+      const r = sideTotals(s, 'red');
+      console.log(`seed ${String(s.seed).padStart(4)}  ${seconds(s.ticks).padStart(6)}s  first ${s.firstContactTick === null ? '  n/a' : seconds(s.firstContactTick).padStart(5)}s  downs b${b.timesDowned} r${r.timesDowned}  medics b${b.medicCalls} r${r.medicCalls}  ${m.winner}`);
     }
   }
 }

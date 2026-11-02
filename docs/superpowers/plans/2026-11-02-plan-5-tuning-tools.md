@@ -232,13 +232,15 @@ export function createHoldLine(side: Side): Controller;
 - [ ] **Step 6: Run `npm run measure` with `--blue=ai`, `--blue=passive`, `--blue=holdline` over seeds 1 to 60 and record the three blue win rates and the per-class block in the plan (below) and the PR. If the hold-line squad wins fewer than about 20% or more than about 80%, move posts once or twice (never the rules) and re-measure.**
 - [ ] **Step 7: `npm run check` green. Commit `Plan 5 task 5: hold-line blue controller and per-class measurement`.**
 
-**Results (seeds 1 to 60, filled in by Task 5):**
+**Results (seeds 1 to 60, shipped balance):**
 
-| Blue controller | Blue wins | Median length |
-|---|---|---|
-| ai | | |
-| passive | | |
-| holdline | | |
+| Blue controller | Blue wins | Median length | First damage | Red downs per battle (median) |
+|---|---|---|---|---|
+| ai | 33 (55%) | 59.0 s | 9.6 s | 8 |
+| passive | 0 (0%) | 54.2 s | 15.6 s | 1 |
+| holdline | 0 (0%) | 57.3 s | 12.8 s | 3 |
+
+Two post sets were measured. The first (road mouth: gunner (11, 9), launcher (9, 10), chucker (11, 11), scorcher (11, 8), blaster (11, 12)) lost 60 of 60 with a median of one red down per battle; the red Scorcher alone burned for 37,000 cone ticks over the run. The second, kept (gunner (9, 8), launcher (7, 10), chucker (9, 12), scorcher (10, 10), blaster (11, 12)), also lost 60 of 60 but takes three red soldiers down per battle. With the red Scorcher's flame cut to 0.2 per tick the squad still loses 60 of 60 (four red downs per battle), so the loss is structural: a squad that holds cannot beat five converging soldiers with three splash weapons under the shipped balance. The controller is kept as it is: a human-like static baseline whose downs-per-battle and battle length respond to tuning even where its win rate sits at the floor.
 
 ### Task 6: README and decisions
 
