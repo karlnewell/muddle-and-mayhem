@@ -100,11 +100,15 @@ export function createStatsCollector(seed: number, overrides: TuningOverrides): 
     const tick = state.tick - 1;
     stats.ticks = state.tick;
     stats.winner = state.winner;
+    // Scorchers whose cone was active this tick, counted as shots. One downed by another flame on the
+    // same tick has firing cleared already, so it is counted below when its damage shows up instead.
+    const burning = new Set<number>();
     for (const s of state.soldiers) {
       if (s.status === 'downed') {
         cell(s).downedTicks++;
       } else if (s.cls === 'scorcher' && s.status === 'standing' && s.firing) {
         cell(s).shots++;
+        burning.add(s.id);
       }
     }
     // The source of the last damage each victim took this tick, so a down that follows is credited to it.
@@ -126,6 +130,10 @@ export function createStatsCollector(seed: number, overrides: TuningOverrides): 
           cell(victim).damageTaken += e.amount;
         }
         if (source !== undefined) {
+          if (source.cls === 'scorcher' && !burning.has(source.id)) {
+            cell(source).shots++;
+            burning.add(source.id);
+          }
           cell(source).damageDealt += e.amount;
           if (victim !== undefined) {
             lastSource.set(victim.id, source);

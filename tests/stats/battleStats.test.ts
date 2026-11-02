@@ -35,6 +35,17 @@ describe('createStatsCollector', () => {
     expect(c.stats().sides.red.scorcher.shots).toBe(0);
   });
 
+  it('counts the shot for a scorcher downed on the tick it burned, so its rate never passes 100%', () => {
+    // Flame runs in id order: blue scorcher 3 burns red scorcher 8, then 8 burns 3 down in the same tick,
+    // so after the step 3 is downed with firing false and would get a hit with no shot.
+    const { c } = observed([{ kind: 'damage', soldierId: 8, amount: 0.5, weapon: 'scorcher', sourceId: 3 }], (s) => {
+      s.soldiers[3].status = 'downed';
+      s.soldiers[3].firing = false;
+    });
+    expect(c.stats().sides.blue.scorcher.shots).toBe(1);
+    expect(c.stats().sides.blue.scorcher.hits).toBe(1);
+  });
+
   it('credits damage dealt, a hit and damage taken from a damage event', () => {
     const { c } = observed([{ kind: 'damage', soldierId: 5, amount: 5, weapon: 'gunner', sourceId: 0 }]);
     const s = c.stats();
