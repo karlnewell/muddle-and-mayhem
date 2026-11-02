@@ -1,7 +1,8 @@
 /**
  * Pacing measurement: runs the real simulation (src/sim) over many seeds and
  * prints the numbers a tuning change is judged by: battle length, tick of
- * first damage, downs and medic calls per side, winner split, the share of
+ * first damage, downs and medic calls per side, red move commands per
+ * battle (how often the red AI re-sites), winner split, the share of
  * battles that hit the tick cap or ended in a draw, and per side and class
  * the shots, hits, hit rate, damage dealt and downs inflicted, as totals
  * over every seed and as per-battle medians. The per-class numbers come
@@ -40,6 +41,8 @@ interface Options {
 interface Measured {
   stats: BattleStats;
   winner: Side | 'draw' | 'cap';
+  /** Move commands the red AI issued over the battle: how often it re-sited its soldiers. */
+  redMoves: number;
 }
 
 function parseArgs(argv: readonly string[]): Options {
@@ -88,7 +91,8 @@ function measureBattle(seed: number, options: Options): Measured {
       collector.observe(state);
     },
   });
-  return { stats: collector.stats(), winner: run.state.winner ?? 'cap' };
+  const redMoves = run.log.filter((c) => c.side === 'red' && c.type === 'move').length;
+  return { stats: collector.stats(), winner: run.state.winner ?? 'cap', redMoves };
 }
 
 function median(values: readonly number[]): number {
@@ -159,6 +163,7 @@ function report(all: readonly Measured[], options: Options): void {
   row('contact to end (s) median', afterContact.length > 0 ? seconds(median(afterContact)) : 'never');
   row('downs per battle median', perSide(downs));
   row('medic calls used median', perSide(medics));
+  row('red move commands median', `${median(all.map((m) => m.redMoves)).toFixed(1)}  total ${all.reduce((n, m) => n + m.redMoves, 0)}`);
   row('medic calls used total', `blue ${sum(medics, 'blue')}  red ${sum(medics, 'red')}`);
   const byWeapon = CLASS_ORDER.map((cls) => `${cls} ${sum((s, side) => s.sides[side][cls].downsInflicted, 'blue') + sum((s, side) => s.sides[side][cls].downsInflicted, 'red')}`).join('  ');
   row('downs by weapon total', byWeapon);
