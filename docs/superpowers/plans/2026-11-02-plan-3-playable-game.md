@@ -107,8 +107,8 @@ export function createSession(seed: number): BattleSession;
 export function seedFromSearch(search: string, random: () => number): number; // src/game/seed.ts
 ```
 
-- [ ] Failing tests: new session is paused at tick 0; `advance` while paused steps nothing; a `move` queued at tick 0 shows up as the soldier's order after `stepOnce`; red commands appear in the log with `side: 'red'`; after 300 ticks with a scripted blue move at tick 0 and a hold at tick 40, `hashState(replayBattle(seed, log, tick))` equals `hashState(state)`; log is in ascending tick order; `advance(1000)` when unpaused runs `MAX_TICKS_PER_FRAME` ticks; a finished battle stops advancing; `seedFromSearch('?seed=42', ...)` is 42 and without it returns the random value as a 32-bit unsigned integer.
-- [ ] Implement, `npm run check`, commit `Plan 3 task 2: battle session and command log`.
+- [x] Failing tests: new session is paused at tick 0; `advance` while paused steps nothing; a `move` queued at tick 0 shows up as the soldier's order after `stepOnce`; red commands appear in the log with `side: 'red'`; after 300 ticks with a scripted blue move at tick 0 and a hold at tick 40, `hashState(replayBattle(seed, log, tick))` equals `hashState(state)`; log is in ascending tick order; `advance(1000)` when unpaused runs `MAX_TICKS_PER_FRAME` ticks; a finished battle stops advancing; `seedFromSearch('?seed=42', ...)` is 42 and without it returns the random value as a 32-bit unsigned integer.
+- [x] Implement, `npm run check`, commit `Plan 3 task 2: battle session and command log`.
 
 ### Task 3: Input interpretation: picking, clicks and keys to commands
 
