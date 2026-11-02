@@ -39,8 +39,8 @@ These protect the multiplayer and headless-testing goals. Do not bend them.
 5. **Cross-engine-safe arithmetic.** Code under `src/sim/` may use only
    `+ - * /`, `Math.sqrt`, `Math.floor`, `Math.abs`, `Math.min`, `Math.max`,
    `Math.imul`, integer bit operators (`| & ^ ~ << >> >>>`), and comparisons.
-   Banned: `Math.sin`, `Math.cos`, `Math.tan`, `Math.atan`, `Math.atan2`,
-   `Math.pow`, `Math.exp`, `Math.log`, `Math.random`, and the `**` operator.
+   Every other `Math` member is banned (`sin`, `cos`, `atan2`, `pow`, `exp`,
+   `log`, `round`, `random`, all of them), and so is the `**` operator.
    Use squared distances; use dot products or a precomputed unit-vector table
    where an angle is needed. `npm run lint:sim` enforces this and fails CI.
 

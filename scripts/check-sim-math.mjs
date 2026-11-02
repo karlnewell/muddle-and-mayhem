@@ -4,7 +4,8 @@
 //
 // Allowed:  + - * /  Math.sqrt  Math.floor  Math.abs  Math.min  Math.max
 //           Math.imul  integer bit operators  comparisons
-// Banned:   transcendental Math functions, the ** operator, Math.random, and
+// Banned:   every other Math member (an allowlist, so Math.asinh and
+//           Math.round are caught too), the ** operator, and
 //           anything that reads the clock or the browser (Date, performance,
 //           document, window). Sim code may not import from render, input,
 //           or ui either.
@@ -17,7 +18,7 @@ import { join } from 'node:path';
 import { pathToFileURL } from 'node:url';
 
 const BANNED =
-  /\bMath\.(sin|cos|tan|atan|atan2|asin|acos|sinh|cosh|tanh|pow|exp|expm1|log|log1p|log2|log10|random|hypot|cbrt)\b|\*\*|\bDate\b|\bperformance\b|\bdocument\b|\bwindow\b/g;
+  /\bMath\.(?!(?:sqrt|floor|abs|min|max|imul)\b)\w+|\*\*|\bDate\b|\bperformance\b|\bdocument\b|\bwindow\b/g;
 
 // An import whose path crosses into the renderer, input, or UI layers.
 const FORBIDDEN_IMPORT = /\b(?:from|import)\s*\(?\s*['"][^'"]*\/(render|input|ui)(?:\/|['"])/g;
@@ -29,6 +30,9 @@ const FORBIDDEN_IMPORT = /\b(?:from|import)\s*\(?\s*['"][^'"]*\/(render|input|ui
  * ponytail: this scanner does not understand string or template literals, so
  * a "//" or "/*" inside a string is treated as a comment start. Sim code has
  * no reason to contain such strings; if one appears, split or escape it.
+ *
+ * ponytail: the guard is textual. `const { pow } = Math` or `Math['pow']` slip
+ * past it. Code review covers those until a real lint rule replaces this script.
  */
 export function stripComments(source) {
   let out = '';
