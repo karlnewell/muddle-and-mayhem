@@ -203,11 +203,31 @@ Seeds 61 to 120, hold-line: before 10; fraction 0.5 16; grounded 12. Diagnostic 
 
 Two candidate rules, each a pure function of state: (a) stagger the approach: a lobber (Chucker, Blaster) holds its current tile until a friendly direct-fire soldier (Gunner, Launcher) has an enemy within range, read from `inRange` over the state; (b) spread the columns: `bestFiringTile` penalises a tile within `AI_APPROACH_SPACING` tiles of another friendly's destination, so the squad does not arrive through the gap as one file. Measure each alone as in Task 3; ship at most one; keep `createAi` deterministic (the ai determinism test, replay test and hash test stay green).
 
-- [ ] Steps as Tasks 2 and 3: failing test, implement, measure, decision line, commit `Plan 6: attacker spread`.
+- [x] Steps as Tasks 2 and 3: failing test, implement, measure, decision line, commit `Plan 6: attacker spread`.
+
+Implementation notes: rule (a) was built as two flags, `AI_LOBBER_WAIT` and `AI_SCORCHER_WAIT`, so the stagger could be measured with and without the charger; rule (b) was not needed. A waiting soldier holds where it stands (the AI's first `hold` commands) and still fires at anything in its own range; nobody waits when no standing friendly carries a direct weapon, so battles always end. The tick-0 AI test now expects no order for the lobbers while they wait.
+
+**Results (seeds 1 to 60; "before" is PR 3, identical in behaviour to PR 2):**
+
+| Blue | Before | lobbers wait (shipped) | Scorcher waits | both wait |
+|---|---|---|---|---|
+| ai: wins, median, first damage, red downs | 32, 58.4 s, 9.6 s, 8 | 38, 64.7 s, 9.7 s, 8 | 27, 63.5 s, 9.4 s, 7 | 31, 65.2 s, 9.5 s, 8 |
+| passive | 0, 54.3 s, 15.6 s, 2 | 0, 65.2 s, 16.1 s, 4 | 0, 59.6 s, 15.6 s, 4 | 0, 67.5 s, 17.2 s, 3 |
+| holdline | 13, 69.0 s, 12.1 s, 5 | 16, 74.4 s, 11.6 s, 5 | 2, 66.3 s, 12.2 s, 3.5 | 1, 67.6 s, 11.4 s, 3 |
+
+Lobbers wait over seeds 61 to 120 and 121 to 180: hold-line 11 and 24 wins (before 10 and 17), red downs 6 and 7; AI versus AI 34 and 27 blue wins (before 36 and 38), 64.8 and 65.2 s; passive red 60 of 60 both. Over 180 seeds: hold-line 28% against 22%, AI 55% against 59%. Median red downs in the hold-line's lost battles: 5 either way.
 
 ### Task 5: Finish
 
-- [ ] Tick every box, fill in the result tables, `npm run check` and `npm run test:e2e` green on the last PR, and close the plan with a decision line giving the final numbers (ai, passive, holdline) and what was tried and rejected.
+- [x] Tick every box, fill in the result tables, `npm run check` and `npm run test:e2e` green on the last PR, and close the plan with a decision line giving the final numbers (ai, passive, holdline) and what was tried and rejected.
+
+**Final (seeds 1 to 60, Plan 6 branch against `main`):**
+
+| Blue | main: wins, median, first damage, red downs | Plan 6 |
+|---|---|---|
+| ai | 33 (55%), 59.0 s, 9.6 s, 8 | 38 (63%), 64.7 s, 9.7 s, 8 |
+| passive | 0, 54.2 s, 15.6 s, 2 | 0, 65.2 s, 16.1 s, 4 |
+| holdline | 0, 57.3 s, 12.8 s, 3 | 16 (27%), 74.4 s, 11.6 s, 5 |
 
 ## Self-review
 

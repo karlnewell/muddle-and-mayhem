@@ -113,10 +113,11 @@ npm run measure -- '{"WEAPONS":{"launcher":{"cooldown":180}}}'
 scripted squad that walks to cover by the left wall gap, holds, focuses
 fire on the enemy most of the squad can see, calls medics when a body is
 not under fire and advances only when it outnumbers the enemy. Under the
-shipped balance the computer wins 55% against itself, 100% against the
-passive squad and 73% against the hold-line squad (100% before Plan 6
-moved its posts beside the wall arms), which is a result about static
-defence as much as about balance.
+shipped balance, over 180 seeds, the computer wins 55% against itself,
+100% against the passive squad and 72% against the hold-line squad (100%
+before Plan 6 moved its posts beside the wall arms, made cover soak splash
+and had the computer's lobbers wait for contact), which is a result about
+static defence as much as about balance.
 
 **The loop, one change at a time.**
 

@@ -42,6 +42,8 @@ export let AI_LOBBER_TARGET_REACH = 2; // lobbers look for a covered target with
 export let AI_SPACING_PENALTY = 3;          // firing-tile score lost for standing beside a friendly: one grenade should not catch two
 export let AI_MEDIC_PATIENCE_TICKS = 90;    // the AI revives a covered body once it has lain this long (3 s)
 export let AI_MEDIC_DESPERATE_STANDING = 3; // with fewer standing than this, the AI revives at once, covered or not
+export let AI_LOBBER_WAIT = 1;   // 1: Chucker and Blaster hold until a standing friendly Gunner or Launcher has an enemy within its range (0 off)
+export let AI_SCORCHER_WAIT = 0; // 1: the Scorcher waits for that contact too instead of charging from the start (measured, rejected)
 export const AI_SEED_SALT: Readonly<Record<Side, number>> = { blue: 0x9e3779b9, red: 0x7f4a7c15 };
 export const AI_REVIVE_PRIORITY: readonly SoldierClass[] = ['launcher', 'blaster', 'chucker', 'gunner', 'scorcher'];
 export const CLASS_ORDER: readonly SoldierClass[] = ['gunner', 'launcher', 'chucker', 'scorcher', 'blaster'];
@@ -102,7 +104,7 @@ export type TunableName =
   | 'GUNNER_JAM_CHANCE' | 'GUNNER_JAM_TICKS' | 'AI_THINK_TICKS' | 'AI_COVER_BONUS' | 'AI_RANGE_FRACTION'
   | 'AI_LAUNCHER_DISTANCE_WEIGHT' | 'AI_TRAVEL_WEIGHT' | 'AI_JITTER' | 'AI_LOBBER_TARGET_REACH'
   | 'AI_MEDIC_PATIENCE_TICKS' | 'AI_MEDIC_DESPERATE_STANDING' | 'AI_SPACING_PENALTY' | 'COVER_SPLASH_FRACTION'
-  | 'FIRING_MOVE_FRACTION';
+  | 'FIRING_MOVE_FRACTION' | 'AI_LOBBER_WAIT' | 'AI_SCORCHER_WAIT';
 
 export type TuningOverrides = Partial<Record<TunableName, number>> & {
   WEAPONS?: Partial<Record<SoldierClass, Partial<WeaponStats>>>;
@@ -114,7 +116,7 @@ export const TUNABLE_NAMES: readonly TunableName[] = [
   'GUNNER_JAM_CHANCE', 'GUNNER_JAM_TICKS', 'AI_THINK_TICKS', 'AI_COVER_BONUS', 'AI_RANGE_FRACTION',
   'AI_LAUNCHER_DISTANCE_WEIGHT', 'AI_TRAVEL_WEIGHT', 'AI_JITTER', 'AI_LOBBER_TARGET_REACH',
   'AI_MEDIC_PATIENCE_TICKS', 'AI_MEDIC_DESPERATE_STANDING', 'AI_SPACING_PENALTY', 'COVER_SPLASH_FRACTION',
-  'FIRING_MOVE_FRACTION',
+  'FIRING_MOVE_FRACTION', 'AI_LOBBER_WAIT', 'AI_SCORCHER_WAIT',
 ];
 
 function isPlainObject(value: unknown): value is Record<string, unknown> {
@@ -213,6 +215,8 @@ export function overrideTuning(overrides: TuningOverrides): void {
       case 'AI_MEDIC_DESPERATE_STANDING': AI_MEDIC_DESPERATE_STANDING = n; break;
       case 'COVER_SPLASH_FRACTION': COVER_SPLASH_FRACTION = n; break;
       case 'FIRING_MOVE_FRACTION': FIRING_MOVE_FRACTION = n; break;
+      case 'AI_LOBBER_WAIT': AI_LOBBER_WAIT = n; break;
+      case 'AI_SCORCHER_WAIT': AI_SCORCHER_WAIT = n; break;
     }
   }
 }

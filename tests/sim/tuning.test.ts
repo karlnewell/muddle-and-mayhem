@@ -95,6 +95,13 @@ describe('FIRING_MOVE_FRACTION and fireWhileMoving', () => {
   });
 });
 
+describe('AI wait flags', () => {
+  it('AI_LOBBER_WAIT and AI_SCORCHER_WAIT are tunables', () => {
+    expect(TUNABLE_NAMES).toContain('AI_LOBBER_WAIT');
+    expect(TUNABLE_NAMES).toContain('AI_SCORCHER_WAIT');
+  });
+});
+
 describe('TUNABLE_NAMES', () => {
   it('lists every scalar tunable once', () => {
     expect(TUNABLE_NAMES).toContain('MOVE_SPEED');

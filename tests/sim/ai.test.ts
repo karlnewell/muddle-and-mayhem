@@ -2,7 +2,10 @@ import { describe, expect, it } from 'vitest';
 import { createAi } from '../../src/sim/ai';
 import { besideCover, isCover } from '../../src/sim/aiPositions';
 import { createBattle, step } from '../../src/sim/battle';
-import { AI_MEDIC_DESPERATE_STANDING, AI_MEDIC_PATIENCE_TICKS, AI_SEED_SALT, AI_THINK_TICKS, MEDIC_CALLS } from '../../src/sim/constants';
+import {
+  AI_LOBBER_WAIT, AI_MEDIC_DESPERATE_STANDING, AI_MEDIC_PATIENCE_TICKS, AI_SCORCHER_WAIT, AI_SEED_SALT, AI_THINK_TICKS, MEDIC_CALLS,
+  overrideTuning,
+} from '../../src/sim/constants';
 import { runBattle } from '../../src/sim/headless';
 import { parseMap, worldToTile } from '../../src/sim/map';
 import { createRng } from '../../src/sim/rng';
@@ -102,11 +105,12 @@ describe('createAi', () => {
     expect(createAi('red', 1).think(state)).toEqual([]);
   });
 
-  it('orders every standing red soldier on tick 0 of a fresh battle', () => {
+  it('orders every standing red soldier on tick 0 of a fresh battle, except the lobbers while they wait for contact', () => {
     const state = createBattle({ seed: 1 });
     const commands = createAi('red', 1).think(state);
     for (const id of RED_IDS) {
-      expect(forSoldier(commands, id).length).toBeGreaterThanOrEqual(1);
+      const waits = (id === 7 || id === 9) && AI_LOBBER_WAIT !== 0;
+      expect(forSoldier(commands, id).length).toBe(waits ? 0 : 1);
     }
     for (const c of commands) {
       expect(c.side).toBe('red');
@@ -308,5 +312,89 @@ describe('createAi', () => {
       expect(blueSeed).not.toBe(redSeed);
       expect(createRng(blueSeed).next()).not.toBe(createRng(redSeed).next());
     }
+  });
+});
+
+describe('waiting for contact', () => {
+  /** Run `fn` with the two wait flags set, then restore the shipped values. */
+  function withWait(lobber: number, scorcher: number, fn: () => void): void {
+    overrideTuning({ AI_LOBBER_WAIT: lobber, AI_SCORCHER_WAIT: scorcher });
+    try {
+      fn();
+    } finally {
+      overrideTuning({ AI_LOBBER_WAIT, AI_SCORCHER_WAIT });
+    }
+  }
+
+  it('with both flags off, every red soldier gets an order at tick 0', () => {
+    withWait(0, 0, () => {
+      const commands = createAi('red', 1).think(createBattle({ seed: 1 }));
+      for (const id of RED_IDS) {
+        expect(forSoldier(commands, id)).toHaveLength(1);
+      }
+    });
+  });
+
+  it('with AI_LOBBER_WAIT on, the lobbers get no order while no friendly direct weapon has an enemy in range', () => {
+    withWait(1, 0, () => {
+      const commands = createAi('red', 1).think(createBattle({ seed: 1 }));
+      expect(forSoldier(commands, 7)).toEqual([]);   // chucker
+      expect(forSoldier(commands, 9)).toEqual([]);   // blaster
+      expect(forSoldier(commands, 5)).toHaveLength(1); // gunner advances
+      expect(forSoldier(commands, 6)).toHaveLength(1); // launcher advances
+      expect(forSoldier(commands, 8)).toHaveLength(1); // scorcher charges
+    });
+  });
+
+  it('with AI_SCORCHER_WAIT on as well, the scorcher waits too', () => {
+    withWait(1, 1, () => {
+      const commands = createAi('red', 1).think(createBattle({ seed: 1 }));
+      expect(forSoldier(commands, 8)).toEqual([]);
+      expect(forSoldier(commands, 5)).toHaveLength(1);
+    });
+  });
+
+  it('releases the waiters once a friendly gunner has an enemy within its weapon range', () => {
+    withWait(1, 1, () => {
+      const state = createBattle({ seed: 1 });
+      const gunner = state.soldiers[5];
+      place(state.soldiers[0], gunner.x - 200, gunner.y);   // inside the gunner's 224 range
+      const commands = createAi('red', 1).think(state);
+      for (const id of [7, 8, 9]) {
+        expect(forSoldier(commands, id)).toHaveLength(1);
+      }
+    });
+  });
+
+  it('releases the waiters when no direct-fire friendly is standing', () => {
+    withWait(1, 1, () => {
+      const state = createBattle({ seed: 1 });
+      down(state, 5);
+      down(state, 6);
+      const commands = createAi('red', 1).think(state);
+      for (const id of [7, 8, 9]) {
+        expect(forSoldier(commands, id)).toHaveLength(1);
+      }
+    });
+  });
+
+  it('orders a waiting lobber that still carries an attack order to hold', () => {
+    withWait(1, 0, () => {
+      const state = createBattle({ seed: 1 });
+      state.soldiers[7].order = { kind: 'attack', targetId: 0 };
+      const commands = createAi('red', 1).think(state);
+      expect(forSoldier(commands, 7)).toEqual([{ tick: 0, side: 'red', type: 'hold', soldierIds: [7] }]);
+    });
+  });
+
+  it('stays deterministic with the flags on', () => {
+    withWait(1, 1, () => {
+      const run = (): ReturnType<typeof runBattle> =>
+        runBattle({ seed: 11, maxTicks: 18000, controllers: [createAi('blue', 11), createAi('red', 11)] });
+      const a = run();
+      const b = run();
+      expect(a.state.winner).not.toBeNull();
+      expect(a.log).toEqual(b.log);
+    });
   });
 });

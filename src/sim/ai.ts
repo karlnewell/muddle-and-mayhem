@@ -6,20 +6,22 @@
  * and the same state always give the same commands.
  *
  * It thinks every `AI_THINK_TICKS` and issues a command only when that
- * would change a soldier's order, so command logs stay small.
+ * would change a soldier's order, so command logs stay small. With
+ * `AI_LOBBER_WAIT` or `AI_SCORCHER_WAIT` set, those classes hold back until
+ * a friendly direct weapon has an enemy in range (`waitsForContact`).
  */
 import type { Rng } from './rng';
 import type { BattleState, Command, Order, Side, Soldier } from './types';
 import { bestFiringTile, occupancy } from './aiPositions';
 import {
-  AI_LOBBER_TARGET_REACH, AI_MEDIC_DESPERATE_STANDING, AI_MEDIC_PATIENCE_TICKS, AI_REVIVE_PRIORITY, AI_SEED_SALT,
-  AI_THINK_TICKS, WEAPONS,
+  AI_LOBBER_TARGET_REACH, AI_LOBBER_WAIT, AI_MEDIC_DESPERATE_STANDING, AI_MEDIC_PATIENCE_TICKS, AI_REVIVE_PRIORITY,
+  AI_SCORCHER_WAIT, AI_SEED_SALT, AI_THINK_TICKS, WEAPONS,
 } from './constants';
 import { hasLineOfSight } from './los';
 import { tileCenter, worldToTile } from './map';
 import { createRng } from './rng';
 import { isActive } from './soldiers';
-import { canFireAt } from './targeting';
+import { canFireAt, inRange } from './targeting';
 import { dist2, imod } from './vec';
 
 export interface Controller {
@@ -79,6 +81,41 @@ function preferredTarget(state: BattleState, s: Soldier, enemies: readonly Soldi
     }
   }
   return best ?? nearest;
+}
+
+/** True when a standing friendly with a direct weapon (Gunner, Launcher) has an enemy within its range. */
+function directContact(own: readonly Soldier[], enemies: readonly Soldier[]): boolean {
+  for (const s of own) {
+    if (WEAPONS[s.cls].shot !== 'direct') {
+      continue;
+    }
+    for (const e of enemies) {
+      if (inRange(s, e)) {
+        return true;
+      }
+    }
+  }
+  return false;
+}
+
+/**
+ * The soldiers that stagger the approach: with `AI_LOBBER_WAIT` the lobbers,
+ * and with `AI_SCORCHER_WAIT` the Scorcher, hold where they stand until a
+ * friendly direct weapon has an enemy in range. Nobody waits once contact is
+ * made or when no standing friendly carries a direct weapon, so the squad
+ * always advances and battles end. A waiting soldier still fires at anything
+ * that comes into its own range.
+ */
+function waitsForContact(s: Soldier, own: readonly Soldier[], enemies: readonly Soldier[]): boolean {
+  const lobber = WEAPONS[s.cls].shot === 'lobbed' && AI_LOBBER_WAIT !== 0;
+  const scorcher = s.cls === 'scorcher' && AI_SCORCHER_WAIT !== 0;
+  if (!lobber && !scorcher) {
+    return false;
+  }
+  if (!own.some((d) => WEAPONS[d.cls].shot === 'direct')) {
+    return false;
+  }
+  return !directContact(own, enemies);
 }
 
 /** The order `s` should hold now: attack when it can fire or is a Scorcher, else move to a firing tile, else attack. */
@@ -203,7 +240,7 @@ export function createAi(side: Side, seed: number): Controller {
       const occupied = occupancy(state);
       for (const s of own) {
         const target = preferredTarget(state, s, enemies);
-        const desired = desiredOrder(state, s, target, occupied, rng);
+        const desired: Order = waitsForContact(s, own, enemies) ? { kind: 'hold' } : desiredOrder(state, s, target, occupied, rng);
         if (alreadyHolds(s.order, desired)) {
           continue;
         }
@@ -211,6 +248,8 @@ export function createAi(side: Side, seed: number): Controller {
           commands.push({ tick: state.tick, side, type: 'attack', soldierIds: [s.id], targetId: desired.targetId });
         } else if (desired.kind === 'move') {
           commands.push({ tick: state.tick, side, type: 'move', soldierIds: [s.id], x: desired.x, y: desired.y });
+        } else {
+          commands.push({ tick: state.tick, side, type: 'hold', soldierIds: [s.id] });
         }
       }
     }
