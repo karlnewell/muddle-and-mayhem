@@ -112,6 +112,17 @@ describe('interpretKey', () => {
     ]);
     expect(interpretKey(state, [0], 'm', false, 'blue').commands).toEqual([]);
   });
+  it('a second M skips a soldier a medic is already running to and takes the next downed one', () => {
+    const state = battle();
+    soldierById(state, 1)!.status = 'downed';
+    soldierById(state, 3)!.status = 'downed';
+    state.medics.push({ side: 'blue', targetId: 3, x: 12, y: 100, prevX: 12, prevY: 100 });
+    expect(interpretKey(state, [0, 3, 1], 'm', false, 'blue').commands).toEqual([
+      { tick: 12, side: 'blue', type: 'medic', targetId: 1 },
+    ]);
+    state.medics.push({ side: 'blue', targetId: 1, x: 12, y: 100, prevX: 12, prevY: 100 });
+    expect(interpretKey(state, [0, 3, 1], 'm', false, 'blue').commands).toEqual([]);
+  });
   it('1 to 5 select blue slots, shift adds, a dead slot clears', () => {
     const state = battle();
     expect(interpretKey(state, [], '3', false, 'blue').selection).toEqual([2]);

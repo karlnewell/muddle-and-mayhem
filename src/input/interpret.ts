@@ -9,7 +9,8 @@
  * adds); on anything else it clears. Right click on a standing enemy
  * attacks; on a downed friendly calls the medic; anywhere else moves the
  * standing selected soldiers. `H` holds, `M` calls the medic for the first
- * downed soldier in the selection, 1-5 select by slot, Space toggles pause,
+ * downed soldier in the selection that no medic is already running to, so a
+ * second press helps the next one, 1-5 select by slot, Space toggles pause,
  * Escape toggles the menu.
  */
 import { PICK_RADIUS } from '../render/renderConstants';
@@ -54,6 +55,11 @@ function standingSelected(state: BattleState, selection: readonly number[], side
     }
   }
   return ids;
+}
+
+/** True when a medic run is already heading for soldier `id`. */
+function runUnderWay(state: BattleState, id: number): boolean {
+  return state.medics.some((m) => m.targetId === id);
 }
 
 function selectable(s: Soldier | null, side: Side): s is Soldier {
@@ -128,7 +134,7 @@ export function interpretKey(state: BattleState, selection: readonly number[], k
   if (lower === MEDIC_KEY) {
     for (const id of selection) {
       const s = soldierById(state, id);
-      if (s !== undefined && s.side === side && s.status === 'downed') {
+      if (s !== undefined && s.side === side && s.status === 'downed' && !runUnderWay(state, s.id)) {
         return { selection: keep, commands: [{ tick: state.tick, side, type: 'medic', targetId: s.id }] };
       }
     }

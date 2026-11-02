@@ -2,13 +2,15 @@ import { describe, expect, it } from 'vitest';
 import { createAi } from '../../src/sim/ai';
 import { besideCover, isCover } from '../../src/sim/aiPositions';
 import { createBattle, step } from '../../src/sim/battle';
-import { AI_SEED_SALT, AI_THINK_TICKS } from '../../src/sim/constants';
+import { AI_MEDIC_DESPERATE_STANDING, AI_MEDIC_PATIENCE_TICKS, AI_SEED_SALT, AI_THINK_TICKS, MEDIC_CALLS } from '../../src/sim/constants';
+import { runBattle } from '../../src/sim/headless';
 import { parseMap } from '../../src/sim/map';
 import { createRng } from '../../src/sim/rng';
 import type { BattleState, Command, Soldier, TileMap } from '../../src/sim/types';
 import { dist2 } from '../../src/sim/vec';
 
 const RED_IDS = [5, 6, 7, 8, 9];
+const CLASS_COUNT = 5;
 
 /**
  * A 30 by 10 arena: a wall down column 15 from row 0 to row 6 (x in [480, 512),
@@ -48,6 +50,15 @@ function field(): TileMap {
   }
   rows.push('bbbbb...............rrrrr.....');
   return parseMap('Field', rows);
+}
+
+/** Down soldier `id` as the sim would at the current tick. */
+function down(state: BattleState, id: number): Soldier {
+  const s = state.soldiers[id];
+  s.status = 'downed';
+  s.hp = 0;
+  s.downedTick = state.tick;
+  return s;
 }
 
 function place(s: Soldier, x: number, y: number): void {
@@ -132,35 +143,69 @@ describe('createAi', () => {
     expect(forSoldier(ai.think(state), 8)).toEqual([]);
   });
 
-  it('calls the medic for a downed friendly whose body is safe', () => {
+  it('calls the medic at once for a downed friendly whose body is safe', () => {
     const state = createBattle({ seed: 1 });
-    const gunner = state.soldiers[5];
-    gunner.status = 'downed';
-    gunner.hp = 0;
+    down(state, 5);
     const commands = createAi('red', 1).think(state);
     const medic = commands.filter((c) => c.type === 'medic');
     expect(medic).toHaveLength(1);
     expect(medic[0]).toEqual({ tick: 0, side: 'red', type: 'medic', targetId: 5 });
   });
 
-  it('does not call the medic while an enemy covers the body', () => {
+  it('waits while an enemy covers a fresh body and the squad is still strong', () => {
     const state = createBattle({ seed: 1 });
-    const gunner = state.soldiers[5];
-    gunner.status = 'downed';
-    gunner.hp = 0;
+    const gunner = down(state, 5);
     place(state.soldiers[0], gunner.x - 50, gunner.y); // blue gunner, range 224
     const commands = createAi('red', 1).think(state);
     expect(commands.filter((c) => c.type === 'medic')).toEqual([]);
   });
 
+  it('calls for a covered body once it has lain there for AI_MEDIC_PATIENCE_TICKS', () => {
+    const state = createBattle({ seed: 1 });
+    const gunner = down(state, 5);
+    place(state.soldiers[0], gunner.x - 50, gunner.y);
+    const ai = createAi('red', 1);
+    let calledAt: number | null = null;
+    for (let tick = 0; tick <= AI_MEDIC_PATIENCE_TICKS + AI_THINK_TICKS && calledAt === null; tick += AI_THINK_TICKS) {
+      state.tick = tick;
+      if (ai.think(state).some((c) => c.type === 'medic' && c.targetId === 5)) {
+        calledAt = tick;
+      }
+    }
+    expect(calledAt).not.toBeNull();
+    expect(calledAt as number).toBeGreaterThanOrEqual(AI_MEDIC_PATIENCE_TICKS);
+    expect(calledAt as number).toBeLessThan(AI_MEDIC_PATIENCE_TICKS + AI_THINK_TICKS);
+  });
+
+  it('calls at once for a covered body when fewer than AI_MEDIC_DESPERATE_STANDING are standing', () => {
+    const state = createBattle({ seed: 1 });
+    const gunner = down(state, 5);
+    place(state.soldiers[0], gunner.x - 50, gunner.y);
+    for (let id = 6; id < 5 + CLASS_COUNT - AI_MEDIC_DESPERATE_STANDING + 2; id++) {
+      down(state, id);
+    }
+    const standing = state.soldiers.filter((s) => s.side === 'red' && s.status === 'standing').length;
+    expect(standing).toBeLessThan(AI_MEDIC_DESPERATE_STANDING);
+    const medic = createAi('red', 1).think(state).filter((c) => c.type === 'medic');
+    expect(medic).toHaveLength(1);
+    expect(medic[0]).toMatchObject({ type: 'medic', targetId: 6 }); // launcher first by revive priority
+  });
+
   it('does not call the medic for a body a run is already heading for', () => {
     const state = createBattle({ seed: 1 });
-    const gunner = state.soldiers[5];
-    gunner.status = 'downed';
-    gunner.hp = 0;
+    const gunner = down(state, 5);
     state.medics.push({ side: 'red', targetId: 5, x: 1280, y: gunner.y, prevX: 1280, prevY: gunner.y });
     const commands = createAi('red', 1).think(state);
     expect(commands.filter((c) => c.type === 'medic')).toEqual([]);
+  });
+
+  it('spends medic calls in an ordinary battle against itself', () => {
+    for (const seed of [1, 7, 42]) {
+      const run = runBattle({ seed, maxTicks: 30 * 600, controllers: [createAi('blue', seed), createAi('red', seed)] });
+      expect(run.state.winner).not.toBeNull();
+      const loser = run.state.winner === 'blue' ? 'red' : 'blue';
+      expect(run.state.sides[loser].medicCalls).toBeLessThan(MEDIC_CALLS);
+    }
   });
 
   it('does not call the medic without calls left', () => {

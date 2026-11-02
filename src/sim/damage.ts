@@ -25,6 +25,7 @@ export function applyDamage(state: BattleState, target: Soldier, amount: number,
   }
   const killed = WEAPONS[weapon].instantKill && state.rng.chance(INSTANT_KILL_CHANCE);
   target.status = killed ? 'dead' : 'downed';
+  target.downedTick = state.tick;
   target.order = { kind: 'hold' };
   target.path = [];
   target.targetId = null;

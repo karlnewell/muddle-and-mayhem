@@ -37,6 +37,8 @@ export let AI_LAUNCHER_DISTANCE_WEIGHT = 3;
 export let AI_TRAVEL_WEIGHT = 1;
 export let AI_JITTER = 0.5;
 export let AI_LOBBER_TARGET_REACH = 2; // lobbers look for a covered target within this many times their range
+export let AI_MEDIC_PATIENCE_TICKS = 90;    // the AI revives a covered body once it has lain this long (3 s)
+export let AI_MEDIC_DESPERATE_STANDING = 3; // with fewer standing than this, the AI revives at once, covered or not
 export const AI_SEED_SALT: Readonly<Record<Side, number>> = { blue: 0x9e3779b9, red: 0x7f4a7c15 };
 export const AI_REVIVE_PRIORITY: readonly SoldierClass[] = ['launcher', 'blaster', 'chucker', 'gunner', 'scorcher'];
 export const CLASS_ORDER: readonly SoldierClass[] = ['gunner', 'launcher', 'chucker', 'scorcher', 'blaster'];
@@ -90,7 +92,8 @@ export const DIRECTIONS16: readonly Vec2[] = [
 export type TunableName =
   | 'MAX_HP' | 'MOVE_SPEED' | 'MEDIC_CALLS' | 'MEDIC_SPEED' | 'REVIVE_FRACTION' | 'INSTANT_KILL_CHANCE'
   | 'GUNNER_JAM_CHANCE' | 'GUNNER_JAM_TICKS' | 'AI_THINK_TICKS' | 'AI_COVER_BONUS' | 'AI_RANGE_FRACTION'
-  | 'AI_LAUNCHER_DISTANCE_WEIGHT' | 'AI_TRAVEL_WEIGHT' | 'AI_JITTER' | 'AI_LOBBER_TARGET_REACH';
+  | 'AI_LAUNCHER_DISTANCE_WEIGHT' | 'AI_TRAVEL_WEIGHT' | 'AI_JITTER' | 'AI_LOBBER_TARGET_REACH'
+  | 'AI_MEDIC_PATIENCE_TICKS' | 'AI_MEDIC_DESPERATE_STANDING';
 
 export type TuningOverrides = Partial<Record<TunableName, number>> & {
   WEAPONS?: Partial<Record<SoldierClass, Partial<WeaponStats>>>;
@@ -135,6 +138,8 @@ export function overrideTuning(overrides: TuningOverrides): void {
       case 'AI_TRAVEL_WEIGHT': AI_TRAVEL_WEIGHT = value; break;
       case 'AI_JITTER': AI_JITTER = value; break;
       case 'AI_LOBBER_TARGET_REACH': AI_LOBBER_TARGET_REACH = value; break;
+      case 'AI_MEDIC_PATIENCE_TICKS': AI_MEDIC_PATIENCE_TICKS = value; break;
+      case 'AI_MEDIC_DESPERATE_STANDING': AI_MEDIC_DESPERATE_STANDING = value; break;
       default: throw new Error(`overrideTuning: unknown tunable ${String(key)}`);
     }
   }

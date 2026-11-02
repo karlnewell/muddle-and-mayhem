@@ -47,6 +47,7 @@ export function callMedic(state: BattleState, side: Side, targetId: number): boo
 function revive(state: BattleState, s: Soldier): void {
   s.hp = Math.floor(MAX_HP * REVIVE_FRACTION);
   s.status = 'standing';
+  s.downedTick = -1;
   s.order = { kind: 'hold' };
   s.path = [];
   s.cooldown = 0;
