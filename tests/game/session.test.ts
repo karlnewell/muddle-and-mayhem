@@ -28,6 +28,16 @@ describe('createSession', () => {
     expect(s.log[0]).toMatchObject({ type: 'move', side: 'blue', tick: 0 });
   });
 
+  it('exposes queued commands until they are stepped', () => {
+    const s = createSession(1);
+    s.queue({ tick: 0, side: 'blue', type: 'hold', soldierIds: [0] });
+    expect(s.pending).toHaveLength(1);
+    expect(s.log).toHaveLength(0);
+    s.stepOnce();
+    expect(s.pending).toHaveLength(0);
+    expect(s.log[0]).toMatchObject({ type: 'hold' });
+  });
+
   it('rejects a command tagged with another tick', () => {
     const s = createSession(1);
     expect(() => s.queue({ tick: 5, side: 'blue', type: 'hold', soldierIds: [0] })).toThrow(/tick/);

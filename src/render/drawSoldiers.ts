@@ -7,7 +7,7 @@
  * of a firing Scorcher is drawn here too, since it hangs off the soldier.
  */
 import { MAX_HP, WEAPONS, soldierById } from '../sim';
-import type { BattleState, Side, Soldier, Vec2 } from '../sim';
+import type { BattleState, Command, Side, Soldier, Vec2 } from '../sim';
 import { lerpPosition } from './interpolate';
 import { CLASS_LETTER, PALETTE, SIDE_COLOUR, SIDE_COLOUR_DIM, SOLDIER_DRAW } from './palette';
 
@@ -160,6 +160,65 @@ export function drawFlameCone(ctx: CanvasRenderingContext2D, s: Soldier, p: Vec2
   ctx.fill();
 }
 
+function drawGhostMarker(ctx: CanvasRenderingContext2D, x: number, y: number): void {
+  ctx.beginPath();
+  ctx.moveTo(x - 5, y - 5);
+  ctx.lineTo(x + 5, y + 5);
+  ctx.moveTo(x + 5, y - 5);
+  ctx.lineTo(x - 5, y + 5);
+  ctx.stroke();
+}
+
+/**
+ * Orders the player has given that the sim has not applied yet (queued
+ * while paused): a faint dashed line to a move point, a faint ring on an
+ * attack target, a faint cross on a medic target. Gone the tick they apply.
+ */
+export function drawPendingOrders(ctx: CanvasRenderingContext2D, state: BattleState, pending: readonly Command[], alpha: number): void {
+  if (pending.length === 0) {
+    return;
+  }
+  ctx.save();
+  ctx.globalAlpha = 0.55;
+  ctx.lineWidth = 2;
+  ctx.setLineDash([3, 5]);
+  for (const cmd of pending) {
+    if (cmd.type === 'move') {
+      ctx.strokeStyle = PALETTE.path;
+      for (const id of cmd.soldierIds) {
+        const s = soldierById(state, id);
+        if (s === undefined || s.status !== 'standing') {
+          continue;
+        }
+        const p = lerpPosition(s, alpha);
+        ctx.beginPath();
+        ctx.moveTo(p.x, p.y);
+        ctx.lineTo(cmd.x, cmd.y);
+        ctx.stroke();
+      }
+      drawGhostMarker(ctx, cmd.x, cmd.y);
+    } else if (cmd.type === 'attack') {
+      const t = soldierById(state, cmd.targetId);
+      if (t !== undefined && t.status === 'standing') {
+        const p = lerpPosition(t, alpha);
+        ctx.strokeStyle = PALETTE.reticle;
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, SOLDIER_DRAW.ringRadius + 2, 0, Math.PI * 2);
+        ctx.stroke();
+      }
+    } else if (cmd.type === 'medic') {
+      const t = soldierById(state, cmd.targetId);
+      if (t !== undefined && t.status === 'downed') {
+        ctx.strokeStyle = PALETTE.medicCross;
+        ctx.beginPath();
+        ctx.ellipse(t.x, t.y, SOLDIER_DRAW.downedRx + 5, SOLDIER_DRAW.downedRy + 5, 0, 0, Math.PI * 2);
+        ctx.stroke();
+      }
+    }
+  }
+  ctx.restore();
+}
+
 export interface SoldierViewOptions {
   selection: readonly number[];
   alpha: number;
@@ -168,7 +227,7 @@ export interface SoldierViewOptions {
 
 /** Everything soldier-related, in the layer order ash, downed, selection marks, standing, flame. */
 export function drawSoldiers(ctx: CanvasRenderingContext2D, state: BattleState, view: SoldierViewOptions): void {
-  const callsLeft = state.sides[view.playerSide].medicCalls > 0;
+  const callsLeft = state.sides[view.playerSide].medicCalls > 0 && state.winner === null;
   for (const s of state.soldiers) {
     if (s.status === 'dead') {
       drawAsh(ctx, s);

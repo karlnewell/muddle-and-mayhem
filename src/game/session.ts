@@ -17,6 +17,8 @@ export interface BattleSession {
   /** Read-only for callers; only the session steps it. */
   readonly state: BattleState;
   readonly log: readonly Command[];
+  /** Player commands waiting for the next tick (visible while paused). */
+  readonly pending: readonly Command[];
   paused: boolean;
   /** Queue a player command for the next tick. Its `tick` must equal `state.tick`. */
   queue(cmd: Command): void;
@@ -53,6 +55,7 @@ export function createSession(seed: number): BattleSession {
     seed,
     state,
     log,
+    pending,
     paused: true,
     queue(cmd: Command): void {
       if (cmd.tick !== state.tick) {

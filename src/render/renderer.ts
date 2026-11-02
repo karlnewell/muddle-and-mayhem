@@ -4,11 +4,11 @@
  * isometric renderer would implement the same `BattleRenderer` with its own
  * projection and draw modules, and nothing in input, HUD or app changes.
  */
-import type { BattleState, Side } from '../sim';
+import type { BattleState, Command, Side } from '../sim';
 import { drawEffects } from './drawEffects';
 import { drawMap } from './drawMap';
 import { drawMedics, drawProjectiles } from './drawProjectiles';
-import { drawSoldiers } from './drawSoldiers';
+import { drawPendingOrders, drawSoldiers } from './drawSoldiers';
 import type { Effect } from './effects';
 import { createTopDownProjection } from './projection';
 import type { Projection } from './projection';
@@ -19,6 +19,8 @@ export interface ViewState {
   alpha: number;
   effects: readonly Effect[];
   playerSide: Side;
+  /** Player commands queued for the next tick, drawn as ghost orders. */
+  pending: readonly Command[];
 }
 
 export interface BattleRenderer {
@@ -45,6 +47,7 @@ export function createTopDownRenderer(): BattleRenderer {
       ctx.clip();
       drawMap(ctx, state.map);
       drawMedics(ctx, state, view.alpha);
+      drawPendingOrders(ctx, state, view.pending, view.alpha);
       drawSoldiers(ctx, state, { selection: view.selection, alpha: view.alpha, playerSide: view.playerSide });
       drawProjectiles(ctx, state, view.alpha);
       drawEffects(ctx, state, view.effects, view.alpha);

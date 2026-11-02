@@ -10,20 +10,24 @@
       body {
         margin: 0;
         height: 100%;
+        overflow: hidden;
         background: #0e1116;
       }
       body {
         display: flex;
         align-items: center;
         justify-content: center;
+        user-select: none;
+        -webkit-user-select: none;
       }
       canvas {
-        image-rendering: pixelated;
+        display: block;
+        cursor: crosshair;
       }
     </style>
   </head>
   <body>
-    <canvas id="game" width="960" height="540"></canvas>
+    <canvas id="game"></canvas>
     <script type="module" src="/src/main.ts"></script>
   </body>
 </html>

@@ -170,8 +170,8 @@ Draw order: ground and tiles, ash and downed, paths and reticles of selected sol
 
 HUD (bottom): five blue cards with slot number, name, class, HP bar, cooldown bar, status (OK, DOWN, DEAD, JAM when cooldown exceeds the weapon's); a side panel with medic calls for both sides and a PAUSED badge; top bar: `mm:ss` clock from `tick / TICK_RATE`, enemies standing, a one-line controls hint. Title: name, two placeholder portraits (blue and red discs with a general's initial), "Click to start", controls summary. Menu: Resume, Restart, Title. Result: winner text ("General Muddle wins", "General Mayhem wins", "Draw"), soldiers remaining per side, time, Play again, Title. `buttons.ts` is a pure hit-test over rectangles; `text.ts` has `formatClock(ticks)`.
 
-- [ ] Failing tests: `formatClock(0)` is `00:00`, `formatClock(TICK_RATE * 61)` is `01:01`; `hitButton` returns the id of the rect containing a point and null outside.
-- [ ] Implement, `npm run check`, commit `Plan 3 task 6: HUD and screens`.
+- [x] Failing tests: `formatClock(0)` is `00:00`, `formatClock(TICK_RATE * 61)` is `01:01`; `hitButton` returns the id of the rect containing a point and null outside.
+- [x] Implement, `npm run check`, commit `Plan 3 task 6: HUD and screens`.
 
 ### Task 7: Wiring: app, DOM input, debug hook, entry point
 
@@ -181,7 +181,7 @@ HUD (bottom): five blue cards with slot number, name, class, HP bar, cooldown ba
 
 `app.ts` owns the screen state, the session (created on `start`), the selection, effects, the renderer and the frame function: `frame(nowMs)` computes dt, advances the session when the screen is battle and the menu is closed, drains events into effects, detects `winner` to fire `battleEnded`, then draws the current screen. `dom.ts` attaches `mousedown`, `contextmenu` (prevented), `keydown`, `resize`, converts client to logical via the viewport, dispatches to the app. `debug.ts` installs `window.__mm` (decision 9). `index.html` loses the fixed canvas size (set by the viewport) and disables text selection and the context menu on the canvas.
 
-- [ ] Implement; verify in a headless Chromium script that the title shows, a click starts a paused battle, Space unpauses and ticks advance, `replayMatches()` is true after a few seconds. `npm run check`, commit `Plan 3 task 7: wire the game together`.
+- [x] Implement; verify in a headless Chromium script that the title shows, a click starts a paused battle, Space unpauses and ticks advance, `replayMatches()` is true after a few seconds. `npm run check`, commit `Plan 3 task 7: wire the game together`.
 
 ### Task 8: Playwright test that plays
 
