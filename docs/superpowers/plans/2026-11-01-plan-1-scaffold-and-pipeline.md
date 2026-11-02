@@ -50,7 +50,7 @@ Plans 2 and 3 are written when their turn comes, from the spec, using superpower
 - Produces: `createRng(seed: number): Rng` in `src/sim/rng.ts`, where `interface Rng { next(): number; int(maxExclusive: number): number; chance(p: number): boolean }`. `next()` returns a float in `[0, 1)`. Mulberry32 algorithm. Plan 2 builds on this exact signature.
 - Produces: npm scripts `dev`, `build`, `preview`, `typecheck`, `test`, `test:e2e`, `lint:sim`, `check` (runs typecheck, lint:sim, test, build in that order).
 
-- [ ] **Step 1: Scaffold with Vite**
+- [x] **Step 1: Scaffold with Vite**
 
 Run in the repo root (it is empty apart from `docs/` and `.git`):
 ```bash
@@ -60,7 +60,7 @@ npm install -D vitest
 ```
 Delete the template's `src/counter.ts`, `src/style.css`, `src/typescript.svg`, and `public/vite.svg`. Keep `index.html`, `src/main.ts`, `src/vite-env.d.ts`, `tsconfig.json`, `package.json`.
 
-- [ ] **Step 2: Configure**
+- [x] **Step 2: Configure**
 
 `package.json`: set `"name": "muddle-and-mayhem"`, `"private": true`, `"license": "MIT"`, `"type": "module"`, and scripts:
 ```json
@@ -78,7 +78,7 @@ Delete the template's `src/counter.ts`, `src/style.css`, `src/typescript.svg`, a
 `tsconfig.json`: keep the template's strict settings; add `"include": ["src", "tests", "scripts", "e2e", "vite.config.ts", "vitest.config.ts", "playwright.config.ts"]`.
 `.gitignore`: `node_modules/`, `dist/`, `.superpowers/`, `test-results/`, `playwright-report/`, `.DS_Store`.
 
-- [ ] **Step 3: Write the failing PRNG test**
+- [x] **Step 3: Write the failing PRNG test**
 
 `tests/sim/rng.test.ts`:
 ```ts
@@ -123,31 +123,31 @@ describe('createRng', () => {
 });
 ```
 
-- [ ] **Step 4: Run the test to verify it fails**
+- [x] **Step 4: Run the test to verify it fails**
 
 Run: `npm test`
 Expected: FAIL, cannot resolve `../../src/sim/rng`.
 
-- [ ] **Step 5: Implement `createRng` in `src/sim/rng.ts`**
+- [x] **Step 5: Implement `createRng` in `src/sim/rng.ts`**
 
 Mulberry32: state `s = seed >>> 0`; each `next()` does `s = (s + 0x6D2B79F5) | 0; let t = Math.imul(s ^ (s >>> 15), 1 | s); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296;`. `int(n)` is `Math.floor(next() * n)`. `chance(p)` is `next() < p`. Integer bit operations and `Math.imul` are allowed in sim code (they are exact everywhere); add them to the allowed list in the CLAUDE.md rule in Task 5.
 
-- [ ] **Step 6: Run the test to verify it passes**
+- [x] **Step 6: Run the test to verify it passes**
 
 Run: `npm test`
 Expected: PASS, 5 tests.
 
-- [ ] **Step 7: Replace `src/main.ts` and `index.html` with the canvas placeholder**
+- [x] **Step 7: Replace `src/main.ts` and `index.html` with the canvas placeholder**
 
 `index.html`: title `Muddle & Mayhem`, body contains `<canvas id="game" width="960" height="540"></canvas>` and the module script. Minimal inline CSS: dark background (`#0e1116`), canvas centered, `image-rendering: pixelated`.
 `src/main.ts`: get the canvas and 2D context, fill it `#3b6b35`, draw the text `Muddle & Mayhem` centered in a monospace font, and draw one blue circle (`#3d7bd6`) and one red circle (`#d64545`). Nothing else. Throw an `Error('canvas not found')` if the element is missing.
 
-- [ ] **Step 8: Verify build and typecheck**
+- [x] **Step 8: Verify build and typecheck**
 
 Run: `npm run typecheck && npm run build`
 Expected: no type errors; `dist/index.html` exists and references assets under `/muddle-and-mayhem/assets/`.
 
-- [ ] **Step 9: Commit**
+- [x] **Step 9: Commit**
 
 ```bash
 git add -A
@@ -165,7 +165,7 @@ git commit -m "Scaffold Vite + TypeScript project with canvas placeholder and se
 **Interfaces:**
 - Produces: `node scripts/check-sim-math.mjs [dir]` exits 0 when no file under `dir` (default `src/sim`) contains a banned token outside comments, else prints `file:line: token` for each offence and exits 1. Also exported for tests: `findViolations(source: string, filename: string): Array<{ file: string; line: number; token: string }>`.
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 `tests/scripts/check-sim-math.test.ts`:
 ```ts
@@ -195,26 +195,26 @@ describe('findViolations', () => {
 });
 ```
 
-- [ ] **Step 2: Run the test to verify it fails**
+- [x] **Step 2: Run the test to verify it fails**
 
 Run: `npm test -- tests/scripts`
 Expected: FAIL, cannot resolve `scripts/check-sim-math.mjs`.
 
-- [ ] **Step 3: Implement `scripts/check-sim-math.mjs`**
+- [x] **Step 3: Implement `scripts/check-sim-math.mjs`**
 
 Export `findViolations`, and declare it in `scripts/check-sim-math.d.mts` as `export function findViolations(source: string, filename: string): Array<{ file: string; line: number; token: string }>`. Strip comments with a small scanner (track `//` to end of line and `/* */` spans, preserving newlines so line numbers survive; do not attempt to handle comment markers inside string literals, note this in a `ponytail:` comment). Match, per line, the regex `/\bMath\.(sin|cos|tan|atan|atan2|asin|acos|pow|exp|log|log2|log10|random|hypot|cbrt)\b|\*\*|\bDate\b|\bperformance\b/g`. When run as a script (`import.meta.url` matches `process.argv[1]`), walk the directory recursively for `.ts` files, print offences, exit 1 if any. Exit 0 with no output when the directory does not exist yet.
 
-- [ ] **Step 4: Run the test to verify it passes**
+- [x] **Step 4: Run the test to verify it passes**
 
 Run: `npm test`
 Expected: PASS.
 
-- [ ] **Step 5: Run the guard against the real sim folder**
+- [x] **Step 5: Run the guard against the real sim folder**
 
 Run: `npm run lint:sim`
 Expected: exit 0, no output (`src/sim/rng.ts` uses only allowed operations).
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add scripts tests/scripts
@@ -231,14 +231,14 @@ git commit -m "Add sim arithmetic guard enforcing cross-engine-safe math"
 **Interfaces:**
 - Produces: `npm run test:e2e` builds nothing itself; it expects `dist/` to exist and starts `vite preview` on port 4173 via Playwright's `webServer`, with `baseURL` `http://localhost:4173/muddle-and-mayhem/`.
 
-- [ ] **Step 1: Install Playwright**
+- [x] **Step 1: Install Playwright**
 
 ```bash
 npm install -D @playwright/test
 npx playwright install chromium
 ```
 
-- [ ] **Step 2: Write the smoke test**
+- [x] **Step 2: Write the smoke test**
 
 `e2e/smoke.spec.ts`:
 ```ts
@@ -262,20 +262,20 @@ test('page loads, canvas is painted, no console errors', async ({ page }) => {
 });
 ```
 
-- [ ] **Step 3: Write `playwright.config.ts`**
+- [x] **Step 3: Write `playwright.config.ts`**
 
 `testDir: 'e2e'`, one project `chromium`, `use: { baseURL: 'http://localhost:4173/muddle-and-mayhem/' }`, `webServer: { command: 'npm run preview -- --port 4173 --strictPort', url: 'http://localhost:4173/muddle-and-mayhem/', reuseExistingServer: !process.env.CI }`, `reporter: 'list'`.
 
-- [ ] **Step 4: Run it and verify it passes**
+- [x] **Step 4: Run it and verify it passes**
 
 Run: `npm run build && npm run test:e2e`
 Expected: 1 passed.
 
-- [ ] **Step 5: Verify it catches a broken base path**
+- [x] **Step 5: Verify it catches a broken base path**
 
 Temporarily change `base` in `vite.config.ts` to `/`, rebuild, run `npm run test:e2e`. Expected: FAIL (canvas not painted or page error). Restore `base` to `/muddle-and-mayhem/`, rebuild, confirm PASS again.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add playwright.config.ts e2e package.json package-lock.json
@@ -292,20 +292,20 @@ git commit -m "Add Playwright smoke test against the built site at the Pages bas
 **Interfaces:**
 - Produces: a required check named `ci` for branch protection to reference; a deployment to the `github-pages` environment on every push to `main`.
 
-- [ ] **Step 1: Write `ci.yml`**
+- [x] **Step 1: Write `ci.yml`**
 
 Triggers: `pull_request` and `push` to `main`. One job `ci` on `ubuntu-latest`: `actions/checkout@v4`; `actions/setup-node@v4` with `node-version: 22` and `cache: npm`; `npm ci`; `npm run typecheck`; `npm run lint:sim`; `npm test`; `npm run build`; `npx playwright install --with-deps chromium`; `npm run test:e2e` with `CI: true` in `env`.
 
-- [ ] **Step 2: Write `deploy.yml`**
+- [x] **Step 2: Write `deploy.yml`**
 
 Trigger: `push` to `main` and `workflow_dispatch`. `permissions: { contents: read, pages: write, id-token: write }`. `concurrency: { group: pages, cancel-in-progress: true }`. Job `build`: checkout, setup-node 22, `npm ci`, `npm run build`, `actions/configure-pages@v5`, `actions/upload-pages-artifact@v3` with `path: dist`. Job `deploy`: `needs: build`, `environment: { name: github-pages, url: ${{ steps.deployment.outputs.page_url }} }`, step `id: deployment` using `actions/deploy-pages@v4`.
 
-- [ ] **Step 3: Validate the YAML locally**
+- [x] **Step 3: Validate the YAML locally**
 
 Run: `node -e "const y=require('yaml');for(const f of ['ci','deploy'])y.parse(require('fs').readFileSync('.github/workflows/'+f+'.yml','utf8'));console.log('ok')"` (install `yaml` as a dev dependency first with `npm i -D yaml`, or skip this step if the implementer prefers to rely on the PR run).
 Expected: `ok`.
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add .github
@@ -319,7 +319,7 @@ git commit -m "Add CI workflow and GitHub Pages deploy workflow"
 **Files:**
 - Create: `CLAUDE.md`, `docs/decisions.md`, `README.md`, `LICENSE`, `.github/workflows/claude.yml`
 
-- [ ] **Step 1: Write `CLAUDE.md`**
+- [x] **Step 1: Write `CLAUDE.md`**
 
 Sections, each a few lines:
 - **What this is:** one paragraph from the spec's section 1, with the link to the spec and to `docs/decisions.md`.
@@ -329,23 +329,23 @@ Sections, each a few lines:
 - **Legal rules:** section 8 of the spec, verbatim.
 - **Plans:** where plans live and that Plan 2 and 3 are written from the spec with superpowers:writing-plans before implementation.
 
-- [ ] **Step 2: Write `docs/decisions.md`**
+- [x] **Step 2: Write `docs/decisions.md`**
 
 Header: "One dated line per decision. Newest at the bottom. The roadmap lives at the end." Then entries dated 2026-11-01, one line each, for: web/TypeScript/Canvas/no engine; GitHub (not GitLab) because of cloud sessions; top-down with renderer swappable to isometric; inspired-by not recreation; v1 features (core, pause, medics, instant kills); pause is single-player only; public repo and why; name Muddle & Mayhem and the generals; cross-engine arithmetic ban; AI deterministic through the command log; downed soldiers immune, no time limit; friendly fire splash/flame only; 3 medic calls, revive at 50%; instant kill 10% start. Then `## Roadmap` with the spec's section 7 list verbatim.
 
-- [ ] **Step 3: Write `README.md`**
+- [x] **Step 3: Write `README.md`**
 
 Title, one-paragraph description, the live URL `https://karlnewell.github.io/muddle-and-mayhem/`, how to run locally (`npm install`, `npm run dev`), how to test (`npm run check`), a **Repository setup (owner, one time)** list: Settings → Pages → Source → GitHub Actions; Settings → Branches → protect `main`, require the `ci` check; install the Claude GitHub App and add the `CLAUDE_CODE_OAUTH_TOKEN` secret for `@claude` on PRs. Credit line: "Inspired by the squad-tactics genre of the early 1990s. All code, art, and names are original."
 
-- [ ] **Step 4: Write `LICENSE`**
+- [x] **Step 4: Write `LICENSE`**
 
 MIT, copyright 2026 Karl Newell.
 
-- [ ] **Step 5: Write `.github/workflows/claude.yml`**
+- [x] **Step 5: Write `.github/workflows/claude.yml`**
 
 The standard Claude Code GitHub Action workflow: triggers on `issue_comment`, `pull_request_review_comment`, `issues`, and `pull_request_review` when the body contains `@claude`; job with `permissions: { contents: write, pull-requests: write, issues: write, id-token: read }`; `anthropics/claude-code-action@v1` with `claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}`. A comment at the top: "Does nothing until the owner installs the Claude GitHub App and adds the secret (see README)."
 
-- [ ] **Step 6: Run the full check and commit**
+- [x] **Step 6: Run the full check and commit**
 
 Run: `npm run check`
 Expected: typecheck, lint:sim, tests, and build all succeed.
@@ -354,6 +354,6 @@ git add CLAUDE.md docs/decisions.md README.md LICENSE .github/workflows/claude.y
 git commit -m "Add project rules, decisions log, README, license, and Claude GitHub Action"
 ```
 
-- [ ] **Step 7: Open the pull request**
+- [x] **Step 7: Open the pull request**
 
 Push the branch and open a PR against `main` titled "Plan 1: scaffold and pipeline". The PR body lists the five tasks and the owner's one-time setup steps from the README. CI must be green before merge. After merge, the deploy workflow publishes the placeholder page; the plan is done when `https://karlnewell.github.io/muddle-and-mayhem/` shows the green canvas with the title and two circles.
