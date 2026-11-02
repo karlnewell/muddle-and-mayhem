@@ -82,8 +82,8 @@ export function clientToLogical(v: Viewport, clientX: number, clientY: number, r
 ```
 `renderConstants.ts`: `LOGICAL_WIDTH = 1280`, `TOP_BAR_HEIGHT = 40`, `HUD_HEIGHT = 132`, `FIELD_WIDTH/HEIGHT` from `mapWidthUnits(CROSSROADS)` and `mapHeightUnits`, `LOGICAL_HEIGHT`, `MAX_FRAME_MS = 250`, `MAX_TICKS_PER_FRAME = 8`, `TICK_MS = 1000 / TICK_RATE`.
 
-- [ ] Write failing tests: stepper returns 0 then 1 after 33.4 ms at 30 Hz; remainder carries; 1000 ms frame yields `maxTicksPerFrame` ticks and alpha in [0, 1); viewport letterboxes a wide window by height and a tall window by width; `clientToLogical` round-trips with dpr 2 and a centred canvas.
-- [ ] Implement, `npm run check`, commit `Plan 3 task 1: fixed-step loop and viewport`.
+- [x] Write failing tests: stepper returns 0 then 1 after 33.4 ms at 30 Hz; remainder carries; 1000 ms frame yields `maxTicksPerFrame` ticks and alpha in [0, 1); viewport letterboxes a wide window by height and a tall window by width; `clientToLogical` round-trips with dpr 2 and a centred canvas.
+- [x] Implement, `npm run check`, commit `Plan 3 task 1: fixed-step loop and viewport`.
 
 ### Task 2: Battle session with command log, AI and pause
 
