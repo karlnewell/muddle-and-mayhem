@@ -25,9 +25,9 @@ import { isActive } from './soldiers';
 import { clamp, dist2 } from './vec';
 
 /** A tile that holds no standing soldier. */
-export const TILE_FREE = -1;
+const TILE_FREE = -1;
 /** A tile that two or more standing soldiers share; nobody may pick it. */
-export const TILE_SHARED = -2;
+const TILE_SHARED = -2;
 
 /**
  * Per tile, the id of the standing soldier whose centre lies in it,

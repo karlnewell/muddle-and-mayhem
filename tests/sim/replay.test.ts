@@ -3,6 +3,7 @@ import { createAi } from '../../src/sim/ai';
 import { hashState, serializeState } from '../../src/sim/hash';
 import { replayBattle, runBattle } from '../../src/sim/headless';
 import { TICK_RATE } from '../../src/sim/constants';
+import type { Command } from '../../src/sim/types';
 
 const MAX_TICKS = TICK_RATE * 600; // ten minutes of battle, far more than any seed needs
 
@@ -24,6 +25,13 @@ describe('replay determinism', () => {
     const a = runBattle({ seed: 1, maxTicks: MAX_TICKS, controllers: [createAi('blue', 1), createAi('red', 1)] });
     const b = runBattle({ seed: 2, maxTicks: MAX_TICKS, controllers: [createAi('blue', 2), createAi('red', 2)] });
     expect(hashState(a.state)).not.toBe(hashState(b.state));
+  });
+  it('rejects a log whose ticks are not in ascending order', () => {
+    const log: Command[] = [
+      { tick: 15, side: 'blue', type: 'hold', soldierIds: [0] },
+      { tick: 0, side: 'red', type: 'hold', soldierIds: [5] },
+    ];
+    expect(() => replayBattle(1, log, 30)).toThrow(/index 1/);
   });
   it('a tampered log gives a different final state', () => {
     const run = runBattle({ seed: 42, maxTicks: MAX_TICKS, controllers: [createAi('blue', 42), createAi('red', 42)] });

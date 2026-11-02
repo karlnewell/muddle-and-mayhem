@@ -3,8 +3,8 @@
  *
  * Plain data only. `JSON.stringify(state)` is the canonical serialisation
  * used for hashing, so no class instances, Maps, Sets, or typed arrays.
- * The one exception is `BattleState.rng`, whose methods `JSON.stringify`
- * skips.
+ * The one exception is `BattleState.rng`, which `serializeState` replaces
+ * with its state number.
  */
 import type { Rng } from './rng';
 
@@ -102,6 +102,8 @@ export interface BattleState {
   sides: Record<Side, SideState>;
   winner: Side | 'draw' | null;
   nextProjectileId: number;
-  events: BattleEvent[];            // this tick's events; cleared at the start of step
+  // this tick's events; cleared at the start of every step, so a caller that
+  // runs several steps per frame must drain them after each step
+  events: BattleEvent[];
   rng: Rng;
 }

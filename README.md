@@ -35,7 +35,10 @@ npm run test:e2e
 The whole battle runs without a browser. `runBattle` drives it with
 controllers and records every command; `replayBattle` rebuilds it from the
 seed and that log alone. Same seed plus same log gives the same state, bit
-for bit, which is what `tests/sim/replay.test.ts` asserts under `npm test`:
+for bit, which is what `tests/sim/replay.test.ts` asserts under `npm test`.
+`state.events` holds only the current tick's events and is cleared at the
+start of every `step`, so a caller that runs several steps per frame must
+drain them after each step:
 
 ```ts
 import { expect, it } from 'vitest';

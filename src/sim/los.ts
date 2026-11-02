@@ -7,8 +7,8 @@
  * edge cleanly. Each tile entered afterwards is tested in order, and the
  * first blocked one ends the walk. An exact corner (`tMaxX === tMaxY`)
  * tests the x-side neighbour, then the y-side neighbour, then the diagonal
- * tile, so a sight line cannot slip between two cover tiles that touch only
- * at a corner. A zero component of the direction never steps on that axis.
+ * tile, so a sight line through an exact tile corner is blocked if either
+ * tile beside the corner is cover. A zero component of the direction never steps on that axis.
  *
  * The crossing parameters are recomputed from the grid edge after every
  * step, never accumulated: two crossings at the same real t then yield the

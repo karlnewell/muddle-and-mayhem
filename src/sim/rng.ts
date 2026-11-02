@@ -15,6 +15,8 @@ export interface Rng {
   int(maxExclusive: number): number;
   /** True with probability p (p in [0, 1]). */
   chance(p: number): boolean;
+  /** The 32-bit generator state, for serialisation. */
+  state(): number;
 }
 
 export function createRng(seed: number): Rng {
@@ -31,5 +33,6 @@ export function createRng(seed: number): Rng {
     next,
     int: (maxExclusive) => Math.floor(next() * maxExclusive),
     chance: (p) => next() < p,
+    state: () => s,
   };
 }

@@ -39,15 +39,19 @@ describe('hashState', () => {
 });
 
 describe('serializeState', () => {
-  it('is JSON that carries the tick and no function bodies for the rng', () => {
+  it('is JSON that carries the tick and the rng as its state number', () => {
     const json = serializeState(createBattle({ seed: 7 }));
     expect(json).toContain('"tick"');
     expect(JSON.parse(json).tick).toBe(0);
-    const rngIndex = json.indexOf('"rng"');
-    if (rngIndex >= 0) {
-      expect(json.slice(rngIndex, rngIndex + 8)).toBe('"rng":{}');
-    }
+    expect(json).toMatch(/"rng":-?\d+/);
+    expect(typeof JSON.parse(json).rng).toBe('number');
     expect(json).not.toContain('function');
     expect(json).not.toContain('=>');
+  });
+  it('changes when only the rng has advanced', () => {
+    const state = createBattle({ seed: 7 });
+    const before = hashState(state);
+    state.rng.next();
+    expect(hashState(state)).not.toBe(before);
   });
 });

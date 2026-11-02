@@ -32,11 +32,12 @@ export const AI_RANGE_FRACTION = 0.9;
 export const AI_LAUNCHER_DISTANCE_WEIGHT = 3;
 export const AI_TRAVEL_WEIGHT = 1;
 export const AI_JITTER = 0.5;
-export const AI_SEED_SALT: Record<Side, number> = { blue: 0x9e3779b9, red: 0x7f4a7c15 };
-export const AI_REVIVE_PRIORITY: SoldierClass[] = ['launcher', 'blaster', 'chucker', 'gunner', 'scorcher'];
+export const AI_LOBBER_TARGET_REACH = 2; // lobbers look for a covered target within this many times their range
+export const AI_SEED_SALT: Readonly<Record<Side, number>> = { blue: 0x9e3779b9, red: 0x7f4a7c15 };
+export const AI_REVIVE_PRIORITY: readonly SoldierClass[] = ['launcher', 'blaster', 'chucker', 'gunner', 'scorcher'];
 export const CLASS_ORDER: readonly SoldierClass[] = ['gunner', 'launcher', 'chucker', 'scorcher', 'blaster'];
 export const SIDES: readonly Side[] = ['blue', 'red'];
-export const SQUAD_NAMES: Record<Side, readonly string[]> = {
+export const SQUAD_NAMES: Readonly<Record<Side, readonly string[]>> = {
   blue: ['Pip', 'Bert', 'Maud', 'Fitz', 'Dot'],
   red: ['Grub', 'Nell', 'Otto', 'Sal', 'Wick'],
 };
@@ -62,7 +63,7 @@ export interface WeaponStats {
  * Chucker medium, Blaster second shortest, Scorcher shortest. Gunner fastest
  * of direct weapons, Blaster slowest overall.
  */
-export const WEAPONS: Record<SoldierClass, WeaponStats> = {
+export const WEAPONS: Readonly<Record<SoldierClass, Readonly<WeaponStats>>> = {
   gunner:   { shot: 'direct', range: 224, cooldown: 6,   damage: 8,  splashRadius: 0,  splashDamage: 0,  speed: 16, flightTicks: 0,  spread: 14, instantKill: false },
   launcher: { shot: 'direct', range: 352, cooldown: 75,  damage: 45, splashRadius: 40, splashDamage: 25, speed: 10, flightTicks: 0,  spread: 10, instantKill: true },
   chucker:  { shot: 'lobbed', range: 224, cooldown: 60,  damage: 0,  splashRadius: 48, splashDamage: 35, speed: 0,  flightTicks: 30, spread: 20, instantKill: false },

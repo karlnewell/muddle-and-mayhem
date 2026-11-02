@@ -46,10 +46,17 @@ export function runBattle(options: RunOptions): RunResult {
 
 /**
  * Create a battle from the seed and feed only the log, grouped by tick, for
- * `ticks` ticks. Never calls a controller. The log is in tick order, so a
- * single cursor splits it; commands tagged beyond `ticks` are never reached.
+ * `ticks` ticks. Never calls a controller. Precondition: the log is in
+ * ascending tick order (as `runBattle` records it); a log that is not
+ * throws before any tick runs. A single cursor then splits the log, and
+ * commands tagged beyond `ticks` are never reached.
  */
 export function replayBattle(seed: number, log: readonly Command[], ticks: number, map?: TileMap): BattleState {
+  for (let i = 1; i < log.length; i++) {
+    if (log[i].tick < log[i - 1].tick) {
+      throw new Error(`replayBattle: log is not in ascending tick order at index ${i} (tick ${log[i].tick} after tick ${log[i - 1].tick})`);
+    }
+  }
   const state = createBattle({ seed, map });
   let cursor = 0;
   for (let tick = 0; tick < ticks; tick++) {

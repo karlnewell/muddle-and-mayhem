@@ -11,7 +11,7 @@
 import type { Rng } from './rng';
 import type { BattleState, Command, Order, Side, Soldier } from './types';
 import { bestFiringTile, occupancy } from './aiPositions';
-import { AI_REVIVE_PRIORITY, AI_SEED_SALT, AI_THINK_TICKS, WEAPONS } from './constants';
+import { AI_LOBBER_TARGET_REACH, AI_REVIVE_PRIORITY, AI_SEED_SALT, AI_THINK_TICKS, WEAPONS } from './constants';
 import { hasLineOfSight } from './los';
 import { tileCenter, worldToTile } from './map';
 import { createRng } from './rng';
@@ -53,15 +53,15 @@ function nearestEnemy(s: Soldier, enemies: readonly Soldier[]): Soldier {
 
 /**
  * Lobbers (Chucker, Blaster) prefer an enemy sheltering behind cover: the
- * nearest one within twice the weapon range that `s` has no line of sight
- * to. Everyone else, and a lobber with no such enemy, takes the nearest.
+ * nearest one within `AI_LOBBER_TARGET_REACH` times the weapon range that
+ * `s` has no line of sight to. Everyone else, and a lobber with no such enemy, takes the nearest.
  */
 function preferredTarget(state: BattleState, s: Soldier, enemies: readonly Soldier[]): Soldier {
   const nearest = nearestEnemy(s, enemies);
   if (WEAPONS[s.cls].shot !== 'lobbed') {
     return nearest;
   }
-  const reach = 2 * WEAPONS[s.cls].range;
+  const reach = AI_LOBBER_TARGET_REACH * WEAPONS[s.cls].range;
   const reach2 = reach * reach;
   let best: Soldier | null = null;
   let bestD2 = 0;

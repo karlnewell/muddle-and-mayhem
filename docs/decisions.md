@@ -49,6 +49,11 @@ One dated line per decision. Newest at the bottom. The roadmap lives at the end.
 - 2026-11-02: A `damage` event records the amount requested, not the hp actually removed.
 - 2026-11-02: The AI's cover bonus counts only real cover tiles, not the map edge, so Launchers are not drawn to the border.
 - 2026-11-02: Battle lengths with the starting constants are 10 to 22 seconds of game time (about 300 to 650 ticks); tuning is Plan 3 playtest territory.
+- 2026-11-02: The rng's 32-bit state now serialises into the hash via a `JSON.stringify` replacer, replacing the earlier "rng is skipped" behaviour; this closes the gap where two states differing only in rng position hashed equal.
+- 2026-11-02: Direct rounds fly one tile (`TILE_SIZE`) past their weapon's range before vanishing, so a target that steps back at max range can still be hit.
+- 2026-11-02: A medic arriving on the very tick the last standing soldier falls keeps that side in the fight, because the medic phase runs before the win check.
+- 2026-11-02: `replayBattle` requires the log in ascending tick order and throws otherwise.
+- 2026-11-02: Lobbers search for a covered target within `AI_LOBBER_TARGET_REACH` (2) times their range.
 
 ## Roadmap
 
