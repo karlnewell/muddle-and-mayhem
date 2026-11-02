@@ -78,7 +78,7 @@ export let WEAPONS: Readonly<Record<SoldierClass, Readonly<WeaponStats>>> = {
   gunner:   { shot: 'direct', range: 224, cooldown: 18,  damage: 5,   splashRadius: 0,  splashDamage: 0,  speed: 16, flightTicks: 0,  spread: 40, instantKill: false },
   launcher: { shot: 'direct', range: 352, cooldown: 270, damage: 35,  splashRadius: 32, splashDamage: 20, speed: 10, flightTicks: 0,  spread: 16, instantKill: true },
   chucker:  { shot: 'lobbed', range: 224, cooldown: 210, damage: 0,   splashRadius: 40, splashDamage: 30, speed: 0,  flightTicks: 30, spread: 36, instantKill: false },
-  scorcher: { shot: 'flame',  range: 96,  cooldown: 0,   damage: 0.2, splashRadius: 0,  splashDamage: 0,  speed: 0,  flightTicks: 0,  spread: 0,  instantKill: true },
+  scorcher: { shot: 'flame',  range: 72,  cooldown: 0,   damage: 0.5, splashRadius: 0,  splashDamage: 0,  speed: 0,  flightTicks: 0,  spread: 0,  instantKill: true },
   blaster:  { shot: 'lobbed', range: 160, cooldown: 300, damage: 0,   splashRadius: 32, splashDamage: 55, speed: 0,  flightTicks: 36, spread: 30, instantKill: true },
 };
 /** 16 unit vectors at 22.5° steps, as literals (no Math.sin/cos in sim code). */
