@@ -44,7 +44,7 @@ describe('runBattle onStep', () => {
     let sawEvent = false;
     const run = runBattle({
       seed,
-      maxTicks: 200,
+      maxTicks: 600,
       controllers: [createAi('blue', seed), createAi('red', seed)],
       onStep(state) {
         calls++;

@@ -14,8 +14,8 @@
  * Overrides are applied through `overrideTuning` in src/sim/constants.ts, so
  * every battle here runs the shipped code with the candidate values.
  */
-import type { BattleEvent, BattleState, Controller, Side, TuningOverrides } from '../src/sim/index.ts';
-import { MEDIC_CALLS, TICK_RATE, createAi, overrideTuning, runBattle } from '../src/sim/index.ts';
+import type { BattleEvent, BattleState, Controller, Side, SoldierClass, TuningOverrides } from '../src/sim/index.ts';
+import { CLASS_ORDER, MEDIC_CALLS, TICK_RATE, createAi, overrideTuning, runBattle } from '../src/sim/index.ts';
 
 interface Options {
   seeds: number;
@@ -32,6 +32,16 @@ interface BattleStats {
   firstDamageTick: number | null;
   downs: Record<Side, number>;
   medicCalls: Record<Side, number>;
+  /** Downs and kills credited to the weapon of the last damage event on that soldier. */
+  downsByWeapon: Record<SoldierClass, number>;
+}
+
+function zeroByClass(): Record<SoldierClass, number> {
+  const out = {} as Record<SoldierClass, number>;
+  for (const cls of CLASS_ORDER) {
+    out[cls] = 0;
+  }
+  return out;
 }
 
 function parseArgs(argv: readonly string[]): Options {
@@ -77,7 +87,9 @@ function measureBattle(seed: number, options: Options): BattleStats {
     firstDamageTick: null,
     downs: { blue: 0, red: 0 },
     medicCalls: { blue: 0, red: 0 },
+    downsByWeapon: zeroByClass(),
   };
+  let lastWeapon: SoldierClass | null = null;
   const blue = options.blue === 'ai' ? createAi('blue', seed) : passive('blue');
   const run = runBattle({
     seed,
@@ -85,10 +97,16 @@ function measureBattle(seed: number, options: Options): BattleStats {
     controllers: [blue, createAi('red', seed)],
     onStep(state: BattleState) {
       for (const e of state.events as readonly BattleEvent[]) {
-        if (e.kind === 'damage' && stats.firstDamageTick === null) {
-          stats.firstDamageTick = state.tick - 1;
+        if (e.kind === 'damage') {
+          lastWeapon = e.weapon;
+          if (stats.firstDamageTick === null) {
+            stats.firstDamageTick = state.tick - 1;
+          }
         } else if (e.kind === 'downed' || e.kind === 'killed') {
           stats.downs[sideOf(state, e.soldierId)]++;
+          if (lastWeapon !== null) {
+            stats.downsByWeapon[lastWeapon]++;
+          }
         }
       }
     },
@@ -139,6 +157,8 @@ function report(all: readonly BattleStats[], options: Options): void {
   row('downs per battle median', perSide((s) => s.downs));
   row('medic calls used median', perSide((s) => s.medicCalls));
   row('medic calls used total', `blue ${all.reduce((n, s) => n + s.medicCalls.blue, 0)}  red ${all.reduce((n, s) => n + s.medicCalls.red, 0)}`);
+  const byWeapon = CLASS_ORDER.map((cls) => `${cls} ${all.reduce((n, s) => n + s.downsByWeapon[cls], 0)}`).join('  ');
+  row('downs by weapon total', byWeapon);
   row('winner split', `blue ${count('blue')} (${share(count('blue'))})  red ${count('red')} (${share(count('red'))})`);
   row('draws', `${count('draw')} (${share(count('draw'))})`);
   row('hit the tick cap', `${count('cap')} (${share(count('cap'))})`);

@@ -248,8 +248,10 @@ describe('fireWeapons', () => {
     const g = state.soldiers[0];
     const t = state.soldiers[5];
     applyCommand(state, { tick: 0, side: 'blue', type: 'attack', soldierIds: [0], targetId: 5 });
+    // Walk 76 units into range, then enough ticks for several rounds: at the Gunner's spread most miss.
+    const budget = Math.ceil(76 / MOVE_SPEED) + 8 * WEAPONS.gunner.cooldown;
     let shots = 0;
-    for (let i = 0; i < 60; i++) {
+    for (let i = 0; i < budget; i++) {
       step(state, []);
       shots += shotEvents(state, 0);
     }

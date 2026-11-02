@@ -144,8 +144,8 @@ describe('flame cone', () => {
       expect(damage[0]).toEqual({ kind: 'damage', soldierId: 1, amount: SCORCHER.damage, weapon: 'scorcher' });
       expect(damage[1]).toEqual({ kind: 'damage', soldierId: 5, amount: SCORCHER.damage, weapon: 'scorcher' });
     }
-    expect(enemy.hp).toBe(MAX_HP - 10 * SCORCHER.damage);
-    expect(friend.hp).toBe(MAX_HP - 10 * SCORCHER.damage);
+    expect(enemy.hp).toBeCloseTo(MAX_HP - 10 * SCORCHER.damage, 9);
+    expect(friend.hp).toBeCloseTo(MAX_HP - 10 * SCORCHER.damage, 9);
     expect(scorcher.hp).toBe(MAX_HP);
     expect(state.winner).toBeNull();
   });
@@ -167,7 +167,7 @@ describe('flame cone', () => {
       expect(inCone(scorcher, covered.x, covered.y, SCORCHER.range)).toBe(true);
       expect(ofKind(state, 'damage').map((e) => e.soldierId)).toEqual([5]);
     }
-    expect(visible.hp).toBe(MAX_HP - 5 * SCORCHER.damage);
+    expect(visible.hp).toBeCloseTo(MAX_HP - 5 * SCORCHER.damage, 9);
     expect(covered.hp).toBe(MAX_HP);
   });
 
@@ -185,7 +185,7 @@ describe('flame cone', () => {
     }
     expect(downed.hp).toBe(0);
     expect(downed.status).toBe('downed');
-    expect(state.soldiers[5].hp).toBe(MAX_HP - 5 * SCORCHER.damage);
+    expect(state.soldiers[5].hp).toBeCloseTo(MAX_HP - 5 * SCORCHER.damage, 9);
   });
 
   it('has firing false and deals no damage with no target in range', () => {
@@ -215,12 +215,12 @@ describe('flame cone', () => {
     expect(scorcher.hp).toBe(MAX_HP);
   });
 
-  it('kills outright sometimes when finishing a 1 hp enemy', () => {
+  it('kills outright sometimes when finishing an enemy with one tick of hp left', () => {
     let downed = 0;
     let killed = 0;
     for (let seed = 0; seed < 200; seed++) {
       const state = duel(seed, 60);
-      state.soldiers[5].hp = 1;
+      state.soldiers[5].hp = SCORCHER.damage;
       // A far, muzzled red soldier keeps the battle alive after the target falls.
       bystander(state, 9, 900, 256);
       step(state, []);

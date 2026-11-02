@@ -14,8 +14,8 @@ import type { ShotKind, Side, SoldierClass, Vec2 } from './types';
 
 export const TICK_RATE = 30;
 export const TILE_SIZE = 32;
-export let MAX_HP = 100;
-export let MOVE_SPEED = 3.2;
+export let MAX_HP = 160;
+export let MOVE_SPEED = 1.8;
 export const SOLDIER_RADIUS = 12;
 export let MEDIC_CALLS = 3;
 export let MEDIC_SPEED = 6;
@@ -37,6 +37,7 @@ export let AI_LAUNCHER_DISTANCE_WEIGHT = 3;
 export let AI_TRAVEL_WEIGHT = 1;
 export let AI_JITTER = 0.5;
 export let AI_LOBBER_TARGET_REACH = 2; // lobbers look for a covered target within this many times their range
+export let AI_SPACING_PENALTY = 3;          // firing-tile score lost for standing beside a friendly: one grenade should not catch two
 export let AI_MEDIC_PATIENCE_TICKS = 90;    // the AI revives a covered body once it has lain this long (3 s)
 export let AI_MEDIC_DESPERATE_STANDING = 3; // with fewer standing than this, the AI revives at once, covered or not
 export const AI_SEED_SALT: Readonly<Record<Side, number>> = { blue: 0x9e3779b9, red: 0x7f4a7c15 };
@@ -68,13 +69,17 @@ export interface WeaponStats {
  * Range relationships to preserve when tuning: Launcher longest, Gunner and
  * Chucker medium, Blaster second shortest, Scorcher shortest. Gunner fastest
  * of direct weapons, Blaster slowest overall.
+ *
+ * Plan 4 set these for 60 to 90 second battles: long cooldowns, wide spread
+ * so most shots miss, and small splash so one grenade rarely catches two.
+ * `npm run measure` prints the numbers any change should be judged by.
  */
 export let WEAPONS: Readonly<Record<SoldierClass, Readonly<WeaponStats>>> = {
-  gunner:   { shot: 'direct', range: 224, cooldown: 6,   damage: 8,  splashRadius: 0,  splashDamage: 0,  speed: 16, flightTicks: 0,  spread: 14, instantKill: false },
-  launcher: { shot: 'direct', range: 352, cooldown: 75,  damage: 45, splashRadius: 40, splashDamage: 25, speed: 10, flightTicks: 0,  spread: 10, instantKill: true },
-  chucker:  { shot: 'lobbed', range: 224, cooldown: 60,  damage: 0,  splashRadius: 48, splashDamage: 35, speed: 0,  flightTicks: 30, spread: 20, instantKill: false },
-  scorcher: { shot: 'flame',  range: 96,  cooldown: 0,   damage: 1,  splashRadius: 0,  splashDamage: 0,  speed: 0,  flightTicks: 0,  spread: 0,  instantKill: true },
-  blaster:  { shot: 'lobbed', range: 160, cooldown: 105, damage: 0,  splashRadius: 40, splashDamage: 70, speed: 0,  flightTicks: 36, spread: 16, instantKill: true },
+  gunner:   { shot: 'direct', range: 224, cooldown: 18,  damage: 5,   splashRadius: 0,  splashDamage: 0,  speed: 16, flightTicks: 0,  spread: 40, instantKill: false },
+  launcher: { shot: 'direct', range: 352, cooldown: 270, damage: 35,  splashRadius: 32, splashDamage: 20, speed: 10, flightTicks: 0,  spread: 16, instantKill: true },
+  chucker:  { shot: 'lobbed', range: 224, cooldown: 210, damage: 0,   splashRadius: 40, splashDamage: 30, speed: 0,  flightTicks: 30, spread: 36, instantKill: false },
+  scorcher: { shot: 'flame',  range: 96,  cooldown: 0,   damage: 0.2, splashRadius: 0,  splashDamage: 0,  speed: 0,  flightTicks: 0,  spread: 0,  instantKill: true },
+  blaster:  { shot: 'lobbed', range: 160, cooldown: 300, damage: 0,   splashRadius: 32, splashDamage: 55, speed: 0,  flightTicks: 36, spread: 30, instantKill: true },
 };
 /** 16 unit vectors at 22.5° steps, as literals (no Math.sin/cos in sim code). */
 export const DIRECTIONS16: readonly Vec2[] = [
@@ -93,7 +98,7 @@ export type TunableName =
   | 'MAX_HP' | 'MOVE_SPEED' | 'MEDIC_CALLS' | 'MEDIC_SPEED' | 'REVIVE_FRACTION' | 'INSTANT_KILL_CHANCE'
   | 'GUNNER_JAM_CHANCE' | 'GUNNER_JAM_TICKS' | 'AI_THINK_TICKS' | 'AI_COVER_BONUS' | 'AI_RANGE_FRACTION'
   | 'AI_LAUNCHER_DISTANCE_WEIGHT' | 'AI_TRAVEL_WEIGHT' | 'AI_JITTER' | 'AI_LOBBER_TARGET_REACH'
-  | 'AI_MEDIC_PATIENCE_TICKS' | 'AI_MEDIC_DESPERATE_STANDING';
+  | 'AI_MEDIC_PATIENCE_TICKS' | 'AI_MEDIC_DESPERATE_STANDING' | 'AI_SPACING_PENALTY';
 
 export type TuningOverrides = Partial<Record<TunableName, number>> & {
   WEAPONS?: Partial<Record<SoldierClass, Partial<WeaponStats>>>;
@@ -139,6 +144,7 @@ export function overrideTuning(overrides: TuningOverrides): void {
       case 'AI_JITTER': AI_JITTER = value; break;
       case 'AI_LOBBER_TARGET_REACH': AI_LOBBER_TARGET_REACH = value; break;
       case 'AI_MEDIC_PATIENCE_TICKS': AI_MEDIC_PATIENCE_TICKS = value; break;
+      case 'AI_SPACING_PENALTY': AI_SPACING_PENALTY = value; break;
       case 'AI_MEDIC_DESPERATE_STANDING': AI_MEDIC_DESPERATE_STANDING = value; break;
       default: throw new Error(`overrideTuning: unknown tunable ${String(key)}`);
     }

@@ -4,7 +4,7 @@ import { besideCover, isCover } from '../../src/sim/aiPositions';
 import { createBattle, step } from '../../src/sim/battle';
 import { AI_MEDIC_DESPERATE_STANDING, AI_MEDIC_PATIENCE_TICKS, AI_SEED_SALT, AI_THINK_TICKS, MEDIC_CALLS } from '../../src/sim/constants';
 import { runBattle } from '../../src/sim/headless';
-import { parseMap } from '../../src/sim/map';
+import { parseMap, worldToTile } from '../../src/sim/map';
 import { createRng } from '../../src/sim/rng';
 import type { BattleState, Command, Soldier, TileMap } from '../../src/sim/types';
 import { dist2 } from '../../src/sim/vec';
@@ -268,6 +268,23 @@ describe('createAi', () => {
     advance(state, first, AI_THINK_TICKS);
     expect(state.soldiers[5].order).toEqual({ kind: 'move', x: 368, y: 144 });
     expect(forSoldier(ai.think(state), 5)).toEqual([]);
+  });
+
+  it('keeps clear of a friendly when choosing a firing tile', () => {
+    const state = createBattle({ seed: 1, map: field() });
+    isolate(state, [0, 5, 6]); // blue gunner, red gunner, red launcher
+    place(state.soldiers[0], 176, 144); // tile (5, 4)
+    place(state.soldiers[5], 900, 144); // tile (28, 4), far out of range
+    place(state.soldiers[6], 368, 112); // tile (11, 3), beside the crate's best tile (11, 4)
+    state.soldiers[6].cooldown = 1_000_000_000;
+    const gunner = forSoldier(createAi('red', 1).think(state), 5);
+    expect(gunner).toHaveLength(1);
+    const c = gunner[0];
+    expect(c.type).toBe('move');
+    if (c.type === 'move') {
+      const chosen = worldToTile(c.x, c.y);
+      expect(Math.max(Math.abs(chosen.tx - 11), Math.abs(chosen.ty - 3))).toBeGreaterThan(1);
+    }
   });
 
   it('counts only real cover tiles as cover, never the map border', () => {
