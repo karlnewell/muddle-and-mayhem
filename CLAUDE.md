@@ -20,9 +20,13 @@ engine, no UI framework.
 - `npm run check` runs typecheck, `lint:sim`, unit tests, and build. Run it before every commit.
 - `npm run test:e2e` runs the Playwright tests against the built site. Run `npm run build` first.
   Set `PW_CHROMIUM_PATH` to a Chromium binary if the local Playwright has none of its own.
-- `npm run measure` runs 60 AI-vs-AI battles headless and prints pacing statistics; pass a JSON
-  object of constant overrides to compare candidates. Judge every tuning change by its output.
-- Open the game with `?seed=N` to pin a battle; `window.__mm` exposes seed, tick, log and state.
+- `npm run measure` runs 60 AI-vs-AI battles headless and prints pacing statistics and per-class
+  shots, hits, damage and downs; pass a JSON object of constant overrides to compare candidates,
+  and `--blue=passive` or `--blue=holdline` for a scripted blue squad. Judge every tuning change by its output.
+- Open the game with `?seed=N` to pin a battle and `?tune={...}` to try constant overrides (the
+  same JSON the measure script takes; a TUNED badge shows while any is active). The result screen
+  shows a per-class report and Copy report puts it on the clipboard as Markdown with the command
+  log. `window.__mm` exposes seed, tick, log, state, overrides, stats and `report()`.
 
 ## Architecture rules
 

@@ -85,12 +85,12 @@ function advanceDirect(state: BattleState, p: Projectile): boolean {
     const ix = p.x + p.vx * hitT;
     const iy = p.y + p.vy * hitT;
     if (hitSoldier !== null) {
-      applyDamage(state, hitSoldier, weapon.damage, p.weapon);
+      applyDamage(state, hitSoldier, weapon.damage, p.weapon, p.ownerId);
       if (weapon.splashRadius > 0) {
-        applySplash(state, ix, iy, weapon.splashRadius, weapon.splashDamage, p.weapon, hitSoldier.id);
+        applySplash(state, ix, iy, weapon.splashRadius, weapon.splashDamage, p.weapon, hitSoldier.id, p.ownerId);
       }
     } else if (weapon.splashRadius > 0) {
-      applySplash(state, ix, iy, weapon.splashRadius, weapon.splashDamage, p.weapon, null);
+      applySplash(state, ix, iy, weapon.splashRadius, weapon.splashDamage, p.weapon, null, p.ownerId);
     }
     state.events.push({ kind: 'impact', x: ix, y: iy, weapon: p.weapon, radius: weapon.splashRadius });
     return false;
@@ -128,7 +128,7 @@ function advanceLobbed(state: BattleState, p: Projectile): boolean {
     return true;
   }
   // Same order as a direct impact: the splash first, then the impact event.
-  applySplash(state, p.targetX, p.targetY, weapon.splashRadius, weapon.splashDamage, p.weapon, null);
+  applySplash(state, p.targetX, p.targetY, weapon.splashRadius, weapon.splashDamage, p.weapon, null, p.ownerId);
   state.events.push({ kind: 'impact', x: p.targetX, y: p.targetY, weapon: p.weapon, radius: weapon.splashRadius });
   return false;
 }

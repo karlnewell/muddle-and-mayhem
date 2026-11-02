@@ -40,6 +40,34 @@ describe('formatDebugHeader', () => {
     const hash = hashState(state);
     expect(formatDebugHeader(state, { seed: 7, paused: true, hash })[2]).toBe(`hash ${formatHash(hash)}`);
   });
+  it('adds the active overrides as JSON after the hash line', () => {
+    const state = battle();
+    const lines = formatDebugHeader(state, { seed: 7, paused: true, hash: 1, tuning: { overrides: { MOVE_SPEED: 2 }, active: true, error: null } });
+    expect(lines).toHaveLength(4);
+    expect(lines[3]).toBe('tune {"MOVE_SPEED":2}');
+  });
+  it('adds the tune error when the parameter was rejected', () => {
+    const state = battle();
+    const lines = formatDebugHeader(state, { seed: 7, paused: true, hash: 1, tuning: { overrides: {}, active: false, error: 'tune: unknown tunable BOGUS' } });
+    expect(lines[3]).toBe('tune error tune: unknown tunable BOGUS');
+  });
+  it('leaves the header alone with no tuning', () => {
+    const state = battle();
+    expect(formatDebugHeader(state, { seed: 7, paused: true, hash: 1, tuning: { overrides: {}, active: false, error: null } })).toHaveLength(3);
+  });
+  it('wraps a long override JSON into lines of at most 72 characters', () => {
+    const state = battle();
+    const overrides = { WEAPONS: { launcher: { cooldown: 180, damage: 30, spread: 20 }, gunner: { cooldown: 12, damage: 6 }, blaster: { cooldown: 240 } } };
+    const lines = formatDebugHeader(state, { seed: 7, paused: true, hash: 1, tuning: { overrides, active: true, error: null } });
+    const tune = lines.slice(3);
+    expect(tune.length).toBeGreaterThan(1);
+    for (const line of tune) {
+      expect(line.length).toBeLessThanOrEqual(72);
+    }
+    expect(tune[0].startsWith('tune ')).toBe(true);
+    expect(tune[1].startsWith('     ')).toBe(true);
+    expect(tune.map((l, i) => (i === 0 ? l.slice('tune '.length) : l.slice(5))).join('')).toBe(JSON.stringify(overrides));
+  });
 });
 
 describe('formatOrder', () => {

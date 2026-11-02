@@ -70,14 +70,65 @@ npm run test:e2e
 If your Playwright has no browser of its own, point it at one with
 `PW_CHROMIUM_PATH=/path/to/chromium`.
 
-To see how the tuning plays out, `npm run measure` runs sixty computer-
-versus-computer battles headless and prints battle length, time to first
-damage, downs, medic use and the winner split. Pass a JSON object to try
-other values without editing the code:
+## Tuning
+
+Balance changes are measured, not guessed, and the tools below make one
+play session cheap enough to count as a measurement.
+
+**Try values in the browser.** Add `tune=` to the URL with a JSON object of
+constant overrides, the same shape `npm run measure` accepts. Scalars go by
+name; weapon fields are merged per class:
+
+```
+https://karlnewell.github.io/muddle-and-mayhem/?seed=7&tune={"WEAPONS":{"launcher":{"cooldown":180}}}
+```
+
+The values apply before the battle exists and stay for Play again and
+Restart. A yellow **TUNED** badge sits in the top bar whenever any override
+is active, so a screenshot is never mistaken for shipped balance. The debug
+overlay (`D`) prints the overrides, or the error if the JSON was rejected;
+a rejected `tune=` starts the battle with shipped balance rather than
+failing. The names it accepts are the tunables in `src/sim/constants.ts`.
+
+**Read the report.** The result screen shows a table per side and class:
+shots, hits, hit rate, damage dealt and taken, downs inflicted, times
+downed, instant kills, seconds spent downed and medic calls used. **Copy
+report** puts a Markdown block on the clipboard with that table, the seed,
+the overrides and the full command log, ready to paste into an issue;
+anyone can replay the battle from it. When the clipboard is unavailable the
+text appears in a box you can select by hand. `window.__mm.report()`
+returns the same text and `window.__mm.stats` the raw numbers.
+
+**Measure the same change headless.** `npm run measure` runs sixty
+computer-versus-computer battles and prints battle length, time to first
+damage, downs, medic use, the winner split and the same per-class numbers
+the browser report shows. Pass the same JSON:
 
 ```bash
-npm run measure -- '{"MOVE_SPEED":2,"WEAPONS":{"gunner":{"cooldown":12}}}'
+npm run measure -- '{"WEAPONS":{"launcher":{"cooldown":180}}}'
 ```
+
+`--seeds=N`, `--first-seed=N` and `--cap=SECONDS` widen the run.
+`--blue=passive` plays a blue squad that never moves; `--blue=holdline` a
+scripted squad that walks to cover by the left wall gap, holds, focuses
+fire on the enemy most of the squad can see, calls medics when a body is
+not under fire and advances only when it outnumbers the enemy. Under the
+shipped balance the computer wins 55% against itself, 100% against the
+passive squad and 100% against the hold-line squad, which is a result
+about static defence as much as about balance.
+
+**The loop, one change at a time.**
+
+1. Write down the hypothesis: which constant, which direction, what you
+   expect to see in the report.
+2. Open the game with `?tune=` carrying that one change and play two or
+   three battles. Copy each report into the issue.
+3. Run `npm run measure` with the same JSON over 60 or more seeds, with
+   `--blue=ai` and `--blue=holdline`, and compare against a run without
+   the override.
+4. If the numbers agree with the hypothesis, change the constant in
+   `src/sim/constants.ts` in a pull request whose decision line in
+   `docs/decisions.md` carries the before and after numbers.
 
 ## Headless simulation
 

@@ -17,11 +17,13 @@ import { createTopDownRenderer } from '../render/renderer';
 import type { BattleRenderer } from '../render/renderer';
 import { hashState } from '../sim';
 import type { Side } from '../sim';
+import { formatReportMarkdown, formatReportRows } from '../stats/reportText';
 import { hitButton } from '../ui/buttons';
 import { drawDebugOverlay } from '../ui/debugOverlay';
 import { drawHud, hudCardRects } from '../ui/hud';
 import { drawMenu, menuButtons } from '../ui/menu';
 import { drawResult, resultButtons } from '../ui/result';
+import type { CopyState } from '../ui/result';
 import { INITIAL_SCREEN, reduceScreen } from '../ui/screens';
 import type { ScreenEvent, ScreenState } from '../ui/screens';
 import { drawTitle } from '../ui/title';
@@ -29,12 +31,22 @@ import { nextSeed } from './seed';
 import type { SeedChoice } from './seed';
 import { createSession } from './session';
 import type { BattleSession } from './session';
+import { NO_TUNING } from './tuning';
+import type { TuneStatus } from './tuning';
 
 export const PLAYER_SIDE: Side = 'blue';
 
 export interface AppOptions {
   /** Start with the debug overlay showing (`?debug=1`). */
   debugOverlay?: boolean;
+  /** The `?tune=` status, already applied by the caller; shown as the TUNED badge and in the overlay. */
+  tuning?: TuneStatus;
+  /**
+   * Put the report text where the player can take it: resolve true when the
+   * clipboard took it, false when it was shown another way (the DOM fallback).
+   * Absent means no clipboard: the button reports `shown`.
+   */
+  copyText?: (text: string) => Promise<boolean>;
 }
 
 export interface App {
@@ -45,6 +57,12 @@ export interface App {
   readonly seedChoice: SeedChoice;
   /** True while the debug overlay is drawn over the battlefield. */
   readonly debugOverlay: boolean;
+  /** The `?tune=` overrides in force, if any, and any parse error. */
+  readonly tuning: TuneStatus;
+  /** What the Copy report button says about its last press. */
+  readonly copyState: CopyState;
+  /** The Markdown battle report for the current battle, or null before one. */
+  report(): string | null;
   /** Advance time and draw. `nowMs` is a monotonic clock in milliseconds. */
   frame(ctx: CanvasRenderingContext2D, nowMs: number): void;
   /** A mouse button pressed at logical canvas coordinates. */
@@ -58,6 +76,9 @@ export interface App {
 export function createApp(initialSeed: SeedChoice, random: () => number, options: AppOptions = {}): App {
   const renderer = createTopDownRenderer();
   let debugOverlay = options.debugOverlay === true;
+  const tuning = options.tuning ?? NO_TUNING;
+  const copyText = options.copyText ?? (() => Promise.resolve(false));
+  let copyState: CopyState = 'idle';
   let screen: ScreenState = INITIAL_SCREEN;
   let session: BattleSession | null = null;
   let selection: number[] = [];
@@ -67,10 +88,36 @@ export function createApp(initialSeed: SeedChoice, random: () => number, options
 
   function startBattle(seed: SeedChoice): void {
     seedChoice = seed;
-    session = createSession(seed.seed);
+    session = createSession(seed.seed, tuning.overrides);
     selection = [];
     effects = [];
     lastNow = null;
+    copyState = 'idle';
+  }
+
+  function report(): string | null {
+    return session === null ? null : formatReportMarkdown(session.stats(), session.log);
+  }
+
+  /** Hand the report to the clipboard callback; the label follows the outcome, and a stale battle's answer is ignored. */
+  function copyReport(): void {
+    const text = report();
+    const owner = session;
+    if (text === null) {
+      return;
+    }
+    copyText(text).then(
+      (ok) => {
+        if (session === owner) {
+          copyState = ok ? 'copied' : 'shown';
+        }
+      },
+      () => {
+        if (session === owner) {
+          copyState = 'shown';
+        }
+      },
+    );
   }
 
   function dispatch(e: ScreenEvent): void {
@@ -170,9 +217,11 @@ export function createApp(initialSeed: SeedChoice, random: () => number, options
     if (button !== 'left') {
       return;
     }
-    const id = hitButton(resultButtons(), x, y);
+    const id = hitButton(resultButtons(copyState), x, y);
     if (id === 'playAgain') {
       dispatch('playAgain');
+    } else if (id === 'copyReport') {
+      copyReport();
     } else if (id === 'title') {
       dispatch('toTitle');
     }
@@ -187,15 +236,15 @@ export function createApp(initialSeed: SeedChoice, random: () => number, options
     }
     const state = session.state;
     renderer.draw(ctx, state, { selection, alpha: session.alpha(), effects, playerSide: PLAYER_SIDE, pending: session.pending });
-    drawHud(ctx, state, { playerSide: PLAYER_SIDE, selection, paused: session.paused });
+    drawHud(ctx, state, { playerSide: PLAYER_SIDE, selection, paused: session.paused, tuned: tuning.active });
     if (screen.screen === 'result') {
-      drawResult(ctx, state, PLAYER_SIDE);
+      drawResult(ctx, state, PLAYER_SIDE, { rows: formatReportRows(session.stats()), copyState });
     } else if (screen.menuOpen) {
       drawMenu(ctx);
     }
     if (debugOverlay) {
       // Drawn last so it stays readable over the menu and result panels.
-      drawDebugOverlay(ctx, state, { seed: session.seed, paused: session.paused, hash: hashState(state) });
+      drawDebugOverlay(ctx, state, { seed: session.seed, paused: session.paused, hash: hashState(state), tuning });
     }
   }
 
@@ -216,6 +265,13 @@ export function createApp(initialSeed: SeedChoice, random: () => number, options
     get debugOverlay() {
       return debugOverlay;
     },
+    get tuning() {
+      return tuning;
+    },
+    get copyState() {
+      return copyState;
+    },
+    report,
     frame(ctx: CanvasRenderingContext2D, nowMs: number): void {
       const dt = lastNow === null ? 0 : nowMs - lastNow;
       lastNow = nowMs;

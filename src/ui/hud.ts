@@ -13,12 +13,31 @@ import type { BattleState, Side, Soldier } from '../sim';
 import type { ButtonRect } from './buttons';
 import { roundRect } from './drawButtons';
 import { formatClock } from './text';
-import { CONTROLS_HINT, FONT, GAME_TITLE, HUD, STATUS_TEXT, TOP_BAR } from './uiConstants';
+import { CONTROLS_HINT, FONT, GAME_TITLE, HUD, STATUS_TEXT, TOP_BAR, TUNED_BADGE } from './uiConstants';
 
 export interface HudView {
   playerSide: Side;
   selection: readonly number[];
   paused: boolean;
+  /** True while a `?tune=` override is in force: the top bar shows the TUNED badge. */
+  tuned: boolean;
+}
+
+/** The TUNED badge rectangle, fixed so a test can read its pixels. */
+export function tunedBadgeRect(): ButtonRect {
+  return { id: 'tuned', label: 'TUNED', x: TUNED_BADGE.x, y: TUNED_BADGE.y, w: TUNED_BADGE.w, h: TUNED_BADGE.h };
+}
+
+function drawTunedBadge(ctx: CanvasRenderingContext2D): void {
+  const r = tunedBadgeRect();
+  roundRect(ctx, r.x, r.y, r.w, r.h, TUNED_BADGE.radius);
+  ctx.fillStyle = PALETTE.selection;
+  ctx.fill();
+  ctx.fillStyle = PALETTE.pageBackground;
+  ctx.font = FONT.smallBold;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText(r.label, r.x + r.w / 2, r.y + r.h / 2 + 1);
 }
 
 export function hudCardRects(): ButtonRect[] {
@@ -152,6 +171,12 @@ function drawTopBar(ctx: CanvasRenderingContext2D, state: BattleState, view: Hud
   ctx.fillStyle = PALETTE.text;
   ctx.textAlign = 'left';
   ctx.fillText(GAME_TITLE, TOP_BAR.padding, TOP_BAR.height / 2 + 1);
+  if (view.tuned) {
+    drawTunedBadge(ctx);
+  }
+  ctx.textBaseline = 'middle';
+  ctx.font = FONT.bodyBold;
+  ctx.fillStyle = PALETTE.text;
   ctx.textAlign = 'center';
   ctx.fillText(formatClock(state.tick), LOGICAL_WIDTH / 2, TOP_BAR.height / 2 + 1);
   const enemy: Side = view.playerSide === 'blue' ? 'red' : 'blue';

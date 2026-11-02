@@ -102,7 +102,7 @@ describe('advanceProjectiles, direct kind', () => {
     expect(hits[0].radius).toBe(0);
     expect(hits[0].x).toBeCloseTo(200 - SOLDIER_RADIUS, 6);
     expect(hits[0].y).toBeCloseTo(256, 6);
-    expect(state.events).toContainEqual({ kind: 'damage', soldierId: 5, amount: WEAPONS.gunner.damage, weapon: 'gunner' });
+    expect(state.events).toContainEqual({ kind: 'damage', soldierId: 5, amount: WEAPONS.gunner.damage, weapon: 'gunner', sourceId: 0 });
   });
 
   it('keeps prevX/prevY one tick behind while in flight', () => {

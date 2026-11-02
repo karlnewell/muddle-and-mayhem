@@ -104,7 +104,7 @@ test('a battle can be started, ordered, run, and finished', async ({ page }) => 
   // Esc does nothing on the result screen; Play again starts a fresh paused battle with the next seed.
   await page.keyboard.press('Escape');
   expect(await page.evaluate(() => window.__mm!.screen)).toBe('result');
-  const playAgain = resultButtons().find((b) => b.id === 'playAgain')!;
+  const playAgain = resultButtons('idle').find((b) => b.id === 'playAgain')!;
   const again = await page.evaluate(
     ([x, y]) => window.__mm!.logicalToClient(x, y),
     [playAgain.x + playAgain.w / 2, playAgain.y + playAgain.h / 2] as const,

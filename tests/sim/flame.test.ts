@@ -141,8 +141,8 @@ describe('flame cone', () => {
       expect(state.projectiles).toHaveLength(0);
       const damage = ofKind(state, 'damage');
       expect(damage).toHaveLength(2);
-      expect(damage[0]).toEqual({ kind: 'damage', soldierId: 1, amount: SCORCHER.damage, weapon: 'scorcher' });
-      expect(damage[1]).toEqual({ kind: 'damage', soldierId: 5, amount: SCORCHER.damage, weapon: 'scorcher' });
+      expect(damage[0]).toEqual({ kind: 'damage', soldierId: 1, amount: SCORCHER.damage, weapon: 'scorcher', sourceId: 3 });
+      expect(damage[1]).toEqual({ kind: 'damage', soldierId: 5, amount: SCORCHER.damage, weapon: 'scorcher', sourceId: 3 });
     }
     expect(enemy.hp).toBeCloseTo(MAX_HP - 10 * SCORCHER.damage, 9);
     expect(friend.hp).toBeCloseTo(MAX_HP - 10 * SCORCHER.damage, 9);

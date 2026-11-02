@@ -31,13 +31,13 @@ export function drawButton(ctx: CanvasRenderingContext2D, b: ButtonRect): void {
   ctx.fillText(b.label, b.x + b.w / 2, b.y + b.h / 2 + 1);
 }
 
-/** A dim overlay over the whole canvas and a centred panel; returns the panel's top-left. */
-export function drawOverlayPanel(ctx: CanvasRenderingContext2D, canvasW: number, canvasH: number, panelH: number): { x: number; y: number } {
+/** A dim overlay over the whole canvas and a centred panel of the given size; returns the panel's top-left. */
+export function drawOverlayPanel(ctx: CanvasRenderingContext2D, canvasW: number, canvasH: number, panelW: number, panelH: number): { x: number; y: number } {
   ctx.fillStyle = PALETTE.overlay;
   ctx.fillRect(0, 0, canvasW, canvasH);
-  const x = (canvasW - PANEL.width) / 2;
+  const x = (canvasW - panelW) / 2;
   const y = (canvasH - panelH) / 2;
-  roundRect(ctx, x, y, PANEL.width, panelH, PANEL.radius);
+  roundRect(ctx, x, y, panelW, panelH, PANEL.radius);
   ctx.fillStyle = PALETTE.panel;
   ctx.fill();
   ctx.strokeStyle = PALETTE.panelEdge;

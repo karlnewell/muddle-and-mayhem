@@ -13,13 +13,18 @@ import { INSTANT_KILL_CHANCE, WEAPONS } from './constants';
 import { isActive } from './soldiers';
 import { dist2 } from './vec';
 
-/** Apply damage from `weapon` to a soldier. Downed and dead soldiers ignore it. Emits damage/downed/killed events. */
-export function applyDamage(state: BattleState, target: Soldier, amount: number, weapon: SoldierClass): void {
+/**
+ * Apply damage from `weapon`, fired by soldier `sourceId`, to a soldier.
+ * Downed and dead soldiers ignore it. Emits damage/downed/killed events;
+ * the damage event names the source so a report can tell friendly splash
+ * from an enemy's.
+ */
+export function applyDamage(state: BattleState, target: Soldier, amount: number, weapon: SoldierClass, sourceId: number): void {
   if (!isActive(target)) {
     return;
   }
   target.hp = Math.max(0, target.hp - amount);
-  state.events.push({ kind: 'damage', soldierId: target.id, amount, weapon });
+  state.events.push({ kind: 'damage', soldierId: target.id, amount, weapon, sourceId });
   if (target.hp > 0) {
     return;
   }
@@ -45,7 +50,7 @@ export function applyDamage(state: BattleState, target: Soldier, amount: number,
  */
 export function applySplash(
   state: BattleState, x: number, y: number, radius: number, amount: number,
-  weapon: SoldierClass, excludeId: number | null,
+  weapon: SoldierClass, excludeId: number | null, sourceId: number,
 ): void {
   const radius2 = radius * radius;
   for (const s of state.soldiers) {
@@ -53,7 +58,7 @@ export function applySplash(
       continue;
     }
     if (dist2(s.x, s.y, x, y) <= radius2) {
-      applyDamage(state, s, amount, weapon);
+      applyDamage(state, s, amount, weapon, sourceId);
     }
   }
 }

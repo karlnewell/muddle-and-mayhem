@@ -5,7 +5,7 @@
  * in every build on purpose; see docs/decisions.md.
  */
 import { hashState } from '../sim';
-import type { Vec2 } from '../sim';
+import type { TuningOverrides, Vec2 } from '../sim';
 import type { App } from './app';
 
 export interface DebugHook {
@@ -17,10 +17,20 @@ export interface DebugHook {
   readonly menuOpen: boolean;
   /** True while the in-game debug overlay is drawn. */
   readonly debugOverlay: boolean;
+  /** True while a `?tune=` override is in force. */
+  readonly tuned: boolean;
+  /** The overrides in force (empty when none), so a battle report can carry them. */
+  readonly overrides: TuningOverrides;
+  /** Why `?tune=` was rejected, or null. */
+  readonly tuneError: string | null;
   readonly selection: readonly number[];
   readonly log: unknown;
   readonly pending: unknown;
   readonly state: unknown;
+  /** The `BattleStats` of the current battle, or null. */
+  readonly stats: unknown;
+  /** The Markdown battle report (what Copy report copies), or null before a battle. */
+  report(): string | null;
   hash(): number | null;
   replayMatches(): boolean | null;
   advanceTicks(n: number): void;
@@ -53,6 +63,15 @@ export function createDebugHook(app: App, logicalToClient: (x: number, y: number
     get debugOverlay() {
       return app.debugOverlay;
     },
+    get tuned() {
+      return app.tuning.active;
+    },
+    get overrides() {
+      return app.tuning.overrides;
+    },
+    get tuneError() {
+      return app.tuning.error;
+    },
     get selection() {
       return app.selection;
     },
@@ -64,6 +83,12 @@ export function createDebugHook(app: App, logicalToClient: (x: number, y: number
     },
     get state() {
       return app.session?.state ?? null;
+    },
+    get stats() {
+      return app.session?.stats() ?? null;
+    },
+    report() {
+      return app.report();
     },
     hash() {
       return app.session === null ? null : hashState(app.session.state);

@@ -11,7 +11,7 @@ describe('effectsFromEvents', () => {
   });
   it('turns damage into a hit flash, a jam into a label, a revive into a pulse, and ignores the rest', () => {
     const events: BattleEvent[] = [
-      { kind: 'damage', soldierId: 3, amount: 8, weapon: 'gunner' },
+      { kind: 'damage', soldierId: 3, amount: 8, weapon: 'gunner', sourceId: 6 },
       { kind: 'jam', soldierId: 0 },
       { kind: 'revived', soldierId: 4 },
       { kind: 'shot', soldierId: 1, weapon: 'launcher' },

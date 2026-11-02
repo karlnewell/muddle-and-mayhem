@@ -3,6 +3,7 @@
  * state to lines, so the layout is unit-tested and the drawing code only
  * places strings. Fixed-width columns, meant for a monospace font.
  */
+import type { TuneStatus } from '../game/tuning';
 import { soldierById, worldToTile } from '../sim';
 import type { BattleState, Soldier } from '../sim';
 import { formatClock } from './text';
@@ -12,6 +13,30 @@ export interface DebugHeaderInfo {
   paused: boolean;
   /** `hashState(state)`, computed by the caller once per frame. */
   hash: number;
+  /** The `?tune=` status; absent or inactive with no error adds nothing. */
+  tuning?: TuneStatus;
+}
+
+/** Widest line of the overlay; a longer override JSON wraps to this. */
+const TUNE_LINE_WIDTH = 72;
+const TUNE_PREFIX = 'tune ';
+const TUNE_INDENT = ' '.repeat(TUNE_PREFIX.length);
+
+/** `tune <json>` wrapped at TUNE_LINE_WIDTH with indented continuation lines, or `tune error <message>`. */
+export function formatTuneLines(tuning: TuneStatus): string[] {
+  if (tuning.error !== null) {
+    return [`${TUNE_PREFIX}error ${tuning.error}`];
+  }
+  if (!tuning.active) {
+    return [];
+  }
+  const json = JSON.stringify(tuning.overrides);
+  const width = TUNE_LINE_WIDTH - TUNE_PREFIX.length;
+  const lines: string[] = [];
+  for (let i = 0; i < json.length; i += width) {
+    lines.push((i === 0 ? TUNE_PREFIX : TUNE_INDENT) + json.slice(i, i + width));
+  }
+  return lines;
 }
 
 /** Column widths, in characters, shared by the header row and the soldier rows. */
@@ -68,13 +93,16 @@ export function formatSoldierRow(state: BattleState, s: Soldier): string {
   );
 }
 
-/** Seed, tick and clock, pause flag, medic calls per side, hash, and the winner once set. */
+/** Seed, tick and clock, pause flag, medic calls per side, hash, the tune lines when any, and the winner once set. */
 export function formatDebugHeader(state: BattleState, info: DebugHeaderInfo): string[] {
   const lines = [
     `seed ${info.seed}   tick ${state.tick}   ${formatClock(state.tick)}   ${info.paused ? 'PAUSED' : 'RUNNING'}`,
     `medic calls   blue ${state.sides.blue.medicCalls}   red ${state.sides.red.medicCalls}`,
     `hash ${formatHash(info.hash)}`,
   ];
+  if (info.tuning !== undefined) {
+    lines.push(...formatTuneLines(info.tuning));
+  }
   if (state.winner !== null) {
     lines.push(`winner ${state.winner}`);
   }
