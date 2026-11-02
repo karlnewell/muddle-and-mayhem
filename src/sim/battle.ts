@@ -7,6 +7,7 @@
 import type { BattleState, Command, TileMap } from './types';
 import { MEDIC_CALLS } from './constants';
 import { applyCommand } from './commands';
+import { applyFlame } from './flame';
 import { CROSSROADS } from './maps/crossroads';
 import { moveSoldiers } from './movement';
 import { advanceProjectiles } from './projectiles';
@@ -62,7 +63,8 @@ export function step(state: BattleState, commands: readonly Command[]): void {
   fireWeapons(state);
   // phase: projectiles
   advanceProjectiles(state);
-  // phase: flame (Task 9: applyFlame)
+  // phase: flame
+  applyFlame(state);
   // phase: medics (Task 10: advanceMedics)
   // phase: win check
   checkVictory(state);

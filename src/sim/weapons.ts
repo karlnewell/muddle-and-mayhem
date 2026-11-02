@@ -3,7 +3,10 @@
  * its cooldown down, picks a target, turns to face it, and discharges its
  * weapon according to the shot kind. Direct weapons (Gunner, Launcher) push
  * a projectile that flies; lobbed weapons (Chucker, Blaster) push a timed
- * projectile that lands after `flightTicks`; the flame cone is Task 9.
+ * projectile that lands after `flightTicks`; the flame weapon (Scorcher)
+ * creates nothing here and keeps no cooldown: the shared code below faces
+ * the target and raises `firing`, and `applyFlame` (flame.ts) burns the cone
+ * later in the same tick.
  *
  * Rng discipline per direct or lobbed shot: `int(16)` for the scatter
  * direction, `next()` for the scatter distance, then (Gunner only) the jam
@@ -119,9 +122,8 @@ export function fireWeapons(state: BattleState): void {
       fireDirect(state, s, target, weapon);
     } else if (weapon.shot === 'lobbed') {
       fireLobbed(state, s, target, weapon);
-    } else {
-      // Task 9: flame cone.
     }
+    // Flame: no projectile, no cooldown, no shot event; `firing` below marks the cone active.
     s.targetId = target.id;
     s.firing = true;
   }
