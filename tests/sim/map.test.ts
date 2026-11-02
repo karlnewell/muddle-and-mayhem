@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { TILE_CRATE, TILE_OPEN, TILE_SIZE, TILE_TREE, TILE_WALL } from '../../src/sim/constants';
 import {
   circleOverlapsCover,
+  coverPushOut,
   isBlocked,
   mapHeightUnits,
   mapWidthUnits,
@@ -12,6 +13,7 @@ import {
   worldToTile,
 } from '../../src/sim/map';
 import type { TileMap } from '../../src/sim/types';
+import { dist2 } from '../../src/sim/vec';
 
 // A 5 by 5 map: blue spawns down column 0, red spawns down column 4,
 // a crate at (2,0), a tree at (2,1), and a wall at (2,2).
@@ -177,5 +179,54 @@ describe('circleOverlapsCover', () => {
     // below it are open. A centre 10 units left and 10 down is 14.1 away.
     expect(circleOverlapsCover(tiny(), 54, 106, 12)).toBe(false);
     expect(circleOverlapsCover(tiny(), 54, 106, 15)).toBe(true);
+  });
+});
+
+/** A push vector matches to within the sub-micron margin coverPushOut adds. */
+function expectPush(push: { x: number; y: number } | null, x: number, y: number): void {
+  expect(push).not.toBeNull();
+  expect(push!.x).toBeCloseTo(x, 5);
+  expect(push!.y).toBeCloseTo(y, 5);
+}
+
+describe('coverPushOut', () => {
+  // The wall at (2,2) spans x 64..96 and y 64..96.
+  it('returns null on open ground', () => {
+    expect(coverPushOut(tiny(), 40, 80, 12)).toBeNull();
+    expect(coverPushOut(tiny(), 51, 80, 12)).toBeNull(); // touching exactly is not overlap
+  });
+
+  it('pushes straight back out of an edge by the penetration depth', () => {
+    expectPush(coverPushOut(tiny(), 54, 80, 12), -2, 0);
+    expectPush(coverPushOut(tiny(), 80, 106, 12), 0, 2);
+  });
+
+  it('pushes away from a corner along the nearest-point direction', () => {
+    // Below and left of the wall's bottom-left corner (64, 96), with only open tiles around.
+    const push = coverPushOut(tiny(), 58, 102, 12) as { x: number; y: number };
+    expect(push).not.toBeNull();
+    expect(push.x).toBeLessThan(0);
+    expect(push.y).toBeGreaterThan(0);
+    expect(-push.x).toBeCloseTo(push.y, 9);
+    // Lands at radius distance from the corner, up to floating-point rounding.
+    const after = Math.sqrt(dist2(58 + push.x, 102 + push.y, 64, 96));
+    expect(after).toBeCloseTo(12, 5);
+  });
+
+  it('pushes a centre inside the tile out along the axis of least penetration', () => {
+    expectPush(coverPushOut(tiny(), 70, 80, 12), -18, 0);
+    expectPush(coverPushOut(tiny(), 80, 90, 12), 0, 18);
+    expectPush(coverPushOut(tiny(), 80, 80, 12), -28, 0); // exact centre: left wins the tie
+  });
+
+  it('chooses the deepest-penetrating tile', () => {
+    // Crate (2,0) spans y 0..32 and tree (2,1) spans y 32..64; a circle at x 60 straddling
+    // y 32 touches both, deeper into whichever its centre is nearer.
+    const push = coverPushOut(tiny(), 54, 40, 12) as { x: number; y: number };
+    expectPush(push, -2, 0);
+  });
+
+  it('treats the outside of the map as cover', () => {
+    expectPush(coverPushOut(tiny(), 5, 80, 12), 7, 0);
   });
 });

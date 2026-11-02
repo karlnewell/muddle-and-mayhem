@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { clamp, dist2, dot, length, normalize } from '../../src/sim/vec';
+import { clamp, dist2, dot, imod, length, normalize } from '../../src/sim/vec';
 
 describe('vec', () => {
   it('dist2 returns the squared distance', () => {
@@ -21,5 +21,12 @@ describe('vec', () => {
     expect(clamp(5, 0, 3)).toBe(3);
     expect(clamp(-1, 0, 3)).toBe(0);
     expect(clamp(2, 0, 3)).toBe(2);
+  });
+  it('imod wraps into [0, b) for positive and negative a', () => {
+    expect(imod(17, 16)).toBe(1);
+    expect(imod(16, 16)).toBe(0);
+    expect(imod(5, 16)).toBe(5);
+    expect(imod(-1, 16)).toBe(15);
+    expect(imod(-17, 16)).toBe(15);
   });
 });

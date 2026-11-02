@@ -36,3 +36,8 @@ export function dot(ax: number, ay: number, bx: number, by: number): number {
 export function clamp(v: number, lo: number, hi: number): number {
   return Math.min(hi, Math.max(lo, v));
 }
+
+/** a modulo b wrapped into [0, b) for b > 0, written without the % operator. */
+export function imod(a: number, b: number): number {
+  return a - Math.floor(a / b) * b;
+}

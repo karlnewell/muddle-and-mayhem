@@ -155,3 +155,78 @@ export function circleOverlapsCover(map: TileMap, x: number, y: number, r: numbe
   }
   return false;
 }
+
+/**
+ * The vector that moves a circle at (x, y) with radius r out of the blocked
+ * tile it penetrates most deeply, or null when it overlaps no cover. Each
+ * blocked candidate tile is tested with the nearest-point rule: when the
+ * centre lies outside the tile the push runs from the nearest point through
+ * the centre by the penetration depth (r minus the distance), so an edge
+ * contact pushes straight out and a corner contact pushes diagonally. When
+ * the centre lies inside the tile the push runs along the axis of least
+ * penetration (left, right, top, bottom, first wins a tie). Ties between
+ * tiles go to the first in row-major scan order, so the result is the same
+ * on every call. After the push the circle sits a hair more than r from the
+ * tile (`COVER_PUSH_MARGIN`), so `circleOverlapsCover` is false afterwards
+ * despite rounding in the division.
+ */
+const COVER_PUSH_MARGIN = 1e-6;
+
+export function coverPushOut(map: TileMap, x: number, y: number, r: number): Vec2 | null {
+  const minTx = Math.floor((x - r) / TILE_SIZE);
+  const maxTx = Math.floor((x + r) / TILE_SIZE);
+  const minTy = Math.floor((y - r) / TILE_SIZE);
+  const maxTy = Math.floor((y + r) / TILE_SIZE);
+  const r2 = r * r;
+  let best: Vec2 | null = null;
+  let bestDepth = 0;
+  for (let ty = minTy; ty <= maxTy; ty++) {
+    for (let tx = minTx; tx <= maxTx; tx++) {
+      if (!isBlocked(map, tx, ty)) {
+        continue;
+      }
+      const left = tx * TILE_SIZE;
+      const top = ty * TILE_SIZE;
+      const right = left + TILE_SIZE;
+      const bottom = top + TILE_SIZE;
+      const nx = clamp(x, left, right);
+      const ny = clamp(y, top, bottom);
+      const d2 = dist2(x, y, nx, ny);
+      if (d2 >= r2) {
+        continue;
+      }
+      let depth: number;
+      let px: number;
+      let py: number;
+      if (d2 > 0) {
+        const d = Math.sqrt(d2);
+        depth = r - d + COVER_PUSH_MARGIN;
+        px = ((x - nx) / d) * depth;
+        py = ((y - ny) / d) * depth;
+      } else {
+        const toLeft = x - left;
+        const toRight = right - x;
+        const toTop = y - top;
+        const toBottom = bottom - y;
+        const least = Math.min(toLeft, toRight, toTop, toBottom);
+        depth = least + r + COVER_PUSH_MARGIN;
+        px = 0;
+        py = 0;
+        if (least === toLeft) {
+          px = -depth;
+        } else if (least === toRight) {
+          px = depth;
+        } else if (least === toTop) {
+          py = -depth;
+        } else {
+          py = depth;
+        }
+      }
+      if (depth > bestDepth) {
+        bestDepth = depth;
+        best = { x: px, y: py };
+      }
+    }
+  }
+  return best;
+}
