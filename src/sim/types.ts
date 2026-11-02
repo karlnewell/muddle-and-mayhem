@@ -39,6 +39,7 @@ export interface Soldier {
   stuckTicks: number;
   lastRepathTick: number;
   downedTick: number;               // tick the soldier went down or died, -1 while standing
+  orderTick: number;                // tick a command last set this soldier's order, -1 before any
 }
 
 export interface Projectile {

@@ -2,7 +2,8 @@
  * Pacing measurement: runs the real simulation (src/sim) over many seeds and
  * prints the numbers a tuning change is judged by: battle length, tick of
  * first damage, downs and medic calls per side, red move commands per
- * battle (how often the red AI re-sites), winner split, the share of
+ * battle (how often the red AI re-sites) and how many of those land more
+ * than eight tiles from the soldier's previous move, winner split, the share of
  * battles that hit the tick cap or ended in a draw, and per side and class
  * the shots, hits, hit rate, damage dealt and downs inflicted, as totals
  * over every seed and as per-battle medians. The per-class numbers come
@@ -21,8 +22,8 @@
  * every battle here runs the shipped code with the candidate values; the
  * same JSON in the game's `?tune=` parameter gives the same battle.
  */
-import type { BattleState, Controller, Side, TuningOverrides } from '../src/sim/index.ts';
-import { CLASS_ORDER, SIDES, TICK_RATE, createAi, overrideTuning, runBattle } from '../src/sim/index.ts';
+import type { BattleState, Command, Controller, Side, TuningOverrides } from '../src/sim/index.ts';
+import { CLASS_ORDER, SIDES, TICK_RATE, TILE_SIZE, createAi, overrideTuning, runBattle } from '../src/sim/index.ts';
 import { createStatsCollector, sideTotals } from '../src/stats/battleStats.ts';
 import type { BattleStats, ClassStats } from '../src/stats/battleStats.ts';
 import { createHoldLine } from './holdline.mts';
@@ -43,6 +44,30 @@ interface Measured {
   winner: Side | 'draw' | 'cap';
   /** Move commands the red AI issued over the battle: how often it re-sited its soldiers. */
   redMoves: number;
+  /** Red move commands more than `SWING_TILES` tiles from that soldier's previous move command: cross-map swings. */
+  redSwings: number;
+}
+
+const SWING_TILES = 8;
+
+/** Red move commands that land more than `SWING_TILES` tiles from the same soldier's previous move command. */
+function countSwings(log: readonly Command[]): number {
+  const last = new Map<number, { x: number; y: number }>();
+  const limit = SWING_TILES * TILE_SIZE;
+  let swings = 0;
+  for (const c of log) {
+    if (c.side !== 'red' || c.type !== 'move') {
+      continue;
+    }
+    for (const id of c.soldierIds) {
+      const prev = last.get(id);
+      if (prev !== undefined && (c.x - prev.x) * (c.x - prev.x) + (c.y - prev.y) * (c.y - prev.y) > limit * limit) {
+        swings++;
+      }
+      last.set(id, { x: c.x, y: c.y });
+    }
+  }
+  return swings;
 }
 
 function parseArgs(argv: readonly string[]): Options {
@@ -92,7 +117,7 @@ function measureBattle(seed: number, options: Options): Measured {
     },
   });
   const redMoves = run.log.filter((c) => c.side === 'red' && c.type === 'move').length;
-  return { stats: collector.stats(), winner: run.state.winner ?? 'cap', redMoves };
+  return { stats: collector.stats(), winner: run.state.winner ?? 'cap', redMoves, redSwings: countSwings(run.log) };
 }
 
 function median(values: readonly number[]): number {
@@ -164,6 +189,7 @@ function report(all: readonly Measured[], options: Options): void {
   row('downs per battle median', perSide(downs));
   row('medic calls used median', perSide(medics));
   row('red move commands median', `${median(all.map((m) => m.redMoves)).toFixed(1)}  total ${all.reduce((n, m) => n + m.redMoves, 0)}`);
+  row(`red swings >${SWING_TILES} tiles total`, `${all.reduce((n, m) => n + m.redSwings, 0)}`);
   row('medic calls used total', `blue ${sum(medics, 'blue')}  red ${sum(medics, 'red')}`);
   const byWeapon = CLASS_ORDER.map((cls) => `${cls} ${sum((s, side) => s.sides[side][cls].downsInflicted, 'blue') + sum((s, side) => s.sides[side][cls].downsInflicted, 'red')}`).join('  ');
   row('downs by weapon total', byWeapon);

@@ -8,15 +8,16 @@
  * It thinks every `AI_THINK_TICKS` and issues a command only when that
  * would change a soldier's order, so command logs stay small. A soldier
  * already moving to a firing tile keeps it unless another is clearly better
- * (`AI_STAY_BONUS` in `bestFiringTile`). With
+ * (`AI_STAY_BONUS` in `bestFiringTile`), and re-sites it at most once every
+ * `AI_COMMIT_THINKS` thinks while the tile stays valid. With
  * `AI_LOBBER_WAIT` or `AI_SCORCHER_WAIT` set, those classes hold back until
  * a friendly direct weapon has an enemy in range (`waitsForContact`).
  */
 import type { Rng } from './rng';
 import type { BattleState, Command, Order, Side, Soldier } from './types';
-import { bestFiringTile, occupancy } from './aiPositions';
+import { bestFiringTile, isFiringTile, occupancy } from './aiPositions';
 import {
-  AI_LOBBER_TARGET_REACH, AI_LOBBER_WAIT, AI_MEDIC_DESPERATE_STANDING, AI_MEDIC_PATIENCE_TICKS, AI_REVIVE_PRIORITY,
+  AI_COMMIT_THINKS, AI_LOBBER_TARGET_REACH, AI_LOBBER_WAIT, AI_MEDIC_DESPERATE_STANDING, AI_MEDIC_PATIENCE_TICKS, AI_REVIVE_PRIORITY,
   AI_SCORCHER_WAIT, AI_SEED_SALT, AI_THINK_TICKS, WEAPONS,
 } from './constants';
 import { hasLineOfSight } from './los';
@@ -120,7 +121,25 @@ function waitsForContact(s: Soldier, own: readonly Soldier[], enemies: readonly 
   return !directContact(own, enemies);
 }
 
-/** The order `s` should hold now: attack when it can fire or is a Scorcher, else move to a firing tile, else attack. */
+/**
+ * True when `s` is walking to a tile a command sent it to fewer than
+ * `AI_COMMIT_THINKS` thinks ago and that tile is still a firing tile against
+ * `target`: the AI then keeps the order instead of re-siting. Read from
+ * `orderTick` in the state, so the AI stays a pure function of state.
+ */
+function committedToTile(state: BattleState, s: Soldier, target: Soldier, occupied: readonly number[]): boolean {
+  if (s.order.kind !== 'move' || state.tick - s.orderTick >= AI_COMMIT_THINKS * AI_THINK_TICKS) {
+    return false;
+  }
+  const t = worldToTile(s.order.x, s.order.y);
+  return isFiringTile(state, s, target, occupied, t.tx, t.ty);
+}
+
+/**
+ * The order `s` should hold now: attack when it can fire or is a Scorcher,
+ * else keep a committed move (`committedToTile`), else move to the best
+ * firing tile, else attack.
+ */
 function desiredOrder(
   state: BattleState,
   s: Soldier,
@@ -130,6 +149,9 @@ function desiredOrder(
 ): Order {
   if (canFireAt(state, s, target) || s.cls === 'scorcher') {
     return { kind: 'attack', targetId: target.id };
+  }
+  if (committedToTile(state, s, target, occupied)) {
+    return s.order;
   }
   const stay = s.order.kind === 'move' ? worldToTile(s.order.x, s.order.y) : null;
   const tile = bestFiringTile(state, s, target, occupied, rng, stay);

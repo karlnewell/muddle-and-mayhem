@@ -16,6 +16,7 @@ import {
   AI_COVER_BONUS,
   AI_JITTER,
   AI_LAUNCHER_DISTANCE_WEIGHT,
+  AI_LAUNCHER_STANDOFF,
   AI_RANGE_FRACTION,
   AI_SPACING_PENALTY,
   AI_STAY_BONUS,
@@ -100,10 +101,52 @@ export function besideFriendly(state: BattleState, occupied: readonly number[], 
 }
 
 /**
- * The best tile for `s` to fire at `target` from, or null when no tile
- * qualifies. A tile qualifies when it is open, holds no other standing
- * soldier (and is not shared by two), lies within `AI_RANGE_FRACTION` of the weapon range from the
- * target and, for direct weapons, has line of sight to the target.
+ * True when (tx, ty) is a firing tile for `s` against `target`: open, holding
+ * no other standing soldier (and not shared by two), within
+ * `AI_RANGE_FRACTION` of the weapon range from the target and, for direct
+ * weapons, in line of sight of the target. Draws no rng.
+ */
+export function isFiringTile(
+  state: BattleState,
+  s: Soldier,
+  target: Soldier,
+  occupied: readonly number[],
+  tx: number,
+  ty: number,
+): boolean {
+  const map = state.map;
+  if (isBlocked(map, tx, ty)) {
+    return false;
+  }
+  const holder = occupied[tileIndex(map, tx, ty)];
+  if (holder === TILE_SHARED || (holder !== TILE_FREE && holder !== s.id)) {
+    return false;
+  }
+  const weapon = WEAPONS[s.cls];
+  const reach = weapon.range * AI_RANGE_FRACTION;
+  const centre = tileCenter(tx, ty);
+  if (dist2(centre.x, centre.y, target.x, target.y) > reach * reach) {
+    return false;
+  }
+  return weapon.shot !== 'direct' || hasLineOfSight(map, centre.x, centre.y, target.x, target.y);
+}
+
+/**
+ * The Launcher's preference for distance from its target: weight times
+ * distance over range, growing only up to `AI_LAUNCHER_STANDOFF` of its
+ * reach and flat beyond. Uncapped, a target that stepped a few units
+ * reshuffled every far tile's score each think, and tiles far round the
+ * target on either side scored alike, so the Launcher's orders swung across
+ * the map.
+ */
+export function launcherDistanceScore(toTarget: number, range: number): number {
+  const knee = AI_LAUNCHER_STANDOFF * AI_RANGE_FRACTION * range;
+  return (AI_LAUNCHER_DISTANCE_WEIGHT * Math.min(toTarget, knee)) / range;
+}
+
+/**
+ * The best tile for `s` to fire at `target` from, or null when none
+ * qualifies (`isFiringTile`).
  *
  * `stay` is the tile `s` is already moving to, or null. While it still
  * qualifies it scores `AI_STAY_BONUS` more, so the soldier changes
@@ -119,11 +162,7 @@ export function bestFiringTile(
   stay: TileCoord | null = null,
 ): TileCoord | null {
   const map = state.map;
-  const weapon = WEAPONS[s.cls];
-  const range = weapon.range;
-  const reach = range * AI_RANGE_FRACTION;
-  const reach2 = reach * reach;
-  const needsSight = weapon.shot === 'direct';
+  const range = WEAPONS[s.cls].range;
   const isLauncher = s.cls === 'launcher';
 
   const lo = worldToTile(target.x - range, target.y - range);
@@ -137,27 +176,16 @@ export function bestFiringTile(
   let bestScore = 0;
   for (let ty = minTy; ty <= maxTy; ty++) {
     for (let tx = minTx; tx <= maxTx; tx++) {
-      if (isBlocked(map, tx, ty)) {
-        continue;
-      }
-      const holder = occupied[tileIndex(map, tx, ty)];
-      if (holder === TILE_SHARED || (holder !== TILE_FREE && holder !== s.id)) {
+      if (!isFiringTile(state, s, target, occupied, tx, ty)) {
         continue;
       }
       const centre = tileCenter(tx, ty);
-      const toTarget2 = dist2(centre.x, centre.y, target.x, target.y);
-      if (toTarget2 > reach2) {
-        continue;
-      }
-      if (needsSight && !hasLineOfSight(map, centre.x, centre.y, target.x, target.y)) {
-        continue;
-      }
       let score = besideCover(map, tx, ty) ? AI_COVER_BONUS : 0;
       if (besideFriendly(state, occupied, s, tx, ty)) {
         score -= AI_SPACING_PENALTY;
       }
       if (isLauncher) {
-        score += (AI_LAUNCHER_DISTANCE_WEIGHT * Math.sqrt(toTarget2)) / range;
+        score += launcherDistanceScore(Math.sqrt(dist2(centre.x, centre.y, target.x, target.y)), range);
       }
       score -= (AI_TRAVEL_WEIGHT * Math.sqrt(dist2(centre.x, centre.y, s.x, s.y))) / range;
       score += rng.next() * AI_JITTER;

@@ -147,3 +147,26 @@ describe('applyCommand medic', () => {
     expect(JSON.stringify(state)).toBe(before);
   });
 });
+
+describe('applyCommand orderTick', () => {
+  it('records the tick of the command that set each order', () => {
+    const state = fresh();
+    state.tick = 40;
+    applyCommand(state, { tick: 40, side: 'blue', type: 'move', soldierIds: [0], x: 200, y: 210 });
+    expect(state.soldiers[0].orderTick).toBe(40);
+    state.tick = 55;
+    applyCommand(state, { tick: 55, side: 'blue', type: 'attack', soldierIds: [1], targetId: 5 });
+    expect(state.soldiers[1].orderTick).toBe(55);
+    state.tick = 70;
+    applyCommand(state, { tick: 70, side: 'blue', type: 'hold', soldierIds: [0] });
+    expect(state.soldiers[0].orderTick).toBe(70);
+  });
+
+  it('leaves orderTick alone for a select or an ignored command', () => {
+    const state = fresh();
+    state.tick = 12;
+    applyCommand(state, { tick: 12, side: 'blue', type: 'select', soldierIds: [0] });
+    applyCommand(state, { tick: 12, side: 'red', type: 'hold', soldierIds: [0] }); // wrong side
+    expect(state.soldiers[0].orderTick).toBe(-1);
+  });
+});

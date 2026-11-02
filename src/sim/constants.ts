@@ -36,8 +36,10 @@ export let AI_THINK_TICKS = 15;
 export let AI_COVER_BONUS = 2;
 export let AI_RANGE_FRACTION = 0.9;
 export let AI_LAUNCHER_DISTANCE_WEIGHT = 3;
+export let AI_LAUNCHER_STANDOFF = 0.6; // the Launcher's distance score stops growing beyond this fraction of its reach (1: uncapped)
 export let AI_TRAVEL_WEIGHT = 1;
 export let AI_JITTER = 0.5;
+export let AI_COMMIT_THINKS = 3; // after a move order the AI re-sites that soldier only once this many thinks have passed, unless the tile stops being a firing tile (0 off)
 export let AI_STAY_BONUS = 0.6; // firing-tile score added to the tile a soldier is already moving to, a little above AI_JITTER, so it re-sites only for a clearly better tile
 export let AI_LOBBER_TARGET_REACH = 2; // lobbers look for a covered target within this many times their range
 export let AI_SPACING_PENALTY = 3;          // firing-tile score lost for standing beside a friendly: one grenade should not catch two
@@ -105,7 +107,8 @@ export type TunableName =
   | 'GUNNER_JAM_CHANCE' | 'GUNNER_JAM_TICKS' | 'AI_THINK_TICKS' | 'AI_COVER_BONUS' | 'AI_RANGE_FRACTION'
   | 'AI_LAUNCHER_DISTANCE_WEIGHT' | 'AI_TRAVEL_WEIGHT' | 'AI_JITTER' | 'AI_LOBBER_TARGET_REACH'
   | 'AI_MEDIC_PATIENCE_TICKS' | 'AI_MEDIC_DESPERATE_STANDING' | 'AI_SPACING_PENALTY' | 'COVER_SPLASH_FRACTION'
-  | 'FIRING_MOVE_FRACTION' | 'AI_LOBBER_WAIT' | 'AI_SCORCHER_WAIT' | 'AI_STAY_BONUS';
+  | 'FIRING_MOVE_FRACTION' | 'AI_LOBBER_WAIT' | 'AI_SCORCHER_WAIT' | 'AI_STAY_BONUS'
+  | 'AI_COMMIT_THINKS' | 'AI_LAUNCHER_STANDOFF';
 
 export type TuningOverrides = Partial<Record<TunableName, number>> & {
   WEAPONS?: Partial<Record<SoldierClass, Partial<WeaponStats>>>;
@@ -118,6 +121,7 @@ export const TUNABLE_NAMES: readonly TunableName[] = [
   'AI_LAUNCHER_DISTANCE_WEIGHT', 'AI_TRAVEL_WEIGHT', 'AI_JITTER', 'AI_LOBBER_TARGET_REACH',
   'AI_MEDIC_PATIENCE_TICKS', 'AI_MEDIC_DESPERATE_STANDING', 'AI_SPACING_PENALTY', 'COVER_SPLASH_FRACTION',
   'FIRING_MOVE_FRACTION', 'AI_LOBBER_WAIT', 'AI_SCORCHER_WAIT', 'AI_STAY_BONUS',
+  'AI_COMMIT_THINKS', 'AI_LAUNCHER_STANDOFF',
 ];
 
 function isPlainObject(value: unknown): value is Record<string, unknown> {
@@ -211,6 +215,8 @@ export function overrideTuning(overrides: TuningOverrides): void {
       case 'AI_TRAVEL_WEIGHT': AI_TRAVEL_WEIGHT = n; break;
       case 'AI_JITTER': AI_JITTER = n; break;
       case 'AI_STAY_BONUS': AI_STAY_BONUS = n; break;
+      case 'AI_COMMIT_THINKS': AI_COMMIT_THINKS = n; break;
+      case 'AI_LAUNCHER_STANDOFF': AI_LAUNCHER_STANDOFF = n; break;
       case 'AI_LOBBER_TARGET_REACH': AI_LOBBER_TARGET_REACH = n; break;
       case 'AI_MEDIC_PATIENCE_TICKS': AI_MEDIC_PATIENCE_TICKS = n; break;
       case 'AI_SPACING_PENALTY': AI_SPACING_PENALTY = n; break;

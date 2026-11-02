@@ -66,6 +66,7 @@ export function applyCommand(state: BattleState, cmd: Command): void {
     case 'move':
       for (const s of ownStanding(state, cmd.side, cmd.soldierIds)) {
         orderMove(state, s, cmd.x, cmd.y);
+        s.orderTick = state.tick;
       }
       break;
     case 'attack': {
@@ -77,6 +78,7 @@ export function applyCommand(state: BattleState, cmd: Command): void {
         s.order = { kind: 'attack', targetId: target.id };
         s.path = [];
         s.stuckTicks = 0;
+        s.orderTick = state.tick;
       }
       break;
     }
@@ -85,6 +87,7 @@ export function applyCommand(state: BattleState, cmd: Command): void {
         s.order = { kind: 'hold' };
         s.path = [];
         s.stuckTicks = 0;
+        s.orderTick = state.tick;
       }
       break;
     case 'medic':
