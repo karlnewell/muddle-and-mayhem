@@ -50,7 +50,7 @@ Plans 2 and 3 are written when their turn comes, from the spec, using superpower
 - Produces: `createRng(seed: number): Rng` in `src/sim/rng.ts`, where `interface Rng { next(): number; int(maxExclusive: number): number; chance(p: number): boolean }`. `next()` returns a float in `[0, 1)`. Mulberry32 algorithm. Plan 2 builds on this exact signature.
 - Produces: npm scripts `dev`, `build`, `preview`, `typecheck`, `test`, `test:e2e`, `lint:sim`, `check` (runs typecheck, lint:sim, test, build in that order).
 
-- [ ] **Step 1: Scaffold with Vite**
+- [x] **Step 1: Scaffold with Vite**
 
 Run in the repo root (it is empty apart from `docs/` and `.git`):
 ```bash
@@ -60,7 +60,7 @@ npm install -D vitest
 ```
 Delete the template's `src/counter.ts`, `src/style.css`, `src/typescript.svg`, and `public/vite.svg`. Keep `index.html`, `src/main.ts`, `src/vite-env.d.ts`, `tsconfig.json`, `package.json`.
 
-- [ ] **Step 2: Configure**
+- [x] **Step 2: Configure**
 
 `package.json`: set `"name": "muddle-and-mayhem"`, `"private": true`, `"license": "MIT"`, `"type": "module"`, and scripts:
 ```json
@@ -78,7 +78,7 @@ Delete the template's `src/counter.ts`, `src/style.css`, `src/typescript.svg`, a
 `tsconfig.json`: keep the template's strict settings; add `"include": ["src", "tests", "scripts", "e2e", "vite.config.ts", "vitest.config.ts", "playwright.config.ts"]`.
 `.gitignore`: `node_modules/`, `dist/`, `.superpowers/`, `test-results/`, `playwright-report/`, `.DS_Store`.
 
-- [ ] **Step 3: Write the failing PRNG test**
+- [x] **Step 3: Write the failing PRNG test**
 
 `tests/sim/rng.test.ts`:
 ```ts
@@ -123,31 +123,31 @@ describe('createRng', () => {
 });
 ```
 
-- [ ] **Step 4: Run the test to verify it fails**
+- [x] **Step 4: Run the test to verify it fails**
 
 Run: `npm test`
 Expected: FAIL, cannot resolve `../../src/sim/rng`.
 
-- [ ] **Step 5: Implement `createRng` in `src/sim/rng.ts`**
+- [x] **Step 5: Implement `createRng` in `src/sim/rng.ts`**
 
 Mulberry32: state `s = seed >>> 0`; each `next()` does `s = (s + 0x6D2B79F5) | 0; let t = Math.imul(s ^ (s >>> 15), 1 | s); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296;`. `int(n)` is `Math.floor(next() * n)`. `chance(p)` is `next() < p`. Integer bit operations and `Math.imul` are allowed in sim code (they are exact everywhere); add them to the allowed list in the CLAUDE.md rule in Task 5.
 
-- [ ] **Step 6: Run the test to verify it passes**
+- [x] **Step 6: Run the test to verify it passes**
 
 Run: `npm test`
 Expected: PASS, 5 tests.
 
-- [ ] **Step 7: Replace `src/main.ts` and `index.html` with the canvas placeholder**
+- [x] **Step 7: Replace `src/main.ts` and `index.html` with the canvas placeholder**
 
 `index.html`: title `Muddle & Mayhem`, body contains `<canvas id="game" width="960" height="540"></canvas>` and the module script. Minimal inline CSS: dark background (`#0e1116`), canvas centered, `image-rendering: pixelated`.
 `src/main.ts`: get the canvas and 2D context, fill it `#3b6b35`, draw the text `Muddle & Mayhem` centered in a monospace font, and draw one blue circle (`#3d7bd6`) and one red circle (`#d64545`). Nothing else. Throw an `Error('canvas not found')` if the element is missing.
 
-- [ ] **Step 8: Verify build and typecheck**
+- [x] **Step 8: Verify build and typecheck**
 
 Run: `npm run typecheck && npm run build`
 Expected: no type errors; `dist/index.html` exists and references assets under `/muddle-and-mayhem/assets/`.
 
-- [ ] **Step 9: Commit**
+- [x] **Step 9: Commit**
 
 ```bash
 git add -A
