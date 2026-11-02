@@ -5,7 +5,12 @@
  * over a soldier between two ticks (never point samples). The earliest hit
  * along the segment wins; a soldier beats cover on an exact tie. Friendlies
  * and the owner are passed through. A round that reaches its maximum
- * distance vanishes without detonating. Lobbed projectiles are Task 8.
+ * distance vanishes without detonating.
+ *
+ * A lobbed projectile is a timed arrival: it slides linearly from its start
+ * to its landing point (the renderer adds the arc) and, on the tick
+ * `state.tick >= landTick`, splashes the landing point whatever cover or
+ * soldiers lie on the way. Cover is never consulted for it.
  *
  * Removal rebuilds the array in order, so survivors keep their sequence and
  * the rng (instant-kill rolls inside `applyDamage`) is consumed the same way
@@ -101,17 +106,38 @@ function advanceDirect(state: BattleState, p: Projectile): boolean {
   return p.x >= 0 && p.y >= 0 && p.x <= mapWidthUnits(map) && p.y <= mapHeightUnits(map);
 }
 
+/**
+ * Advance a lobbed projectile one tick; true when it stays in the air.
+ *
+ * Tick semantics: `fireWeapons` runs before `advanceProjectiles` in `step`,
+ * so a projectile launched this tick is advanced at once with progress
+ * `(state.tick - launchTick) / flightTicks = 0`, sits at its start, and
+ * lands on the tick `state.tick === landTick`, exactly `flightTicks` steps
+ * after the shot event. Progress is clamped to 1 so a flight time of 0 (or
+ * a tick skipped by a caller) still lands at the target, never beyond it.
+ */
+function advanceLobbed(state: BattleState, p: Projectile): boolean {
+  const weapon = WEAPONS[p.weapon];
+  p.prevX = p.x;
+  p.prevY = p.y;
+  const flightTicks = p.landTick - p.launchTick;
+  const progress = flightTicks > 0 ? Math.min(1, (state.tick - p.launchTick) / flightTicks) : 1;
+  p.x = p.startX + (p.targetX - p.startX) * progress;
+  p.y = p.startY + (p.targetY - p.startY) * progress;
+  if (state.tick < p.landTick) {
+    return true;
+  }
+  // Same order as a direct impact: the splash first, then the impact event.
+  applySplash(state, p.targetX, p.targetY, weapon.splashRadius, weapon.splashDamage, p.weapon, null);
+  state.events.push({ kind: 'impact', x: p.targetX, y: p.targetY, weapon: p.weapon, radius: weapon.splashRadius });
+  return false;
+}
+
 /** Advance every projectile one tick in array order, resolving impacts, removing finished ones. */
 export function advanceProjectiles(state: BattleState): void {
   const kept: Projectile[] = [];
   for (const p of state.projectiles) {
-    let alive: boolean;
-    if (p.kind === 'direct') {
-      alive = advanceDirect(state, p);
-    } else {
-      // Task 8: lobbed flight and landing.
-      alive = true;
-    }
+    const alive = p.kind === 'direct' ? advanceDirect(state, p) : advanceLobbed(state, p);
     if (alive) {
       kept.push(p);
     }

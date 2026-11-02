@@ -2,12 +2,13 @@
  * The firing phase. Every standing soldier, in ascending id order, counts
  * its cooldown down, picks a target, turns to face it, and discharges its
  * weapon according to the shot kind. Direct weapons (Gunner, Launcher) push
- * a projectile; lobbed and flame weapons are filled in by later tasks.
+ * a projectile that flies; lobbed weapons (Chucker, Blaster) push a timed
+ * projectile that lands after `flightTicks`; the flame cone is Task 9.
  *
- * Rng discipline per direct shot: `int(16)` for the scatter direction,
- * `next()` for the scatter distance, then (Gunner only) the jam roll. Every
- * shot consumes the first two draws whatever the spread, so the stream's
- * shape never depends on tuning.
+ * Rng discipline per direct or lobbed shot: `int(16)` for the scatter
+ * direction, `next()` for the scatter distance, then (Gunner only) the jam
+ * roll. Every shot consumes the first two draws whatever the spread, so the
+ * stream's shape never depends on tuning.
  */
 import type { BattleState, Soldier, Vec2 } from './types';
 import type { WeaponStats } from './constants';
@@ -58,6 +59,41 @@ function fireDirect(state: BattleState, s: Soldier, target: Soldier, weapon: Wea
   }
 }
 
+/**
+ * Launch a lobbed projectile that lands at the scattered aim point after the
+ * weapon's flight time, whatever lies between. It is created with
+ * `launchTick = state.tick` before `advanceProjectiles` runs on this same
+ * tick, so its first advance sees progress 0 and it lands on the tick
+ * `state.tick === landTick`: the impact event appears exactly `flightTicks`
+ * steps after the shot event.
+ */
+function fireLobbed(state: BattleState, s: Soldier, target: Soldier, weapon: WeaponStats): void {
+  const aim = scatterAim(state, target, weapon.spread);
+  state.projectiles.push({
+    id: state.nextProjectileId++,
+    kind: 'lobbed',
+    weapon: s.cls,
+    side: s.side,
+    ownerId: s.id,
+    x: s.x,
+    y: s.y,
+    prevX: s.x,
+    prevY: s.y,
+    vx: 0,
+    vy: 0,
+    startX: s.x,
+    startY: s.y,
+    targetX: aim.x,
+    targetY: aim.y,
+    launchTick: state.tick,
+    landTick: state.tick + weapon.flightTicks,
+    travelled: 0,
+    maxDistance: 0,
+  });
+  s.cooldown = weapon.cooldown;
+  state.events.push({ kind: 'shot', soldierId: s.id, weapon: s.cls });
+}
+
 /** Firing phase for one tick: every standing soldier in id order. */
 export function fireWeapons(state: BattleState): void {
   for (const s of state.soldiers) {
@@ -82,7 +118,7 @@ export function fireWeapons(state: BattleState): void {
     if (weapon.shot === 'direct') {
       fireDirect(state, s, target, weapon);
     } else if (weapon.shot === 'lobbed') {
-      // Task 8: lobbed grenades and dynamite.
+      fireLobbed(state, s, target, weapon);
     } else {
       // Task 9: flame cone.
     }
