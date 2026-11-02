@@ -33,6 +33,60 @@ function dist(a: Soldier, b: Soldier): number {
   return Math.sqrt(dist2(a.x, a.y, b.x, b.y));
 }
 
+/** A cooldown no test runs long enough to exhaust. */
+const NEVER_FIRES = 1_000_000_000;
+
+/** A 16 by 8 map of open ground with spawns on row 7, blue left and red right. */
+function openMap(): TileMap {
+  const rows: string[] = [];
+  for (let ty = 0; ty < 7; ty++) {
+    rows.push('................');
+  }
+  rows.push('bbbbb......rrrrr');
+  return parseMap('Open', rows);
+}
+
+/**
+ * A 16 by 8 map split by a two-tile-thick wall on rows 2 and 3, pierced by
+ * two one-tile corridors at columns 4 and 13; spawns on row 7.
+ */
+function corridorMap(): TileMap {
+  return parseMap('Corridors', [
+    '................',
+    '................',
+    '####.########.##',
+    '####.########.##',
+    '................',
+    '................',
+    '................',
+    'bbbbb......rrrrr',
+  ]);
+}
+
+/**
+ * Blue 0 standing at `moverTile`, blue 1 holding at `holderTile`, red 9
+ * standing muzzled at its spawn so the battle has no winner, everyone else
+ * downed. Returns the mover and the holder.
+ */
+function moverAndHolder(map: TileMap, moverTile: [number, number], holderTile: [number, number]): { state: BattleState; mover: Soldier; holder: Soldier } {
+  const state = createBattle({ seed: 1, map });
+  isolate(state, [0, 1, 9]);
+  state.soldiers[9].cooldown = NEVER_FIRES;
+  const mover = state.soldiers[0];
+  const holder = state.soldiers[1];
+  const m = tileCenter(moverTile[0], moverTile[1]);
+  const h = tileCenter(holderTile[0], holderTile[1]);
+  mover.x = m.x;
+  mover.y = m.y;
+  mover.prevX = m.x;
+  mover.prevY = m.y;
+  holder.x = h.x;
+  holder.y = h.y;
+  holder.prevX = h.x;
+  holder.prevY = h.y;
+  return { state, mover, holder };
+}
+
 describe('moveSoldiers', () => {
   it('walks 64 units along open ground and arrives exactly, then holds', () => {
     const state = createBattle({ seed: 1 });
@@ -207,5 +261,66 @@ describe('moveSoldiers', () => {
     step(state, []);
     expect(circleOverlapsCover(state.map, s.x, s.y, SOLDIER_RADIUS)).toBe(false);
     expect(dist2(s.x, s.y, crate.x - 10, crate.y + 3)).toBeLessThan(40 * 40);
+  });
+
+  describe('movers yield to holders', () => {
+    it('leaves a holder bit-identical when a mover walks into it, and the mover goes around', () => {
+      const { state, mover, holder } = moverAndHolder(openMap(), [4, 1], [4, 3]);
+      const hx = holder.x;
+      const hy = holder.y;
+      const dest = tileCenter(4, 6);
+      applyCommand(state, { tick: 0, side: 'blue', type: 'move', soldierIds: [0], x: dest.x, y: dest.y });
+      for (let t = 0; t < 200 && mover.order.kind !== 'hold'; t++) {
+        step(state, []);
+        expect(holder.x).toBe(hx);
+        expect(holder.y).toBe(hy);
+        expect(holder.order).toEqual({ kind: 'hold' });
+        expect(dist(mover, holder)).toBeGreaterThanOrEqual(2 * SOLDIER_RADIUS - 0.01);
+      }
+      expect(mover.order).toEqual({ kind: 'hold' });
+      expect(Math.sqrt(dist2(mover.x, mover.y, dest.x, dest.y))).toBeLessThanOrEqual(2);
+    });
+
+    it('routes around a holder blocking a one-tile corridor and arrives without ever overlapping it', () => {
+      const map = corridorMap();
+      const { state, mover, holder } = moverAndHolder(map, [4, 0], [4, 3]);
+      const hx = holder.x;
+      const hy = holder.y;
+      const dest = tileCenter(4, 5);
+      applyCommand(state, { tick: 0, side: 'blue', type: 'move', soldierIds: [0], x: dest.x, y: dest.y });
+      // The first plan takes the short way through the blocked corridor.
+      expect(mover.path.length).toBeLessThan(8);
+      let farthestX = mover.x;
+      // Budget: about 25 tiles of detour at MOVE_SPEED, plus the stuck wait.
+      const budget = Math.ceil((28 * 32) / MOVE_SPEED);
+      for (let t = 0; t < budget && mover.order.kind !== 'hold'; t++) {
+        step(state, []);
+        farthestX = Math.max(farthestX, mover.x);
+        expect(holder.x).toBe(hx);
+        expect(holder.y).toBe(hy);
+        expect(dist(mover, holder)).toBeGreaterThanOrEqual(2 * SOLDIER_RADIUS - 0.01);
+        expect(circleOverlapsCover(map, mover.x, mover.y, SOLDIER_RADIUS)).toBe(false);
+      }
+      expect(mover.order).toEqual({ kind: 'hold' });
+      expect(Math.sqrt(dist2(mover.x, mover.y, dest.x, dest.y))).toBeLessThanOrEqual(2);
+      // It went through the other corridor, at column 13.
+      expect(farthestX).toBeGreaterThan(tileCenter(12, 0).x);
+    });
+
+    it('still splits the push between two movers', () => {
+      const { state, mover, holder } = moverAndHolder(openMap(), [4, 1], [4, 5]);
+      const other = holder;
+      // Send them straight at each other; both move, so both give way.
+      applyCommand(state, { tick: 0, side: 'blue', type: 'move', soldierIds: [0], x: other.x, y: other.y });
+      applyCommand(state, { tick: 0, side: 'blue', type: 'move', soldierIds: [1], x: mover.x, y: mover.y });
+      const startY = mover.y;
+      const otherStartY = other.y;
+      for (let t = 0; t < 30; t++) {
+        step(state, []);
+      }
+      expect(mover.y).toBeGreaterThan(startY);
+      expect(other.y).toBeLessThan(otherStartY);
+      expect(dist(mover, other)).toBeGreaterThanOrEqual(2 * SOLDIER_RADIUS - 0.01);
+    });
   });
 });

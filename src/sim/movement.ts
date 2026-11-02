@@ -147,7 +147,13 @@ function checkStuck(state: BattleState, s: Soldier, progress2: number): void {
   adoptPlan(state, s, planPath(state, s, dest, blocked));
 }
 
-/** Push every overlapping pair of standing soldiers apart, half the overlap each. */
+/**
+ * Push every overlapping pair of standing soldiers apart. Movers yield: a
+ * soldier following a path takes the whole push and a soldier without one
+ * takes none, so walking into a holder never displaces it; the mover makes
+ * no progress, the stuck rule fires and it re-plans around the holder's
+ * tile. Two movers, or two holders, split the overlap half each.
+ */
 function separate(state: BattleState): void {
   const soldiers = state.soldiers;
   const minD2 = 2 * SOLDIER_RADIUS * (2 * SOLDIER_RADIUS);
@@ -181,11 +187,18 @@ function separate(state: BattleState): void {
         ny = dy / d;
         overlap = 2 * SOLDIER_RADIUS - d;
       }
-      const half = overlap / 2;
-      a.x -= nx * half;
-      a.y -= ny * half;
-      b.x += nx * half;
-      b.y += ny * half;
+      const aMoving = a.path.length > 0;
+      const bMoving = b.path.length > 0;
+      const aShare = aMoving === bMoving ? 0.5 : aMoving ? 1 : 0;
+      const bShare = 1 - aShare;
+      if (aShare > 0) {
+        a.x -= nx * overlap * aShare;
+        a.y -= ny * overlap * aShare;
+      }
+      if (bShare > 0) {
+        b.x += nx * overlap * bShare;
+        b.y += ny * overlap * bShare;
+      }
     }
   }
 }
