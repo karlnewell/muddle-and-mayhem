@@ -106,6 +106,7 @@ describe('TUNABLE_NAMES', () => {
   it('lists every scalar tunable once', () => {
     expect(TUNABLE_NAMES).toContain('MOVE_SPEED');
     expect(TUNABLE_NAMES).toContain('AI_SPACING_PENALTY');
+    expect(TUNABLE_NAMES).toContain('AI_STAY_BONUS');
     expect(new Set(TUNABLE_NAMES).size).toBe(TUNABLE_NAMES.length);
     for (const name of TUNABLE_NAMES) {
       expect(() => validateTuning({ [name]: 1 })).not.toThrow();

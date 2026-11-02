@@ -38,6 +38,7 @@ export let AI_RANGE_FRACTION = 0.9;
 export let AI_LAUNCHER_DISTANCE_WEIGHT = 3;
 export let AI_TRAVEL_WEIGHT = 1;
 export let AI_JITTER = 0.5;
+export let AI_STAY_BONUS = 0.6; // firing-tile score added to the tile a soldier is already moving to, a little above AI_JITTER, so it re-sites only for a clearly better tile
 export let AI_LOBBER_TARGET_REACH = 2; // lobbers look for a covered target within this many times their range
 export let AI_SPACING_PENALTY = 3;          // firing-tile score lost for standing beside a friendly: one grenade should not catch two
 export let AI_MEDIC_PATIENCE_TICKS = 90;    // the AI revives a covered body once it has lain this long (3 s)
@@ -104,7 +105,7 @@ export type TunableName =
   | 'GUNNER_JAM_CHANCE' | 'GUNNER_JAM_TICKS' | 'AI_THINK_TICKS' | 'AI_COVER_BONUS' | 'AI_RANGE_FRACTION'
   | 'AI_LAUNCHER_DISTANCE_WEIGHT' | 'AI_TRAVEL_WEIGHT' | 'AI_JITTER' | 'AI_LOBBER_TARGET_REACH'
   | 'AI_MEDIC_PATIENCE_TICKS' | 'AI_MEDIC_DESPERATE_STANDING' | 'AI_SPACING_PENALTY' | 'COVER_SPLASH_FRACTION'
-  | 'FIRING_MOVE_FRACTION' | 'AI_LOBBER_WAIT' | 'AI_SCORCHER_WAIT';
+  | 'FIRING_MOVE_FRACTION' | 'AI_LOBBER_WAIT' | 'AI_SCORCHER_WAIT' | 'AI_STAY_BONUS';
 
 export type TuningOverrides = Partial<Record<TunableName, number>> & {
   WEAPONS?: Partial<Record<SoldierClass, Partial<WeaponStats>>>;
@@ -116,7 +117,7 @@ export const TUNABLE_NAMES: readonly TunableName[] = [
   'GUNNER_JAM_CHANCE', 'GUNNER_JAM_TICKS', 'AI_THINK_TICKS', 'AI_COVER_BONUS', 'AI_RANGE_FRACTION',
   'AI_LAUNCHER_DISTANCE_WEIGHT', 'AI_TRAVEL_WEIGHT', 'AI_JITTER', 'AI_LOBBER_TARGET_REACH',
   'AI_MEDIC_PATIENCE_TICKS', 'AI_MEDIC_DESPERATE_STANDING', 'AI_SPACING_PENALTY', 'COVER_SPLASH_FRACTION',
-  'FIRING_MOVE_FRACTION', 'AI_LOBBER_WAIT', 'AI_SCORCHER_WAIT',
+  'FIRING_MOVE_FRACTION', 'AI_LOBBER_WAIT', 'AI_SCORCHER_WAIT', 'AI_STAY_BONUS',
 ];
 
 function isPlainObject(value: unknown): value is Record<string, unknown> {
@@ -209,6 +210,7 @@ export function overrideTuning(overrides: TuningOverrides): void {
       case 'AI_LAUNCHER_DISTANCE_WEIGHT': AI_LAUNCHER_DISTANCE_WEIGHT = n; break;
       case 'AI_TRAVEL_WEIGHT': AI_TRAVEL_WEIGHT = n; break;
       case 'AI_JITTER': AI_JITTER = n; break;
+      case 'AI_STAY_BONUS': AI_STAY_BONUS = n; break;
       case 'AI_LOBBER_TARGET_REACH': AI_LOBBER_TARGET_REACH = n; break;
       case 'AI_MEDIC_PATIENCE_TICKS': AI_MEDIC_PATIENCE_TICKS = n; break;
       case 'AI_SPACING_PENALTY': AI_SPACING_PENALTY = n; break;

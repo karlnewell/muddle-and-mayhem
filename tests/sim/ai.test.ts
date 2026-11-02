@@ -3,7 +3,8 @@ import { createAi } from '../../src/sim/ai';
 import { besideCover, isCover } from '../../src/sim/aiPositions';
 import { createBattle, step } from '../../src/sim/battle';
 import {
-  AI_LOBBER_WAIT, AI_MEDIC_DESPERATE_STANDING, AI_MEDIC_PATIENCE_TICKS, AI_SCORCHER_WAIT, AI_SEED_SALT, AI_THINK_TICKS, MEDIC_CALLS,
+  AI_LOBBER_WAIT, AI_MEDIC_DESPERATE_STANDING, AI_MEDIC_PATIENCE_TICKS, AI_RANGE_FRACTION, AI_SCORCHER_WAIT, AI_SEED_SALT, AI_STAY_BONUS,
+  AI_THINK_TICKS, MEDIC_CALLS, WEAPONS,
   overrideTuning,
 } from '../../src/sim/constants';
 import { runBattle } from '../../src/sim/headless';
@@ -396,5 +397,90 @@ describe('waiting for contact', () => {
       expect(a.state.winner).not.toBeNull();
       expect(a.log).toEqual(b.log);
     });
+  });
+});
+
+describe('sticking with a firing tile', () => {
+  /** A 30 by 12 open field with no cover: every firing tile scores on travel and jitter alone. */
+  function openField(): TileMap {
+    const rows: string[] = [];
+    for (let ty = 0; ty < 11; ty++) {
+      rows.push('..............................');
+    }
+    rows.push('bbbbb...............rrrrr.....');
+    return parseMap('Open', rows);
+  }
+
+  /** Red gunner 5 and blue gunner 0 alone, 400 apart on row 5: out of range, so the AI looks for a firing tile. */
+  function standoff(): BattleState {
+    const state = createBattle({ seed: 1, map: openField() });
+    isolate(state, [0, 5]);
+    place(state.soldiers[0], 4 * 32 + 16, 5 * 32 + 16);
+    place(state.soldiers[5], 4 * 32 + 16 + 400, 5 * 32 + 16);
+    return state;
+  }
+
+  /**
+   * Think `thinks` times on an unchanging state, adopting each move order as
+   * the soldier's current order, and count how often the destination tile changed.
+   */
+  function destinationChanges(state: BattleState, thinks: number): number {
+    const ai = createAi('red', 7);
+    const s = state.soldiers[5];
+    let changes = 0;
+    let last: string | null = null;
+    for (let i = 0; i < thinks; i++) {
+      state.tick = i * AI_THINK_TICKS;
+      for (const c of forSoldier(ai.think(state), 5)) {
+        expect(c.type).toBe('move');
+        if (c.type === 'move') {
+          s.order = { kind: 'move', x: c.x, y: c.y };
+          const t = worldToTile(c.x, c.y);
+          const key = `${t.tx},${t.ty}`;
+          if (last !== null && key !== last) {
+            changes++;
+          }
+          last = key;
+        }
+      }
+    }
+    expect(last).not.toBeNull();
+    return changes;
+  }
+
+  it('keeps its destination over many thinks when other firing tiles score about the same', () => {
+    expect(destinationChanges(standoff(), 120)).toBeLessThanOrEqual(6);
+  });
+
+  it('dithers without the stay bonus, which is what the bonus is for', () => {
+    overrideTuning({ AI_STAY_BONUS: 0 });
+    try {
+      expect(destinationChanges(standoff(), 120)).toBeGreaterThan(30);
+    } finally {
+      overrideTuning({ AI_STAY_BONUS });
+    }
+  });
+
+  it('drops the destination once it is no longer a firing tile', () => {
+    const state = standoff();
+    const s = state.soldiers[5];
+    const ai = createAi('red', 7);
+    const first = forSoldier(ai.think(state), 5)[0];
+    expect(first.type).toBe('move');
+    if (first.type !== 'move') {
+      return;
+    }
+    s.order = { kind: 'move', x: first.x, y: first.y };
+    // The target walks far east, past the gunner: the old tile is now out of reach of it.
+    place(state.soldiers[0], 27 * 32 + 16, 5 * 32 + 16);
+    const range = WEAPONS.gunner.range * AI_RANGE_FRACTION;
+    expect(dist2(first.x, first.y, state.soldiers[0].x, state.soldiers[0].y)).toBeGreaterThan(range * range);
+    state.tick = AI_THINK_TICKS;
+    const next = forSoldier(ai.think(state), 5);
+    expect(next).toHaveLength(1);
+    expect(next[0].type).toBe('move');
+    if (next[0].type === 'move') {
+      expect(dist2(next[0].x, next[0].y, state.soldiers[0].x, state.soldiers[0].y)).toBeLessThanOrEqual(range * range);
+    }
   });
 });

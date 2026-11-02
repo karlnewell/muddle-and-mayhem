@@ -1,8 +1,9 @@
 /**
  * Firing-position search for the computer opponent: the best tile from
  * which a soldier could fire at its target, scored for cover, distance
- * (Launcher only), travel, spacing from friendlies, and a little seeded
- * jitter.
+ * (Launcher only), travel, spacing from friendlies, a little seeded
+ * jitter, and `AI_STAY_BONUS` for the tile the soldier is already heading
+ * for, so a fresh jitter draw alone does not send it somewhere else.
  *
  * The scan runs over the bounding box of the target's position plus the
  * weapon range, rows outer and columns inner, and draws exactly one rng
@@ -17,6 +18,7 @@ import {
   AI_LAUNCHER_DISTANCE_WEIGHT,
   AI_RANGE_FRACTION,
   AI_SPACING_PENALTY,
+  AI_STAY_BONUS,
   AI_TRAVEL_WEIGHT,
   TILE_OPEN,
   WEAPONS,
@@ -102,6 +104,11 @@ export function besideFriendly(state: BattleState, occupied: readonly number[], 
  * qualifies. A tile qualifies when it is open, holds no other standing
  * soldier (and is not shared by two), lies within `AI_RANGE_FRACTION` of the weapon range from the
  * target and, for direct weapons, has line of sight to the target.
+ *
+ * `stay` is the tile `s` is already moving to, or null. While it still
+ * qualifies it scores `AI_STAY_BONUS` more, so the soldier changes
+ * destination only when another tile is clearly better (hysteresis). The
+ * bonus changes no rng draw.
  */
 export function bestFiringTile(
   state: BattleState,
@@ -109,6 +116,7 @@ export function bestFiringTile(
   target: Soldier,
   occupied: readonly number[],
   rng: Rng,
+  stay: TileCoord | null = null,
 ): TileCoord | null {
   const map = state.map;
   const weapon = WEAPONS[s.cls];
@@ -153,6 +161,9 @@ export function bestFiringTile(
       }
       score -= (AI_TRAVEL_WEIGHT * Math.sqrt(dist2(centre.x, centre.y, s.x, s.y))) / range;
       score += rng.next() * AI_JITTER;
+      if (stay !== null && stay.tx === tx && stay.ty === ty) {
+        score += AI_STAY_BONUS;
+      }
       if (best === null || score > bestScore) {
         best = { tx, ty };
         bestScore = score;

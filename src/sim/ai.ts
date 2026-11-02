@@ -6,7 +6,9 @@
  * and the same state always give the same commands.
  *
  * It thinks every `AI_THINK_TICKS` and issues a command only when that
- * would change a soldier's order, so command logs stay small. With
+ * would change a soldier's order, so command logs stay small. A soldier
+ * already moving to a firing tile keeps it unless another is clearly better
+ * (`AI_STAY_BONUS` in `bestFiringTile`). With
  * `AI_LOBBER_WAIT` or `AI_SCORCHER_WAIT` set, those classes hold back until
  * a friendly direct weapon has an enemy in range (`waitsForContact`).
  */
@@ -129,7 +131,8 @@ function desiredOrder(
   if (canFireAt(state, s, target) || s.cls === 'scorcher') {
     return { kind: 'attack', targetId: target.id };
   }
-  const tile = bestFiringTile(state, s, target, occupied, rng);
+  const stay = s.order.kind === 'move' ? worldToTile(s.order.x, s.order.y) : null;
+  const tile = bestFiringTile(state, s, target, occupied, rng, stay);
   if (tile === null) {
     return { kind: 'attack', targetId: target.id };
   }
