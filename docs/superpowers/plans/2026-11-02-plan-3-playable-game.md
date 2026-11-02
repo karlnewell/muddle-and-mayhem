@@ -152,15 +152,15 @@ Rules: `start` from title opens battle with menu closed; `toggleMenu` only in ba
 - Test: `tests/render/effects.test.ts`
 
 ```ts
-export interface ViewState { selection: readonly number[]; alpha: number; effects: readonly Effect[]; hoverId: number | null }
+export interface ViewState { selection: readonly number[]; alpha: number; effects: readonly Effect[]; playerSide: Side }
 export interface BattleRenderer { projection: Projection; draw(ctx: CanvasRenderingContext2D, state: BattleState, view: ViewState): void }
 export function createTopDownRenderer(): BattleRenderer;
 // effects.ts (pure): export function effectsFromEvents(events, state, tick): Effect[]; export function pruneEffects(effects, tick): Effect[];
 ```
 Draw order: ground and tiles, ash and downed, paths and reticles of selected soldiers, medics, standing soldiers (interpolated by alpha), flame cones, projectiles, effects. Lobbed shots: lerp start to target by `(tick + alpha - launchTick) / (landTick - launchTick)`, arc height `LOB_ARC_HEIGHT * 4t(1-t)` drawn as negative y, shadow at the ground point.
 
-- [ ] Failing tests for effects: an `impact` event yields an effect at its point that expires after `IMPACT_EFFECT_TICKS`; `damage` yields a flash on the soldier; `jam` yields a label; `prune` drops expired ones and keeps the rest.
-- [ ] Implement the draw modules (verified visually in Task 8 and by screenshots), `npm run check`, commit `Plan 3 task 5: top-down renderer`.
+- [x] Failing tests for effects: an `impact` event yields an effect at its point that expires after `IMPACT_EFFECT_TICKS`; `damage` yields a flash on the soldier; `jam` yields a label; `prune` drops expired ones and keeps the rest.
+- [x] Implement the draw modules (verified visually in Task 8 and by screenshots), `npm run check`, commit `Plan 3 task 5: top-down renderer`.
 
 ### Task 6: HUD, title, menu and result screens
 
