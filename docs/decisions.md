@@ -116,3 +116,4 @@ Rough order, owner may reorder. Each is a separate design conversation when its 
 11. Commando squad (two directly controlled soldiers).
 12. Title screen art: portraits of General Muddle and General Mayhem.
 13. Per-class HP and speed, so the Scorcher can be fragile or slow as well as short-ranged (a true glass cannon). Today `MAX_HP` and `MOVE_SPEED` are one value for every class.
+14. Drag to select: drag a box on the battlefield to select every friendly soldier inside it, alongside the existing click and shift-click. Raised by the owner after a playtest (2026-11-02): managing five soldiers one click at a time is hard at full speed.
