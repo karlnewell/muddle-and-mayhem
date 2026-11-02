@@ -5,11 +5,14 @@
  * stepped tick the queued player commands go first, then the AI's, both are
  * appended to the log in that order, and `step` consumes them. Nothing else
  * in the game writes to the state, so `replayBattle(seed, log, tick)`
- * rebuilds exactly what the player saw.
+ * rebuilds exactly what the player saw. A statistics collector watches
+ * every stepped tick for the battle report.
  */
 import { MAX_FRAME_MS, MAX_TICKS_PER_FRAME, TICK_MS } from '../render/renderConstants';
 import { createAi, createBattle, hashState, replayBattle, step } from '../sim';
-import type { BattleEvent, BattleState, Command, Controller } from '../sim';
+import type { BattleEvent, BattleState, Command, Controller, TuningOverrides } from '../sim';
+import { createStatsCollector } from '../stats/battleStats';
+import type { BattleStats } from '../stats/battleStats';
 import { createFixedStepper } from './loop';
 
 export interface BattleSession {
@@ -30,14 +33,18 @@ export interface BattleSession {
   alpha(): number;
   /** True when replaying the log from the seed reproduces the current state hash. */
   replayMatches(): boolean;
+  /** Per-side, per-class statistics so far, for the result screen and the copied report. */
+  stats(): BattleStats;
 }
 
-export function createSession(seed: number): BattleSession {
+/** `overrides` are the `?tune=` values in force, recorded on the statistics so a report carries them. */
+export function createSession(seed: number, overrides: TuningOverrides = {}): BattleSession {
   const state = createBattle({ seed });
   const ai: Controller = createAi('red', seed);
   const log: Command[] = [];
   const pending: Command[] = [];
   const stepper = createFixedStepper(TICK_MS, MAX_FRAME_MS, MAX_TICKS_PER_FRAME);
+  const collector = createStatsCollector(seed, overrides);
 
   function stepOnce(): BattleEvent[] {
     const commands: Command[] = pending.splice(0, pending.length);
@@ -48,6 +55,7 @@ export function createSession(seed: number): BattleSession {
       log.push(cmd);
     }
     step(state, commands);
+    collector.observe(state);
     return state.events;
   }
 
@@ -83,6 +91,7 @@ export function createSession(seed: number): BattleSession {
     replayMatches(): boolean {
       return hashState(replayBattle(seed, log, state.tick)) === hashState(state);
     },
+    stats: () => collector.stats(),
   };
   return session;
 }

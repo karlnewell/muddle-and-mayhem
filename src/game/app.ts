@@ -74,7 +74,7 @@ export function createApp(initialSeed: SeedChoice, random: () => number, options
 
   function startBattle(seed: SeedChoice): void {
     seedChoice = seed;
-    session = createSession(seed.seed);
+    session = createSession(seed.seed, tuning.overrides);
     selection = [];
     effects = [];
     lastNow = null;

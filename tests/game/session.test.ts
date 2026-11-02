@@ -101,4 +101,21 @@ describe('createSession', () => {
     expect(s.advance(1000)).toEqual([]);
     expect(s.state.tick).toBe(tick);
   });
+
+  it('reports zero statistics at tick 0 and real ones once stepped', () => {
+    const s = createSession(7);
+    expect(s.stats().ticks).toBe(0);
+    expect(s.stats().sides.blue.gunner.shots).toBe(0);
+    expect(s.stats().sides.red.gunner.shots).toBe(0);
+    s.paused = false;
+    for (let i = 0; i < 600 && s.state.winner === null; i++) s.stepOnce();
+    expect(s.stats().ticks).toBe(s.state.tick);
+    expect(s.stats().sides.blue.gunner.shots).toBeGreaterThan(0);
+    expect(s.stats().seed).toBe(7);
+  });
+
+  it('carries the overrides it was given into the statistics', () => {
+    expect(createSession(7, { MOVE_SPEED: 2 }).stats().overrides).toEqual({ MOVE_SPEED: 2 });
+    expect(createSession(7).stats().overrides).toEqual({});
+  });
 });

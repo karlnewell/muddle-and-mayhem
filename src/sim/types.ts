@@ -71,7 +71,7 @@ export type BattleEvent =
   | { kind: 'shot'; soldierId: number; weapon: SoldierClass }
   | { kind: 'jam'; soldierId: number }
   | { kind: 'impact'; x: number; y: number; weapon: SoldierClass; radius: number }
-  | { kind: 'damage'; soldierId: number; amount: number; weapon: SoldierClass }
+  | { kind: 'damage'; soldierId: number; amount: number; weapon: SoldierClass; sourceId: number } // sourceId: the soldier whose weapon dealt it
   | { kind: 'downed'; soldierId: number }
   | { kind: 'killed'; soldierId: number }
   | { kind: 'medic'; side: Side; targetId: number }

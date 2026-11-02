@@ -12,6 +12,7 @@ export type { RunOptions, RunResult } from './headless';
 export { CROSSROADS } from './maps/crossroads';
 export { parseMap, worldToTile, tileCenter, isBlocked, mapWidthUnits, mapHeightUnits } from './map';
 export { hasLineOfSight } from './los';
+export { canFireAt, inRange } from './targeting';
 export { soldierById, isActive, standingCount } from './soldiers';
 export { createRng } from './rng';
 export type { Rng } from './rng';

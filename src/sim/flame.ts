@@ -53,7 +53,7 @@ export function applyFlame(state: BattleState): void {
       if (!hasLineOfSight(state.map, s.x, s.y, target.x, target.y)) {
         continue;
       }
-      applyDamage(state, target, weapon.damage, 'scorcher');
+      applyDamage(state, target, weapon.damage, 'scorcher', s.id);
     }
   }
 }

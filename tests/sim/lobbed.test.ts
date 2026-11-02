@@ -177,9 +177,9 @@ describe('lobbed weapons', () => {
         impactStep = i;
         expect(hits).toHaveLength(1);
         expect(hits[0]).toEqual({ kind: 'impact', x: lx, y: ly, weapon: 'chucker', radius: w.splashRadius });
-        expect(state.events).toContainEqual({ kind: 'damage', soldierId: 1, amount: w.splashDamage, weapon: 'chucker' });
-        expect(state.events).toContainEqual({ kind: 'damage', soldierId: 5, amount: w.splashDamage, weapon: 'chucker' });
-        expect(state.events).toContainEqual({ kind: 'damage', soldierId: 6, amount: w.splashDamage, weapon: 'chucker' });
+        expect(state.events).toContainEqual({ kind: 'damage', soldierId: 1, amount: w.splashDamage, weapon: 'chucker', sourceId: 2 });
+        expect(state.events).toContainEqual({ kind: 'damage', soldierId: 5, amount: w.splashDamage, weapon: 'chucker', sourceId: 2 });
+        expect(state.events).toContainEqual({ kind: 'damage', soldierId: 6, amount: w.splashDamage, weapon: 'chucker', sourceId: 2 });
         // Splash is applied before the impact event, as for direct rounds.
         const kinds = state.events.map((e) => e.kind);
         expect(kinds.indexOf('impact')).toBeGreaterThan(kinds.lastIndexOf('damage'));
