@@ -93,6 +93,9 @@ game, `docs/superpowers/plans/2026-11-02-plan-3-playable-game.md`) is
 implemented: `src/game/`, `src/render/`, `src/input/` and `src/ui/` on top
 of the sim, with `src/main.ts` as the entry point. Plan 4 (pacing tuning,
 `docs/superpowers/plans/2026-11-02-plan-4-pacing-tuning.md`) set the
-constants for 60 to 90 second battles and added `npm run measure`. v1 is
-complete; what comes next is the roadmap in `docs/decisions.md`, one design
-conversation and one plan per item.
+constants for 60 to 90 second battles and added `npm run measure`. Plan 5
+(tuning tools) added `?tune=`, the battle report and the hold-line squad.
+Plan 6 (cover matters, `docs/superpowers/plans/2026-11-02-plan-6-cover-matters.md`)
+made cover soak splash and had the computer's lobbers wait for contact. v1
+is complete; what comes next is the roadmap in `docs/decisions.md`, one
+design conversation and one plan per item.
