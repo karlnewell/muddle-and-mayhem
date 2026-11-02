@@ -106,19 +106,23 @@ describe('createHoldLine', () => {
   it('focuses fire on the enemy a majority can fire at and leaves the rest holding', () => {
     const state = createBattle({ seed: 1 });
     atPosts(state);
-    // One red soldier in the corridor mouth; the other four stay at their spawns, out of everyone's range,
-    // so blue does not outnumber red and the hold rules apply.
+    // One red soldier just inside the road mouth; the other four stay at their spawns, out of everyone's range,
+    // so blue does not outnumber red and the hold rules apply. From the posts, the Launcher sees it down the
+    // road, the Chucker lobs over the arm and the Scorcher has it in flame range; the Gunner's line of sight
+    // clips the arm's corner and the Blaster is out of range, so three of five fire: a majority.
     const enemy = state.soldiers[5];
-    const c = tileCenter(14, 10);
+    const c = tileCenter(13, 10);
     place(enemy, c.x, c.y);
     const own = state.soldiers.filter((s) => s.side === 'blue');
     const enemies = state.soldiers.filter((s) => s.side === 'red');
     expect(focusTarget(state, own, enemies)).toBe(enemy);
     const commands = createHoldLine('blue').think(state);
     const attacks = commands.filter((x) => x.type === 'attack');
-    expect(attacks.map((x) => (x.type === 'attack' ? x.soldierIds[0] : -1)).sort()).toEqual([0, 1, 2, 4]);
+    expect(attacks.map((x) => (x.type === 'attack' ? x.soldierIds[0] : -1)).sort()).toEqual([1, 2, 3]);
     expect(attacks.every((x) => x.type === 'attack' && x.targetId === 5)).toBe(true);
-    expect(commands.some((x) => 'soldierIds' in x && x.soldierIds.includes(3) && x.type !== 'hold')).toBe(false);
+    for (const id of [0, 4]) {
+      expect(commands.some((x) => 'soldierIds' in x && x.soldierIds.includes(id) && x.type !== 'hold')).toBe(false);
+    }
   });
 
   it('has no focus when fewer than a majority can fire', () => {
