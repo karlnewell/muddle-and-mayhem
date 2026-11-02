@@ -143,7 +143,7 @@ export function reduceScreen(s: ScreenState, e: ScreenEvent): ScreenState;
 ```
 Rules: `start` from title opens battle with menu closed; `toggleMenu` only in battle; `battleEnded` goes to result and closes the menu; `restart` and `playAgain` open a fresh battle; `toTitle` from anywhere; `closeMenu` idempotent; unknown transitions return the same object.
 
-- [ ] Failing tests for each rule, implement, `npm run check`, commit `Plan 3 task 4: screen state machine`.
+- [x] Failing tests for each rule, implement, `npm run check`, commit `Plan 3 task 4: screen state machine`.
 
 ### Task 5: Top-down renderer and effects
 
