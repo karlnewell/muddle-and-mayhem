@@ -14,8 +14,8 @@ import {
 } from './constants';
 import { coverPushOut, mapHeightUnits, mapWidthUnits, tileIndex, worldToTile } from './map';
 import { findPath, pathToWaypoints } from './path';
-import { isActive, soldierById } from './soldiers';
-import { clamp, dist2, imod, normalize } from './vec';
+import { faceToward, isActive, soldierById } from './soldiers';
+import { clamp, dist2, imod } from './vec';
 
 export type CanFireAt = (s: Soldier, target: Soldier) => boolean;
 
@@ -55,14 +55,6 @@ function adoptPlan(state: BattleState, s: Soldier, waypoints: Vec2[] | null): vo
   s.lastRepathTick = state.tick;
 }
 
-function face(s: Soldier, dx: number, dy: number): void {
-  const dir = normalize(dx, dy);
-  if (dir.x !== 0 || dir.y !== 0) {
-    s.faceX = dir.x;
-    s.faceY = dir.y;
-  }
-}
-
 /** The world point an order is heading for, or null for hold. */
 function orderDest(state: BattleState, s: Soldier): Vec2 | null {
   if (s.order.kind === 'move') {
@@ -87,7 +79,7 @@ function updateAttack(state: BattleState, s: Soldier, canFireAt: CanFireAt): voi
   }
   if (canFireAt(s, target)) {
     s.path = [];
-    face(s, target.x - s.x, target.y - s.y);
+    faceToward(s, target.x - s.x, target.y - s.y);
     return;
   }
   if (s.path.length === 0 || state.tick - s.lastRepathTick >= REPATH_TICKS) {
@@ -109,7 +101,7 @@ function followPath(s: Soldier): void {
     s.x += (dx / d) * MOVE_SPEED;
     s.y += (dy / d) * MOVE_SPEED;
   }
-  face(s, dx, dy);
+  faceToward(s, dx, dy);
 }
 
 /**

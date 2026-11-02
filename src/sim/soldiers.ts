@@ -4,6 +4,7 @@
  */
 import type { BattleState, Side, Soldier, TileMap } from './types';
 import { CLASS_ORDER, MAX_HP, SIDES, SQUAD_NAMES } from './constants';
+import { normalize } from './vec';
 
 /**
  * Ten soldiers: blue ids 0-4 then red ids 5-9, each side in CLASS_ORDER, placed
@@ -71,4 +72,13 @@ export function soldierById(state: BattleState, id: number): Soldier | undefined
 /** True for a soldier that can move, fire, and be hit: status standing. */
 export function isActive(s: Soldier): boolean {
   return s.status === 'standing';
+}
+
+/** Turn the soldier to face along (dx, dy); a zero vector leaves the facing unchanged. */
+export function faceToward(s: Soldier, dx: number, dy: number): void {
+  const dir = normalize(dx, dy);
+  if (dir.x !== 0 || dir.y !== 0) {
+    s.faceX = dir.x;
+    s.faceY = dir.y;
+  }
 }
