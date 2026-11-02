@@ -7,6 +7,7 @@
 import { createApp } from './game/app';
 import { createDebugHook, installDebugHook } from './game/debug';
 import { seedFromSearch } from './game/seed';
+import { applyTune } from './game/tuning';
 import { debugFromSearch } from './game/urlFlags';
 import { attachInput } from './input/dom';
 import { LOGICAL_HEIGHT, LOGICAL_WIDTH } from './render/renderConstants';
@@ -27,8 +28,11 @@ if (!context) {
 }
 const ctx: CanvasRenderingContext2D = context;
 
+// Overrides go in before the app, and so before any battle, exists.
+const tuning = applyTune(window.location.search);
 const app = createApp(seedFromSearch(window.location.search, Math.random), Math.random, {
   debugOverlay: debugFromSearch(window.location.search),
+  tuning,
 });
 
 let viewport: Viewport = fitViewport(window.innerWidth, window.innerHeight, window.devicePixelRatio || 1, LOGICAL_WIDTH, LOGICAL_HEIGHT);

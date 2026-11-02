@@ -45,6 +45,15 @@ export const TOP_BAR = {
   padding: 14,
 } as const;
 
+/** The TUNED badge in the top bar, beside the title, shown while any `?tune=` override is active. */
+export const TUNED_BADGE = {
+  x: 180,
+  y: 9,
+  w: 64,
+  h: 22,
+  radius: 4,
+} as const;
+
 export const BUTTON = {
   width: 260,
   height: 44,

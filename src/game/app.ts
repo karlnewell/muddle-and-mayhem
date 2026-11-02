@@ -29,12 +29,16 @@ import { nextSeed } from './seed';
 import type { SeedChoice } from './seed';
 import { createSession } from './session';
 import type { BattleSession } from './session';
+import { NO_TUNING } from './tuning';
+import type { TuneStatus } from './tuning';
 
 export const PLAYER_SIDE: Side = 'blue';
 
 export interface AppOptions {
   /** Start with the debug overlay showing (`?debug=1`). */
   debugOverlay?: boolean;
+  /** The `?tune=` status, already applied by the caller; shown as the TUNED badge and in the overlay. */
+  tuning?: TuneStatus;
 }
 
 export interface App {
@@ -45,6 +49,8 @@ export interface App {
   readonly seedChoice: SeedChoice;
   /** True while the debug overlay is drawn over the battlefield. */
   readonly debugOverlay: boolean;
+  /** The `?tune=` overrides in force, if any, and any parse error. */
+  readonly tuning: TuneStatus;
   /** Advance time and draw. `nowMs` is a monotonic clock in milliseconds. */
   frame(ctx: CanvasRenderingContext2D, nowMs: number): void;
   /** A mouse button pressed at logical canvas coordinates. */
@@ -58,6 +64,7 @@ export interface App {
 export function createApp(initialSeed: SeedChoice, random: () => number, options: AppOptions = {}): App {
   const renderer = createTopDownRenderer();
   let debugOverlay = options.debugOverlay === true;
+  const tuning = options.tuning ?? NO_TUNING;
   let screen: ScreenState = INITIAL_SCREEN;
   let session: BattleSession | null = null;
   let selection: number[] = [];
@@ -187,7 +194,7 @@ export function createApp(initialSeed: SeedChoice, random: () => number, options
     }
     const state = session.state;
     renderer.draw(ctx, state, { selection, alpha: session.alpha(), effects, playerSide: PLAYER_SIDE, pending: session.pending });
-    drawHud(ctx, state, { playerSide: PLAYER_SIDE, selection, paused: session.paused });
+    drawHud(ctx, state, { playerSide: PLAYER_SIDE, selection, paused: session.paused, tuned: tuning.active });
     if (screen.screen === 'result') {
       drawResult(ctx, state, PLAYER_SIDE);
     } else if (screen.menuOpen) {
@@ -195,7 +202,7 @@ export function createApp(initialSeed: SeedChoice, random: () => number, options
     }
     if (debugOverlay) {
       // Drawn last so it stays readable over the menu and result panels.
-      drawDebugOverlay(ctx, state, { seed: session.seed, paused: session.paused, hash: hashState(state) });
+      drawDebugOverlay(ctx, state, { seed: session.seed, paused: session.paused, hash: hashState(state), tuning });
     }
   }
 
@@ -215,6 +222,9 @@ export function createApp(initialSeed: SeedChoice, random: () => number, options
     },
     get debugOverlay() {
       return debugOverlay;
+    },
+    get tuning() {
+      return tuning;
     },
     frame(ctx: CanvasRenderingContext2D, nowMs: number): void {
       const dt = lastNow === null ? 0 : nowMs - lastNow;

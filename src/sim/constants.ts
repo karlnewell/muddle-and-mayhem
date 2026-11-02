@@ -7,8 +7,9 @@
  * Speeds are world units per tick, durations are ticks.
  *
  * The gameplay tunables are `let` bindings so that `overrideTuning` (at the
- * bottom) can swap candidate values in for `npm run measure`. The game never
- * calls it; a battle in play sees the values written here.
+ * bottom) can swap candidate values in: `npm run measure` for a headless
+ * comparison, and the game for a `?tune=` URL parameter, applied once before
+ * any battle exists. Without either, a battle sees the values written here.
  */
 import type { ShotKind, Side, SoldierClass, Vec2 } from './types';
 
@@ -104,49 +105,108 @@ export type TuningOverrides = Partial<Record<TunableName, number>> & {
   WEAPONS?: Partial<Record<SoldierClass, Partial<WeaponStats>>>;
 };
 
+/** Every scalar tunable `overrideTuning` accepts, so callers can validate a name at run time. */
+export const TUNABLE_NAMES: readonly TunableName[] = [
+  'MAX_HP', 'MOVE_SPEED', 'MEDIC_CALLS', 'MEDIC_SPEED', 'REVIVE_FRACTION', 'INSTANT_KILL_CHANCE',
+  'GUNNER_JAM_CHANCE', 'GUNNER_JAM_TICKS', 'AI_THINK_TICKS', 'AI_COVER_BONUS', 'AI_RANGE_FRACTION',
+  'AI_LAUNCHER_DISTANCE_WEIGHT', 'AI_TRAVEL_WEIGHT', 'AI_JITTER', 'AI_LOBBER_TARGET_REACH',
+  'AI_MEDIC_PATIENCE_TICKS', 'AI_MEDIC_DESPERATE_STANDING', 'AI_SPACING_PENALTY',
+];
+
+function isPlainObject(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
 /**
- * Replace tunables for a measurement run. Scalars are assigned by name;
- * `WEAPONS` is merged per class, so `{ WEAPONS: { gunner: { cooldown: 10 } } }`
- * changes one field. Unknown names throw, so a typo in an override is loud.
- * Only `scripts/measure-pacing.mts` calls this.
+ * Check a candidate override object without touching anything. Throws an
+ * Error naming the first problem: not an object, an unknown tunable, a
+ * non-finite number, an unknown class, an unknown weapon field, or a weapon
+ * field of the wrong type. `overrideTuning` calls this first, so a bad
+ * override changes nothing; the game calls it on `?tune=` so a typo in the
+ * URL is reported instead of crashing the page.
+ */
+export function validateTuning(overrides: unknown): asserts overrides is TuningOverrides {
+  if (!isPlainObject(overrides)) {
+    throw new Error('tuning overrides must be a JSON object');
+  }
+  for (const key of Object.keys(overrides)) {
+    const value = overrides[key];
+    if (key === 'WEAPONS') {
+      if (!isPlainObject(value)) {
+        throw new Error('WEAPONS must be an object of classes');
+      }
+      for (const cls of Object.keys(value)) {
+        if (!(cls in WEAPONS)) {
+          throw new Error(`overrideTuning: unknown class ${cls}`);
+        }
+        const fields = value[cls];
+        if (!isPlainObject(fields)) {
+          throw new Error(`WEAPONS.${cls} must be an object of fields`);
+        }
+        const current = WEAPONS[cls as SoldierClass] as unknown as Record<string, unknown>;
+        for (const field of Object.keys(fields)) {
+          if (!(field in current)) {
+            throw new Error(`overrideTuning: unknown weapon field ${cls}.${field}`);
+          }
+          const fieldValue = fields[field];
+          if (typeof current[field] === 'number' && !Number.isFinite(fieldValue)) {
+            throw new Error(`overrideTuning: ${cls}.${field} must be a number`);
+          }
+          if (typeof fieldValue !== typeof current[field]) {
+            throw new Error(`overrideTuning: ${cls}.${field} must be a ${typeof current[field]}`);
+          }
+        }
+      }
+      continue;
+    }
+    if (!(TUNABLE_NAMES as readonly string[]).includes(key)) {
+      throw new Error(`overrideTuning: unknown tunable ${key}`);
+    }
+    if (!Number.isFinite(value)) {
+      throw new Error(`overrideTuning: ${key} must be a number`);
+    }
+  }
+}
+
+/**
+ * Replace tunables for a measurement run or a `?tune=` battle. The whole
+ * object is validated first (see `validateTuning`), so either every value
+ * is applied or none is. Scalars are assigned by name; `WEAPONS` is merged
+ * per class, so `{ WEAPONS: { gunner: { cooldown: 10 } } }` changes one
+ * field. Callers: `scripts/measure-pacing.mts` and `src/game/tuning.ts`.
  */
 export function overrideTuning(overrides: TuningOverrides): void {
+  validateTuning(overrides);
   for (const key of Object.keys(overrides) as (keyof TuningOverrides)[]) {
     const value = overrides[key];
     if (key === 'WEAPONS') {
       const merged = { ...WEAPONS } as Record<SoldierClass, WeaponStats>;
       for (const cls of Object.keys(value ?? {}) as SoldierClass[]) {
-        if (!(cls in merged)) {
-          throw new Error(`overrideTuning: unknown class ${cls}`);
-        }
         merged[cls] = { ...merged[cls], ...(value as Record<SoldierClass, Partial<WeaponStats>>)[cls] };
       }
       WEAPONS = merged;
       continue;
     }
-    if (typeof value !== 'number') {
-      throw new Error(`overrideTuning: ${key} must be a number`);
-    }
+    const n = value as number;
     switch (key) {
-      case 'MAX_HP': MAX_HP = value; break;
-      case 'MOVE_SPEED': MOVE_SPEED = value; break;
-      case 'MEDIC_CALLS': MEDIC_CALLS = value; break;
-      case 'MEDIC_SPEED': MEDIC_SPEED = value; break;
-      case 'REVIVE_FRACTION': REVIVE_FRACTION = value; break;
-      case 'INSTANT_KILL_CHANCE': INSTANT_KILL_CHANCE = value; break;
-      case 'GUNNER_JAM_CHANCE': GUNNER_JAM_CHANCE = value; break;
-      case 'GUNNER_JAM_TICKS': GUNNER_JAM_TICKS = value; break;
-      case 'AI_THINK_TICKS': AI_THINK_TICKS = value; break;
-      case 'AI_COVER_BONUS': AI_COVER_BONUS = value; break;
-      case 'AI_RANGE_FRACTION': AI_RANGE_FRACTION = value; break;
-      case 'AI_LAUNCHER_DISTANCE_WEIGHT': AI_LAUNCHER_DISTANCE_WEIGHT = value; break;
-      case 'AI_TRAVEL_WEIGHT': AI_TRAVEL_WEIGHT = value; break;
-      case 'AI_JITTER': AI_JITTER = value; break;
-      case 'AI_LOBBER_TARGET_REACH': AI_LOBBER_TARGET_REACH = value; break;
-      case 'AI_MEDIC_PATIENCE_TICKS': AI_MEDIC_PATIENCE_TICKS = value; break;
-      case 'AI_SPACING_PENALTY': AI_SPACING_PENALTY = value; break;
-      case 'AI_MEDIC_DESPERATE_STANDING': AI_MEDIC_DESPERATE_STANDING = value; break;
-      default: throw new Error(`overrideTuning: unknown tunable ${String(key)}`);
+      case 'MAX_HP': MAX_HP = n; break;
+      case 'MOVE_SPEED': MOVE_SPEED = n; break;
+      case 'MEDIC_CALLS': MEDIC_CALLS = n; break;
+      case 'MEDIC_SPEED': MEDIC_SPEED = n; break;
+      case 'REVIVE_FRACTION': REVIVE_FRACTION = n; break;
+      case 'INSTANT_KILL_CHANCE': INSTANT_KILL_CHANCE = n; break;
+      case 'GUNNER_JAM_CHANCE': GUNNER_JAM_CHANCE = n; break;
+      case 'GUNNER_JAM_TICKS': GUNNER_JAM_TICKS = n; break;
+      case 'AI_THINK_TICKS': AI_THINK_TICKS = n; break;
+      case 'AI_COVER_BONUS': AI_COVER_BONUS = n; break;
+      case 'AI_RANGE_FRACTION': AI_RANGE_FRACTION = n; break;
+      case 'AI_LAUNCHER_DISTANCE_WEIGHT': AI_LAUNCHER_DISTANCE_WEIGHT = n; break;
+      case 'AI_TRAVEL_WEIGHT': AI_TRAVEL_WEIGHT = n; break;
+      case 'AI_JITTER': AI_JITTER = n; break;
+      case 'AI_LOBBER_TARGET_REACH': AI_LOBBER_TARGET_REACH = n; break;
+      case 'AI_MEDIC_PATIENCE_TICKS': AI_MEDIC_PATIENCE_TICKS = n; break;
+      case 'AI_SPACING_PENALTY': AI_SPACING_PENALTY = n; break;
+      case 'AI_MEDIC_DESPERATE_STANDING': AI_MEDIC_DESPERATE_STANDING = n; break;
     }
   }
 }
