@@ -5,20 +5,24 @@
  *
  * Units: world units, TILE_SIZE per tile. Time: ticks, TICK_RATE per second.
  * Speeds are world units per tick, durations are ticks.
+ *
+ * The gameplay tunables are `let` bindings so that `overrideTuning` (at the
+ * bottom) can swap candidate values in for `npm run measure`. The game never
+ * calls it; a battle in play sees the values written here.
  */
 import type { ShotKind, Side, SoldierClass, Vec2 } from './types';
 
 export const TICK_RATE = 30;
 export const TILE_SIZE = 32;
-export const MAX_HP = 100;
-export const MOVE_SPEED = 3.2;
+export let MAX_HP = 100;
+export let MOVE_SPEED = 3.2;
 export const SOLDIER_RADIUS = 12;
-export const MEDIC_CALLS = 3;
-export const MEDIC_SPEED = 6;
-export const REVIVE_FRACTION = 0.5;
-export const INSTANT_KILL_CHANCE = 0.1;
-export const GUNNER_JAM_CHANCE = 0.03;
-export const GUNNER_JAM_TICKS = 45;
+export let MEDIC_CALLS = 3;
+export let MEDIC_SPEED = 6;
+export let REVIVE_FRACTION = 0.5;
+export let INSTANT_KILL_CHANCE = 0.1;
+export let GUNNER_JAM_CHANCE = 0.03;
+export let GUNNER_JAM_TICKS = 45;
 export const FLAME_CONE_COS = 0.8660254037844387; // cos 30°, so a 60° cone
 export const FIRE_WHILE_MOVING = true;
 export const REPATH_TICKS = 15;
@@ -26,13 +30,13 @@ export const STUCK_TICKS = 10;
 export const STUCK_EPSILON = 0.5;   // moved less than this in a tick counts as no progress
 export const WAYPOINT_EPSILON = 1;  // within this of a waypoint counts as reached
 export const ARRIVE_SLACK = 2 * SOLDIER_RADIUS + 2; // a stuck soldier this close to its destination counts as arrived
-export const AI_THINK_TICKS = 15;
-export const AI_COVER_BONUS = 2;
-export const AI_RANGE_FRACTION = 0.9;
-export const AI_LAUNCHER_DISTANCE_WEIGHT = 3;
-export const AI_TRAVEL_WEIGHT = 1;
-export const AI_JITTER = 0.5;
-export const AI_LOBBER_TARGET_REACH = 2; // lobbers look for a covered target within this many times their range
+export let AI_THINK_TICKS = 15;
+export let AI_COVER_BONUS = 2;
+export let AI_RANGE_FRACTION = 0.9;
+export let AI_LAUNCHER_DISTANCE_WEIGHT = 3;
+export let AI_TRAVEL_WEIGHT = 1;
+export let AI_JITTER = 0.5;
+export let AI_LOBBER_TARGET_REACH = 2; // lobbers look for a covered target within this many times their range
 export const AI_SEED_SALT: Readonly<Record<Side, number>> = { blue: 0x9e3779b9, red: 0x7f4a7c15 };
 export const AI_REVIVE_PRIORITY: readonly SoldierClass[] = ['launcher', 'blaster', 'chucker', 'gunner', 'scorcher'];
 export const CLASS_ORDER: readonly SoldierClass[] = ['gunner', 'launcher', 'chucker', 'scorcher', 'blaster'];
@@ -63,7 +67,7 @@ export interface WeaponStats {
  * Chucker medium, Blaster second shortest, Scorcher shortest. Gunner fastest
  * of direct weapons, Blaster slowest overall.
  */
-export const WEAPONS: Readonly<Record<SoldierClass, Readonly<WeaponStats>>> = {
+export let WEAPONS: Readonly<Record<SoldierClass, Readonly<WeaponStats>>> = {
   gunner:   { shot: 'direct', range: 224, cooldown: 6,   damage: 8,  splashRadius: 0,  splashDamage: 0,  speed: 16, flightTicks: 0,  spread: 14, instantKill: false },
   launcher: { shot: 'direct', range: 352, cooldown: 75,  damage: 45, splashRadius: 40, splashDamage: 25, speed: 10, flightTicks: 0,  spread: 10, instantKill: true },
   chucker:  { shot: 'lobbed', range: 224, cooldown: 60,  damage: 0,  splashRadius: 48, splashDamage: 35, speed: 0,  flightTicks: 30, spread: 20, instantKill: false },
@@ -81,3 +85,57 @@ export const DIRECTIONS16: readonly Vec2[] = [
   { x: 0, y: -1 }, { x: 0.3826834323650898, y: -0.9238795325112867 },
   { x: 0.7071067811865476, y: -0.7071067811865476 }, { x: 0.9238795325112867, y: -0.3826834323650898 },
 ];
+
+/** The scalar tunables `overrideTuning` accepts, by name. Structural values (tick rate, tile size, radii) are not on the list. */
+export type TunableName =
+  | 'MAX_HP' | 'MOVE_SPEED' | 'MEDIC_CALLS' | 'MEDIC_SPEED' | 'REVIVE_FRACTION' | 'INSTANT_KILL_CHANCE'
+  | 'GUNNER_JAM_CHANCE' | 'GUNNER_JAM_TICKS' | 'AI_THINK_TICKS' | 'AI_COVER_BONUS' | 'AI_RANGE_FRACTION'
+  | 'AI_LAUNCHER_DISTANCE_WEIGHT' | 'AI_TRAVEL_WEIGHT' | 'AI_JITTER' | 'AI_LOBBER_TARGET_REACH';
+
+export type TuningOverrides = Partial<Record<TunableName, number>> & {
+  WEAPONS?: Partial<Record<SoldierClass, Partial<WeaponStats>>>;
+};
+
+/**
+ * Replace tunables for a measurement run. Scalars are assigned by name;
+ * `WEAPONS` is merged per class, so `{ WEAPONS: { gunner: { cooldown: 10 } } }`
+ * changes one field. Unknown names throw, so a typo in an override is loud.
+ * Only `scripts/measure-pacing.mts` calls this.
+ */
+export function overrideTuning(overrides: TuningOverrides): void {
+  for (const key of Object.keys(overrides) as (keyof TuningOverrides)[]) {
+    const value = overrides[key];
+    if (key === 'WEAPONS') {
+      const merged = { ...WEAPONS } as Record<SoldierClass, WeaponStats>;
+      for (const cls of Object.keys(value ?? {}) as SoldierClass[]) {
+        if (!(cls in merged)) {
+          throw new Error(`overrideTuning: unknown class ${cls}`);
+        }
+        merged[cls] = { ...merged[cls], ...(value as Record<SoldierClass, Partial<WeaponStats>>)[cls] };
+      }
+      WEAPONS = merged;
+      continue;
+    }
+    if (typeof value !== 'number') {
+      throw new Error(`overrideTuning: ${key} must be a number`);
+    }
+    switch (key) {
+      case 'MAX_HP': MAX_HP = value; break;
+      case 'MOVE_SPEED': MOVE_SPEED = value; break;
+      case 'MEDIC_CALLS': MEDIC_CALLS = value; break;
+      case 'MEDIC_SPEED': MEDIC_SPEED = value; break;
+      case 'REVIVE_FRACTION': REVIVE_FRACTION = value; break;
+      case 'INSTANT_KILL_CHANCE': INSTANT_KILL_CHANCE = value; break;
+      case 'GUNNER_JAM_CHANCE': GUNNER_JAM_CHANCE = value; break;
+      case 'GUNNER_JAM_TICKS': GUNNER_JAM_TICKS = value; break;
+      case 'AI_THINK_TICKS': AI_THINK_TICKS = value; break;
+      case 'AI_COVER_BONUS': AI_COVER_BONUS = value; break;
+      case 'AI_RANGE_FRACTION': AI_RANGE_FRACTION = value; break;
+      case 'AI_LAUNCHER_DISTANCE_WEIGHT': AI_LAUNCHER_DISTANCE_WEIGHT = value; break;
+      case 'AI_TRAVEL_WEIGHT': AI_TRAVEL_WEIGHT = value; break;
+      case 'AI_JITTER': AI_JITTER = value; break;
+      case 'AI_LOBBER_TARGET_REACH': AI_LOBBER_TARGET_REACH = value; break;
+      default: throw new Error(`overrideTuning: unknown tunable ${String(key)}`);
+    }
+  }
+}

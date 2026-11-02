@@ -22,7 +22,7 @@
 
 Recorded in `docs/decisions.md` as the work lands.
 
-1. **Measurement script.** `scripts/measure-pacing.mts` runs `runBattle` AI versus AI over 60 seeds by default and prints median and range of battle length in seconds, median tick of first damage, downs per side, medic calls spent per side, the winner split, and the share of draws or tick-cap hits. It takes constant overrides as a JSON argument (`npm run measure -- '{"MOVE_SPEED":2}'`) or the `MM_OVERRIDES` environment variable, so candidate sets are compared without editing the file. To make that possible, `constants.ts` exports `tuning`, a mutable copy of the scalar tunables plus `WEAPONS`, and the sim reads through it; the exported `const`s stay as the defaults. Only the script writes to it.
+1. **Measurement script.** `scripts/measure-pacing.mts` runs `runBattle` AI versus AI over 60 seeds by default and prints median and range of battle length in seconds, median tick of first damage, downs per side, medic calls spent per side, the winner split, and the share of draws or tick-cap hits. It takes constant overrides as a JSON argument (`npm run measure -- '{"MOVE_SPEED":2}'`) or the `MM_OVERRIDES` environment variable, so candidate sets are compared without editing the file. To make that possible, the gameplay tunables in `constants.ts` are `let` bindings and `overrideTuning` reassigns them; ES module live bindings mean every sim module sees the new value. The game never calls it. `runBattle` gains an optional `onStep` observer so the script can count events without copying the runner.
 2. **Runner.** The script is plain TypeScript run by Node's own type stripping, with `scripts/ts-resolve.mjs` adding the `.ts` extension to the extensionless relative imports under `src/`. No new dependency.
 3. **AI medic use.** `bodyIsSafe` stays as the preferred case, and two more cases let the AI revive under pressure: the side has fewer than `AI_MEDIC_DESPERATE_STANDING` soldiers standing, or the body has been down for at least `AI_MEDIC_PATIENCE_TICKS`. The AI tracks down ticks by remembering the tick it first saw each body, which is a pure function of the state sequence it observed, so the AI stays deterministic.
 4. **Double `M`.** The key skips downed soldiers that already have a medic run under way (`state.medics` entries carry `targetId`), so a second press targets the next downed selected soldier, or does nothing when none is left. Right-click on a downed friendly already fails inside the sim (`callMedic` rejects a duplicate), so it needs no change.
@@ -38,10 +38,23 @@ Recorded in `docs/decisions.md` as the work lands.
 
 **Files:** `scripts/measure-pacing.mts`, `scripts/ts-resolve.mjs`, `package.json` (`measure` script), `src/sim/constants.ts` (the `tuning` object), every sim module that reads a tunable.
 
-- [ ] Script prints the statistics above over at least 50 seeds and accepts overrides.
-- [ ] Baseline recorded here and in the pull request.
+- [x] Script prints the statistics above over at least 50 seeds and accepts overrides.
+- [x] Baseline recorded here and in the pull request.
 
-**Baseline (current `main`, 60 seeds):** filled in by Task 2.
+**Baseline (current `main`, seeds 1 to 60, AI versus AI):**
+
+| Statistic | Value |
+|---|---|
+| Battle length, median | 14.6 s |
+| Battle length, range | 9.9 to 19.5 s |
+| First damage, median | 5.4 s (range 5.0 to 5.4) |
+| Contact to end, median | 9.2 s |
+| Downs per battle, median | blue 5, red 4 |
+| Medic calls used, total over 60 battles | blue 16, red 11 (of 180 each) |
+| Winner split | blue 29, red 31 |
+| Draws, tick-cap hits | 0, 0 |
+
+With a passive blue squad that never moves: median 17.7 s, first damage 9.2 s, red wins all 60.
 
 ### Task 3: Fix the two defects, tests first
 
