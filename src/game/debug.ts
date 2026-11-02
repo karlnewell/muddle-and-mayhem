@@ -27,6 +27,10 @@ export interface DebugHook {
   readonly log: unknown;
   readonly pending: unknown;
   readonly state: unknown;
+  /** The `BattleStats` of the current battle, or null. */
+  readonly stats: unknown;
+  /** The Markdown battle report (what Copy report copies), or null before a battle. */
+  report(): string | null;
   hash(): number | null;
   replayMatches(): boolean | null;
   advanceTicks(n: number): void;
@@ -79,6 +83,12 @@ export function createDebugHook(app: App, logicalToClient: (x: number, y: number
     },
     get state() {
       return app.session?.state ?? null;
+    },
+    get stats() {
+      return app.session?.stats() ?? null;
+    },
+    report() {
+      return app.report();
     },
     hash() {
       return app.session === null ? null : hashState(app.session.state);

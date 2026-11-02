@@ -4,7 +4,7 @@ import { LOGICAL_HEIGHT, LOGICAL_WIDTH } from '../render/renderConstants';
 import { stackButtons } from './buttons';
 import type { ButtonRect } from './buttons';
 import { drawButton, drawOverlayPanel } from './drawButtons';
-import { BUTTON, FONT } from './uiConstants';
+import { BUTTON, FONT, PANEL } from './uiConstants';
 
 const PANEL_HEIGHT = 300;
 
@@ -25,7 +25,7 @@ export function menuButtons(): ButtonRect[] {
 }
 
 export function drawMenu(ctx: CanvasRenderingContext2D): void {
-  const panel = drawOverlayPanel(ctx, LOGICAL_WIDTH, LOGICAL_HEIGHT, PANEL_HEIGHT);
+  const panel = drawOverlayPanel(ctx, LOGICAL_WIDTH, LOGICAL_HEIGHT, PANEL.width, PANEL_HEIGHT);
   ctx.fillStyle = PALETTE.text;
   ctx.font = FONT.heading;
   ctx.textAlign = 'center';

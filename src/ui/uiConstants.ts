@@ -20,6 +20,7 @@ export const FONT = {
   banner: `bold 22px ${FONT_FAMILY}`,
   portrait: `bold 40px ${FONT_FAMILY}`,
   debug: `12px ${FONT_FAMILY}`,
+  debugBold: `bold 12px ${FONT_FAMILY}`,
 } as const;
 
 export const HUD = {
@@ -64,6 +65,21 @@ export const BUTTON = {
 export const PANEL = {
   width: 560,
   radius: 12,
+} as const;
+
+/** The result screen: a wider panel holding the winner lines, the per-class report table and three buttons. */
+export const RESULT = {
+  panelWidth: 760,
+  panelHeight: 620,
+  headingY: 56,
+  standingY: 92,
+  infoY: 118,
+  tableTop: 150,
+  tableX: 24,
+  rowHeight: 19,
+  /** Header plus five classes and a total per side. */
+  tableRows: 13,
+  buttonsTop: 420,
 } as const;
 
 /** The debug overlay: a translucent panel in the top-right corner of the battlefield, below the paused banner. */

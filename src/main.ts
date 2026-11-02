@@ -12,6 +12,7 @@ import { debugFromSearch } from './game/urlFlags';
 import { attachInput } from './input/dom';
 import { LOGICAL_HEIGHT, LOGICAL_WIDTH } from './render/renderConstants';
 import { clientToLogical, fitViewport, logicalToClientOffset } from './render/viewport';
+import { showTextOverlay } from './ui/textOverlay';
 import type { Viewport } from './render/viewport';
 
 function findCanvas(): HTMLCanvasElement {
@@ -33,6 +34,15 @@ const tuning = applyTune(window.location.search);
 const app = createApp(seedFromSearch(window.location.search, Math.random), Math.random, {
   debugOverlay: debugFromSearch(window.location.search),
   tuning,
+  async copyText(text) {
+    try {
+      await navigator.clipboard.writeText(text);
+      return true;
+    } catch {
+      showTextOverlay(text);
+      return false;
+    }
+  },
 });
 
 let viewport: Viewport = fitViewport(window.innerWidth, window.innerHeight, window.devicePixelRatio || 1, LOGICAL_WIDTH, LOGICAL_HEIGHT);
