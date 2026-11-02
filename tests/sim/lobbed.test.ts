@@ -1,10 +1,11 @@
 import { describe, expect, it } from 'vitest';
 import { createBattle, step } from '../../src/sim/battle';
-import { DIRECTIONS16, MAX_HP, WEAPONS } from '../../src/sim/constants';
+import { COVER_SPLASH_FRACTION, DIRECTIONS16, MAX_HP, WEAPONS } from '../../src/sim/constants';
 import { hasLineOfSight } from '../../src/sim/los';
 import { parseMap } from '../../src/sim/map';
+import { advanceProjectiles } from '../../src/sim/projectiles';
 import { createRng } from '../../src/sim/rng';
-import type { BattleEvent, BattleState, Soldier, TileMap } from '../../src/sim/types';
+import type { BattleEvent, BattleState, Soldier, SoldierClass, TileMap } from '../../src/sim/types';
 import { dist2 } from '../../src/sim/vec';
 
 /** A cooldown no test runs long enough to exhaust: a muzzled soldier never fires. */
@@ -59,6 +60,26 @@ function duel(seed: number, shooterId: number, distance: number, targetId = 5): 
   place(state.soldiers[shooterId], 100, 256);
   bystander(state, targetId, 100 + distance, 256);
   return state;
+}
+
+/** A hand-built lobbed projectile from the owner's position that lands at (tx, ty) on the next advance. */
+function lob(state: BattleState, owner: Soldier, weapon: SoldierClass, tx: number, ty: number): void {
+  state.projectiles.push({
+    id: state.nextProjectileId++,
+    kind: 'lobbed',
+    weapon,
+    side: owner.side,
+    ownerId: owner.id,
+    x: owner.x, y: owner.y,
+    prevX: owner.x, prevY: owner.y,
+    vx: 0, vy: 0,
+    startX: owner.x, startY: owner.y,
+    targetX: tx, targetY: ty,
+    launchTick: state.tick,
+    landTick: state.tick,
+    travelled: 0,
+    maxDistance: 0,
+  });
 }
 
 function ofKind<K extends BattleEvent['kind']>(state: BattleState, kind: K): Extract<BattleEvent, { kind: K }>[] {
@@ -232,7 +253,7 @@ describe('lobbed weapons', () => {
     expect(thrower.hp).toBe(MAX_HP - w.splashDamage);
   });
 
-  it('ignores cover: a grenade landing beyond a wall still splashes', () => {
+  it('arcs over cover: a grenade landing beyond a wall splashes at full strength with nothing between it and the target', () => {
     const w = WEAPONS.chucker;
     const state = createBattle({ seed: 2, map: arena() });
     isolate(state, [2, 5]);
@@ -244,6 +265,44 @@ describe('lobbed weapons', () => {
     expect(ofKind(state, 'impact')).toHaveLength(1);
     expect(target.hp).toBe(MAX_HP - w.splashDamage);
     expect(state.projectiles).toHaveLength(0);
+  });
+
+  it('is absorbed when it lands inside a wall tile: everyone in the radius takes the fraction', () => {
+    const w = WEAPONS.chucker;
+    const state = createBattle({ seed: 2, map: arena() });
+    isolate(state, [2]);
+    place(state.soldiers[2], 300, 112);
+    const west = bystander(state, 1, 470, 112);   // 26 west of a landing inside the wall, open tile
+    const east = bystander(state, 6, 522, 112);   // 26 east of it, open tile
+    lob(state, state.soldiers[2], 'chucker', 496, 112);
+    advanceProjectiles(state);
+    expect(ofKind(state, 'impact')).toHaveLength(1);
+    expect(west.hp).toBe(MAX_HP - w.splashDamage * COVER_SPLASH_FRACTION);
+    expect(east.hp).toBe(MAX_HP - w.splashDamage * COVER_SPLASH_FRACTION);
+  });
+
+  it('landing in the open beside a wall soaks only the soldier on the far side', () => {
+    const w = WEAPONS.chucker;
+    const state = createBattle({ seed: 2, map: arena() });
+    isolate(state, [2]);
+    place(state.soldiers[2], 300, 112);
+    const near = bystander(state, 1, 440, 112);   // 36 west of the landing, same side of the wall
+    const far = bystander(state, 6, 514, 112);    // 38 east of it, the wall between
+    lob(state, state.soldiers[2], 'chucker', 476, 112);
+    advanceProjectiles(state);
+    expect(near.hp).toBe(MAX_HP - w.splashDamage);
+    expect(far.hp).toBe(MAX_HP - w.splashDamage * COVER_SPLASH_FRACTION);
+  });
+
+  it('is absorbed when it lands off the map edge', () => {
+    const w = WEAPONS.chucker;
+    const state = createBattle({ seed: 2, map: arena() });
+    isolate(state, [2]);
+    place(state.soldiers[2], 300, 256);
+    const edge = bystander(state, 1, 20, 256);    // 25 inside the map from a landing just outside it
+    lob(state, state.soldiers[2], 'chucker', -5, 256);
+    advanceProjectiles(state);
+    expect(edge.hp).toBe(MAX_HP - w.splashDamage * COVER_SPLASH_FRACTION);
   });
 
   /** Count downed and killed outcomes of a single lobbed shot at a 1 hp enemy over seeds 0..199. */

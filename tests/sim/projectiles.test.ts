@@ -244,13 +244,13 @@ describe('advanceProjectiles, direct kind', () => {
     expect(hits[0].x).toBeCloseTo(188, 6);
   });
 
-  it('splashes around a rocket stopped by cover, with nobody excluded', () => {
+  it('splashes around a rocket stopped by cover at full strength on the near side, with nobody excluded', () => {
     const state = setup([1, 5, 6]);
     const shooter = state.soldiers[1];
     const w = WEAPONS.launcher;
     place(shooter, 400, 112);
     place(state.soldiers[5], 560, 112);   // aimed at, behind the wall, outside the splash
-    place(state.soldiers[6], 510, 112);   // at the wall's far face, 30 from the impact point, inside the 32 splash
+    place(state.soldiers[6], 470, 90);    // near side, off the rocket's line, 24 from the impact point, inside the 32 splash
     shoot(state, shooter, 'launcher', 560, 112);
     flyUntilDone(state, 20);
     expect(state.soldiers[5].hp).toBe(MAX_HP);
