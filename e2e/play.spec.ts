@@ -64,10 +64,13 @@ test('a battle can be started, ordered, run, and finished', async ({ page }) => 
   // Slot key 2 selects Bert; right click on a red soldier queues an attack.
   await page.keyboard.press('2');
   expect(await page.evaluate(() => [...window.__mm!.selection])).toEqual([1]);
+  await page.keyboard.press('Shift+3');
+  expect(await page.evaluate(() => [...window.__mm!.selection])).toEqual([1, 2]);
+  await page.keyboard.press('2');
   const grub = await soldierClient(page, 5);
   await page.mouse.click(grub.x, grub.y, { button: 'right' });
   const pending = await page.evaluate(() => (window.__mm!.pending as { type: string }[]).map((c) => c.type));
-  expect(pending).toEqual(['select', 'move', 'select', 'attack']);
+  expect(pending).toEqual(['select', 'move', 'select', 'select', 'select', 'attack']);
 
   // Still paused: nothing has ticked.
   await page.waitForTimeout(300);
@@ -80,7 +83,7 @@ test('a battle can be started, ordered, run, and finished', async ({ page }) => 
   // the PAUSED badge is gone and the clock has moved, so the HUD differs from the paused frame
   expect(await hudPixels(page)).not.toBe(hudBefore);
   const log = await page.evaluate(() => (window.__mm!.log as { type: string; side: string }[]));
-  expect(log.filter((c) => c.side === 'blue').map((c) => c.type)).toEqual(['select', 'move', 'select', 'attack']);
+  expect(log.filter((c) => c.side === 'blue').map((c) => c.type)).toEqual(['select', 'move', 'select', 'select', 'select', 'attack']);
   expect(log.some((c) => c.side === 'red')).toBe(true);
   expect(await page.evaluate(() => window.__mm!.replayMatches())).toBe(true);
 

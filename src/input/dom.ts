@@ -6,6 +6,7 @@
  * being typed.
  */
 import type { Button } from './interpret';
+import { keyFromEvent } from './keys';
 
 export interface DomTarget {
   click(x: number, y: number, button: Button, shift: boolean): void;
@@ -32,7 +33,8 @@ export function attachInput(canvas: HTMLCanvasElement, target: DomTarget, mappin
     if (e.repeat || e.metaKey || e.ctrlKey || e.altKey) {
       return;
     }
-    if (target.key(e.key, e.shiftKey) || e.key === ' ') {
+    const key = keyFromEvent(e.code, e.key);
+    if (target.key(key, e.shiftKey) || key === ' ') {
       e.preventDefault();
     }
   });
