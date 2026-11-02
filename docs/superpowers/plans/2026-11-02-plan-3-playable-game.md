@@ -126,8 +126,8 @@ export const KEY_SLOTS = ['1','2','3','4','5'] (keys.ts), plus HOLD_KEY 'h', MED
 ```
 Rules are decisions 4 and 5. Every emitted command is tagged `tick: state.tick`, `side`. Selection changes emit a `select` command.
 
-- [ ] Failing tests cover: left click own standing soldier selects it; shift adds; left click own downed selects; left click enemy or ground clears; right click ground moves standing selected (downed ones filtered out); right click standing enemy attacks; right click downed friendly emits `medic` with its id; right click downed enemy or dead soldier is a ground move; `H` holds; `M` with a downed soldier in selection emits one `medic`; `M` with none emits nothing; `1`..`5` select blue ids 0..4 (shift adds); dead soldier on slot key gives empty selection change; Space sets `togglePause`; Escape sets `openMenu`; picking prefers the nearest and ignores dead.
-- [ ] Implement, `npm run check`, commit `Plan 3 task 3: input to commands`.
+- [x] Failing tests cover: left click own standing soldier selects it; shift adds; left click own downed selects; left click enemy or ground clears; right click ground moves standing selected (downed ones filtered out); right click standing enemy attacks; right click downed friendly emits `medic` with its id; right click downed enemy or dead soldier is a ground move; `H` holds; `M` with a downed soldier in selection emits one `medic`; `M` with none emits nothing; `1`..`5` select blue ids 0..4 (shift adds); dead soldier on slot key gives empty selection change; Space sets `togglePause`; Escape sets `openMenu`; picking prefers the nearest and ignores dead.
+- [x] Implement, `npm run check`, commit `Plan 3 task 3: input to commands`.
 
 ### Task 4: Screen state machine
 
