@@ -1,34 +1,63 @@
-// Placeholder entry point. Plan 3 replaces this with the real renderer,
-// input handling, and screens. For now it proves the page, the build, and
-// the Pages deploy are alive.
+/**
+ * Entry point: the canvas, the viewport that fits it to the window, the
+ * app, DOM input, the debug hook, and the requestAnimationFrame loop.
+ * Everything else is DOM-free and lives in src/game, src/render,
+ * src/input and src/ui.
+ */
+import { createApp } from './game/app';
+import { createDebugHook, installDebugHook } from './game/debug';
+import { seedFromSearch } from './game/seed';
+import { attachInput } from './input/dom';
+import { LOGICAL_HEIGHT, LOGICAL_WIDTH } from './render/renderConstants';
+import { clientToLogical, fitViewport, logicalToClientOffset } from './render/viewport';
+import type { Viewport } from './render/viewport';
 
-const canvas = document.getElementById('game');
-if (!(canvas instanceof HTMLCanvasElement)) {
-  throw new Error('canvas not found');
+function findCanvas(): HTMLCanvasElement {
+  const el = document.getElementById('game');
+  if (!(el instanceof HTMLCanvasElement)) {
+    throw new Error('canvas not found');
+  }
+  return el;
 }
-
-const ctx = canvas.getContext('2d');
-if (!ctx) {
+const canvas = findCanvas();
+const context = canvas.getContext('2d');
+if (!context) {
   throw new Error('2d context not available');
 }
+const ctx: CanvasRenderingContext2D = context;
 
-const { width, height } = canvas;
+const app = createApp(seedFromSearch(window.location.search, Math.random), Math.random);
 
-ctx.fillStyle = '#3b6b35';
-ctx.fillRect(0, 0, width, height);
+let viewport: Viewport = fitViewport(window.innerWidth, window.innerHeight, window.devicePixelRatio || 1, LOGICAL_WIDTH, LOGICAL_HEIGHT);
 
-ctx.fillStyle = '#f2f2f2';
-ctx.font = 'bold 48px monospace';
-ctx.textAlign = 'center';
-ctx.textBaseline = 'middle';
-ctx.fillText('Muddle & Mayhem', width / 2, height / 2);
+function resize(): void {
+  viewport = fitViewport(window.innerWidth, window.innerHeight, window.devicePixelRatio || 1, LOGICAL_WIDTH, LOGICAL_HEIGHT);
+  canvas.width = viewport.pixelWidth;
+  canvas.height = viewport.pixelHeight;
+  canvas.style.width = `${viewport.cssWidth}px`;
+  canvas.style.height = `${viewport.cssHeight}px`;
+}
+window.addEventListener('resize', resize);
+resize();
 
-const drawSoldier = (x: number, y: number, colour: string): void => {
-  ctx.beginPath();
-  ctx.arc(x, y, 20, 0, Math.PI * 2);
-  ctx.fillStyle = colour;
-  ctx.fill();
-};
+attachInput(canvas, app, {
+  clientToLogical(clientX, clientY) {
+    const rect = canvas.getBoundingClientRect();
+    return clientToLogical(viewport, clientX, clientY, rect.left, rect.top);
+  },
+});
 
-drawSoldier(width * 0.25, height * 0.7, '#3d7bd6');
-drawSoldier(width * 0.75, height * 0.7, '#d64545');
+installDebugHook(
+  createDebugHook(app, (x, y) => {
+    const rect = canvas.getBoundingClientRect();
+    const o = logicalToClientOffset(viewport, x, y);
+    return { x: rect.left + o.x, y: rect.top + o.y };
+  }),
+);
+
+function frame(now: number): void {
+  ctx.setTransform(viewport.pixelWidth / LOGICAL_WIDTH, 0, 0, viewport.pixelHeight / LOGICAL_HEIGHT, 0, 0);
+  app.frame(ctx, now);
+  window.requestAnimationFrame(frame);
+}
+window.requestAnimationFrame(frame);

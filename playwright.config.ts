@@ -6,10 +6,14 @@ import { defineConfig, devices } from '@playwright/test';
 const port = 4173;
 const baseURL = `http://localhost:${port}/muddle-and-mayhem/`;
 
+// Set PW_CHROMIUM_PATH to run with a Chromium that was not downloaded by this
+// Playwright version (some sandboxes preinstall one). CI leaves it unset.
+const executablePath = process.env.PW_CHROMIUM_PATH;
+
 export default defineConfig({
   testDir: 'e2e',
   reporter: 'list',
-  use: { baseURL },
+  use: { baseURL, launchOptions: executablePath ? { executablePath } : {} },
   projects: [{ name: 'chromium', use: { ...devices['Desktop Chrome'] } }],
   webServer: {
     command: `npm run preview -- --port ${port} --strictPort`,
