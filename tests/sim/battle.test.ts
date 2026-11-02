@@ -41,6 +41,7 @@ describe('createBattle', () => {
       expect(s.stuckTicks).toBe(0);
       expect(s.lastRepathTick).toBe(-1);
       expect(s.downedTick).toBe(-1);
+      expect(s.orderTick).toBe(-1);
     }
   });
 

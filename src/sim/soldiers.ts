@@ -10,7 +10,7 @@ import { normalize } from './vec';
  * Ten soldiers: blue ids 0-4 then red ids 5-9, each side in CLASS_ORDER, placed
  * on map.spawns[side][i], names from SQUAD_NAMES, hp MAX_HP, status standing,
  * order hold, facing toward the other side (blue faceX 1, red faceX -1),
- * cooldown 0, targetId null, firing false, stuckTicks 0, lastRepathTick -1, downedTick -1.
+ * cooldown 0, targetId null, firing false, stuckTicks 0, lastRepathTick -1, downedTick -1, orderTick -1.
  */
 export function createSoldiers(map: TileMap): Soldier[] {
   const soldiers: Soldier[] = [];
@@ -39,6 +39,7 @@ export function createSoldiers(map: TileMap): Soldier[] {
         stuckTicks: 0,
         lastRepathTick: -1,
         downedTick: -1,
+        orderTick: -1,
       });
     }
   }

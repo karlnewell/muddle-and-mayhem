@@ -1,10 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import { createAi } from '../../src/sim/ai';
-import { besideCover, isCover } from '../../src/sim/aiPositions';
+import { besideCover, isCover, launcherDistanceScore } from '../../src/sim/aiPositions';
 import { createBattle, step } from '../../src/sim/battle';
 import {
   AI_LOBBER_WAIT, AI_MEDIC_DESPERATE_STANDING, AI_MEDIC_PATIENCE_TICKS, AI_RANGE_FRACTION, AI_SCORCHER_WAIT, AI_SEED_SALT, AI_STAY_BONUS,
-  AI_THINK_TICKS, MEDIC_CALLS, WEAPONS,
+  AI_COMMIT_THINKS, AI_LAUNCHER_DISTANCE_WEIGHT, AI_LAUNCHER_STANDOFF, AI_THINK_TICKS, MEDIC_CALLS, WEAPONS,
   overrideTuning,
 } from '../../src/sim/constants';
 import { runBattle } from '../../src/sim/headless';
@@ -481,6 +481,105 @@ describe('sticking with a firing tile', () => {
     expect(next[0].type).toBe('move');
     if (next[0].type === 'move') {
       expect(dist2(next[0].x, next[0].y, state.soldiers[0].x, state.soldiers[0].y)).toBeLessThanOrEqual(range * range);
+    }
+  });
+});
+
+describe('committing to a firing tile', () => {
+  /** A 30 by 12 open field with no cover. */
+  function openField(): TileMap {
+    const rows: string[] = [];
+    for (let ty = 0; ty < 11; ty++) {
+      rows.push('..............................');
+    }
+    rows.push('bbbbb...............rrrrr.....');
+    return parseMap('Open', rows);
+  }
+
+  /**
+   * Red gunner 5 and blue gunner 0 alone, 400 apart on row 5. The gunner was
+   * ordered at tick 0 to (4, 10), a firing tile 5 rows below the target and
+   * far from the gunner: valid, but much worse than the tiles in front of it.
+   */
+  function committed(): BattleState {
+    const state = createBattle({ seed: 1, map: openField() });
+    isolate(state, [0, 5]);
+    place(state.soldiers[0], 4 * 32 + 16, 5 * 32 + 16);
+    place(state.soldiers[5], 4 * 32 + 16 + 400, 5 * 32 + 16);
+    state.soldiers[5].order = { kind: 'move', x: 4 * 32 + 16, y: 10 * 32 + 16 };
+    state.soldiers[5].orderTick = 0;
+    return state;
+  }
+
+  it('keeps a fresh move order to a valid firing tile until AI_COMMIT_THINKS thinks have passed', () => {
+    const state = committed();
+    const ai = createAi('red', 7);
+    for (let k = 1; k < AI_COMMIT_THINKS; k++) {
+      state.tick = k * AI_THINK_TICKS;
+      expect(forSoldier(ai.think(state), 5)).toEqual([]);
+    }
+    state.tick = AI_COMMIT_THINKS * AI_THINK_TICKS;
+    const later = forSoldier(ai.think(state), 5);
+    expect(later).toHaveLength(1);
+    expect(later[0].type).toBe('move');
+  });
+
+  it('re-sites at once when the committed tile is no longer a firing tile', () => {
+    const state = committed();
+    // Out of the gunner's reach of the target.
+    state.soldiers[5].order = { kind: 'move', x: 20 * 32 + 16, y: 10 * 32 + 16 };
+    state.tick = AI_THINK_TICKS;
+    const commands = forSoldier(createAi('red', 7).think(state), 5);
+    expect(commands).toHaveLength(1);
+    expect(commands[0].type).toBe('move');
+  });
+
+  it('still attacks at once when it can fire', () => {
+    const state = committed();
+    place(state.soldiers[0], state.soldiers[5].x - 150, state.soldiers[5].y);
+    state.tick = AI_THINK_TICKS;
+    expect(forSoldier(createAi('red', 7).think(state), 5)).toEqual([
+      { tick: AI_THINK_TICKS, side: 'red', type: 'attack', soldierIds: [5], targetId: 0 },
+    ]);
+  });
+
+  it('with AI_COMMIT_THINKS 0 the commitment is off', () => {
+    overrideTuning({ AI_COMMIT_THINKS: 0 });
+    try {
+      const state = committed();
+      state.tick = AI_THINK_TICKS;
+      expect(forSoldier(createAi('red', 7).think(state), 5)).toHaveLength(1);
+    } finally {
+      overrideTuning({ AI_COMMIT_THINKS });
+    }
+  });
+});
+
+describe('launcherDistanceScore', () => {
+  const range = WEAPONS.launcher.range;
+  const knee = AI_LAUNCHER_STANDOFF * AI_RANGE_FRACTION * range;
+
+  it('grows with distance up to AI_LAUNCHER_STANDOFF of the reach', () => {
+    expect(launcherDistanceScore(0, range)).toBe(0);
+    expect(launcherDistanceScore(knee / 2, range)).toBeCloseTo((AI_LAUNCHER_DISTANCE_WEIGHT * knee) / 2 / range, 10);
+    expect(launcherDistanceScore(knee / 2, range)).toBeLessThan(launcherDistanceScore(knee, range));
+  });
+
+  it('is flat beyond it, so a target stepping closer does not reshuffle tiles already far enough', () => {
+    expect(AI_LAUNCHER_STANDOFF).toBeLessThan(1);
+    const full = (AI_LAUNCHER_DISTANCE_WEIGHT * knee) / range;
+    expect(launcherDistanceScore(knee, range)).toBeCloseTo(full, 10);
+    expect(launcherDistanceScore(knee + 20, range)).toBeCloseTo(full, 10);
+    expect(launcherDistanceScore(AI_RANGE_FRACTION * range, range)).toBeCloseTo(full, 10);
+  });
+
+  it('with AI_LAUNCHER_STANDOFF 1 it is the old uncapped weight times distance over range', () => {
+    overrideTuning({ AI_LAUNCHER_STANDOFF: 1 });
+    try {
+      const d = AI_RANGE_FRACTION * range;
+      expect(launcherDistanceScore(d, range)).toBeCloseTo((AI_LAUNCHER_DISTANCE_WEIGHT * d) / range, 10);
+    } finally {
+      overrideTuning({ AI_LAUNCHER_STANDOFF });
     }
   });
 });
