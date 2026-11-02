@@ -191,7 +191,7 @@ HUD (bottom): five blue cards with slot number, name, class, HP bar, cooldown ba
 
 The test loads `./?seed=7`, asserts the title, clicks to start, reads `__mm` to confirm tick 0 and paused, computes the client position of blue soldier 0 via `worldToClient`, left-clicks it and asserts the selection, right-clicks a ground point and asserts a `move` command in the log, right-clicks the nearest red soldier's position and asserts an `attack`, snapshots the HUD pixels, presses Space, waits about two seconds, asserts tick grew by at least 30 and the HUD pixels changed, asserts `replayMatches()`, then `advanceTicks(20000)` and asserts a winner and the result text on the canvas via `__mm.winner`. No console errors or failed responses throughout.
 
-- [ ] Write the test, run `npm run build && npm run test:e2e`, commit `Plan 3 task 8: e2e test plays a battle`.
+- [x] Write the test, run `npm run build && npm run test:e2e`, commit `Plan 3 task 8: e2e test plays a battle`.
 
 ### Task 9: Playtest and tuning
 
