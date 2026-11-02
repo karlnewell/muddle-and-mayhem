@@ -76,7 +76,9 @@ authoritative statement.
 ## Plans
 
 Plans live in `docs/superpowers/plans/`. Plan 1 (scaffold and pipeline) is
-this repository's foundation. Plan 2 (headless deterministic simulation) and
-Plan 3 (playable game) are written from the spec with
-superpowers:writing-plans before any implementation begins, then executed
-task by task with superpowers:executing-plans.
+this repository's foundation. Plan 2 (headless deterministic simulation,
+`docs/superpowers/plans/2026-11-02-plan-2-headless-simulation.md`) is
+implemented: `src/sim/index.ts` is its public surface. Plan 3 (playable
+game) is written from the spec with superpowers:writing-plans before any
+implementation begins, then executed task by task with
+superpowers:executing-plans.

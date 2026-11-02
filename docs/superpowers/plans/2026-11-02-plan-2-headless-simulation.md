@@ -254,27 +254,27 @@ export function dot(ax: number, ay: number, bx: number, by: number): number;
 export function clamp(v: number, lo: number, hi: number): number;   // Math.min/Math.max
 ```
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 `tests/sim/vec.test.ts`: `dist2(0,0,3,4)` is 25; `length(3,4)` is 5; `normalize(3,4)` is `{x:0.6,y:0.8}` and `normalize(0,0)` is `{x:0,y:0}`; `dot(1,0,0,1)` is 0; `clamp(5,0,3)` is 3 and `clamp(-1,0,3)` is 0.
 
 `tests/sim/constants.test.ts`: `WEAPONS` has exactly the five classes in `CLASS_ORDER`; range ordering holds (`launcher > gunner`, `gunner === chucker` or `>=`, `chucker > blaster > scorcher`); `gunner.cooldown` is the smallest non-zero cooldown; `blaster.cooldown` is the largest; `scorcher.cooldown` is 0; every entry of `DIRECTIONS16` has `x*x + y*y` within `1e-12` of 1; `SQUAD_NAMES` has five distinct names per side; `FLAME_CONE_COS` is between 0 and 1.
 
-- [ ] **Step 2: Run the tests to verify they fail**
+- [x] **Step 2: Run the tests to verify they fail**
 
 Run: `npm test`
 Expected: FAIL, cannot resolve `../../src/sim/vec` and `../../src/sim/constants`.
 
-- [ ] **Step 3: Implement the three files exactly as specified above**
+- [x] **Step 3: Implement the three files exactly as specified above**
 
 `types.ts` carries a short header comment: "Plain data only. `JSON.stringify(state)` is the canonical serialisation used for hashing, so no class instances, Maps, Sets, or typed arrays."
 
-- [ ] **Step 4: Run the tests and the guard**
+- [x] **Step 4: Run the tests and the guard**
 
 Run: `npm test` then `npm run lint:sim`
 Expected: PASS; the guard prints nothing and exits 0.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add src/sim/constants.ts src/sim/types.ts src/sim/vec.ts tests/sim/vec.test.ts tests/sim/constants.test.ts
@@ -337,7 +337,7 @@ row 21  ....................
 ```
 Write the full 40-character rows out literally in the file (do not build them with string code at module load; the file is data a human reads). The result is an open vertical road through columns 18 to 21 and an open horizontal road through rows 9 to 11, boxed by four wall arms, with crate clusters in each quadrant, small L walls near the edges, and trees in the corners.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 `tests/sim/map.test.ts` on a tiny inline map (`['b.#', '...', 'r..']` padded to five spawns is awkward, so use a 5-row map with five `b` and five `r`):
 - `parseMap` gives `width`, `height`, tiles with `TILE_WALL` at `#`, `TILE_OPEN` at `.`, `b`, `r`; spawns at tile centres in top-to-bottom order; throws on ragged rows; throws on four spawns.
@@ -348,21 +348,21 @@ Write the full 40-character rows out literally in the file (do not build them wi
 
 `tests/sim/crossroads.test.ts`: width 40, height 22; every row 40 characters; mirror symmetry (`tiles[y*40 + x] === tiles[y*40 + 39 - x]` for all x, y); five spawns per side, all on open tiles, blue x less than 20 tiles and red x greater; a path corridor exists in the sense that the centre tile `(20, 10)` is open and so are `(19, 10)`, `(20, 11)`; at least one wall, one crate, one tree present.
 
-- [ ] **Step 2: Run the tests to verify they fail**
+- [x] **Step 2: Run the tests to verify they fail**
 
 Run: `npm test`
 Expected: FAIL, modules not found.
 
-- [ ] **Step 3: Implement `map.ts` and `maps/crossroads.ts`**
+- [x] **Step 3: Implement `map.ts` and `maps/crossroads.ts`**
 
 `circleOverlapsCover`: candidate tiles are those whose bounding box intersects the circle's bounding box (`floor((x - r)/TILE_SIZE)` to `floor((x + r)/TILE_SIZE)`); for each blocked candidate, clamp the circle centre to the tile rectangle and compare squared distance with `r*r`.
 
-- [ ] **Step 4: Run tests and guard**
+- [x] **Step 4: Run tests and guard**
 
 Run: `npm test` then `npm run lint:sim`
 Expected: PASS.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add src/sim/map.ts src/sim/maps/crossroads.ts tests/sim/map.test.ts tests/sim/crossroads.test.ts
@@ -385,7 +385,7 @@ export function hasLineOfSight(map: TileMap, ax: number, ay: number, bx: number,
 ```
 Algorithm: grid traversal (Amanatides and Woo). Start tile `floor(a / TILE_SIZE)`; the start tile is never tested (a soldier stands on open ground, and this lets shots leave a tile edge cleanly). Step along x or y by comparing `tMaxX` and `tMaxY`; a zero component uses `tMax = 2` (beyond the segment) instead of a division by zero. Each entered tile is tested; the first blocked one returns the `t` at which it was entered. Stop when the end tile has been tested or `t` exceeds 1. Ties (`tMaxX === tMaxY`, an exact corner) step x first, then y, testing both tiles; this is the no-corner-cutting rule for sight lines.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 Use `parseMap` with a 10 by 6 map containing a vertical wall at column 5, rows 1 to 4, with a gap at row 0 and row 5.
 - Clear sight across open ground: `hasLineOfSight` true, `firstCoverHit` null.
@@ -396,17 +396,17 @@ Use `parseMap` with a 10 by 6 map containing a vertical wall at column 5, rows 1
 - Vertical segment (`ax === bx`) along a column with a wall: false; without: true.
 - Symmetry: `hasLineOfSight(a, b) === hasLineOfSight(b, a)` for a handful of pairs.
 
-- [ ] **Step 2: Run the tests to verify they fail**
+- [x] **Step 2: Run the tests to verify they fail**
 
 Run: `npm test` — FAIL, module not found.
 
-- [ ] **Step 3: Implement `los.ts`**
+- [x] **Step 3: Implement `los.ts`**
 
-- [ ] **Step 4: Run tests and guard**
+- [x] **Step 4: Run tests and guard**
 
 Run: `npm test` then `npm run lint:sim` — PASS.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add src/sim/los.ts tests/sim/los.test.ts
@@ -436,7 +436,7 @@ export const SQRT2 = 1.4142135623730951;
 ```
 Open list: a binary heap ordered by `f`, then `h`, then insertion sequence number, so ties resolve identically on every run. Closed and `g` tables are plain arrays indexed by tile index. Start equals goal returns `[]`. A blocked goal returns null (callers snap first with `nearestOpenTile`). Neighbour order is fixed: E, W, S, N, SE, SW, NE, NW.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 - Straight line on an open 10 by 10 map from `(0,0)` to `(3,0)` gives three tiles ending at `(3,0)`.
 - Diagonal from `(0,0)` to `(3,3)` gives exactly three tiles (diagonals allowed).
@@ -447,19 +447,19 @@ Open list: a binary heap ordered by `f`, then `h`, then insertion sequence numbe
 - Determinism: run the around-the-wall case 20 times and compare `JSON.stringify` of the results.
 - `pathToWaypoints([{tx:1,ty:0},{tx:2,ty:0}], {x:70,y:20})` gives `[{x:48,y:16},{x:70,y:20}]`.
 
-- [ ] **Step 2: Run the tests to verify they fail**
+- [x] **Step 2: Run the tests to verify they fail**
 
 Run: `npm test` — FAIL.
 
-- [ ] **Step 3: Implement `path.ts`**
+- [x] **Step 3: Implement `path.ts`**
 
 Keep the heap in the same file (under 60 lines); if it grows, split to `src/sim/heap.ts`.
 
-- [ ] **Step 4: Run tests and guard**
+- [x] **Step 4: Run tests and guard**
 
 Run: `npm test` then `npm run lint:sim` — PASS.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add src/sim/path.ts tests/sim/path.test.ts
@@ -514,7 +514,7 @@ export function step(state: BattleState, commands: readonly Command[]): void;
 ```
 `createBattle`: `tick 0`, `rng = createRng(seed)`, `sides` with `MEDIC_CALLS` and empty selection, `winner null`, `nextProjectileId 0`, `events []`. `step`: if `winner !== null` return (frozen). Clear `events`; apply each command whose `tick === state.tick` in the given order (others are ignored); run the phases in this order, calling into the modules that exist yet and leaving labelled `// phase:` lines for the rest: orders+movement (`moveSoldiers`), firing (Task 7), projectiles (Task 7), flame (Task 9), medics (Task 10), win check (Task 6); `tick++`. In this task `canFireAt` is a stub returning false so attack orders approach.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 `tests/sim/battle.test.ts`:
 - `createBattle({seed: 1})` has 10 soldiers, ids 0..9, five per side in `CLASS_ORDER`, placed on the Crossroads spawns, all standing at `MAX_HP`, `tick 0`, `winner null`, each side `MEDIC_CALLS` calls.
@@ -532,19 +532,19 @@ export function step(state: BattleState, commands: readonly Command[]): void;
 - An attack order on a far enemy moves the soldier closer each tick (distance decreases) while `canFireAt` is false.
 - Soldiers never leave the map rectangle.
 
-- [ ] **Step 2: Run the tests to verify they fail**
+- [x] **Step 2: Run the tests to verify they fail**
 
 Run: `npm test` — FAIL.
 
-- [ ] **Step 3: Implement the four files**
+- [x] **Step 3: Implement the four files**
 
 Keep each under 250 lines. The `canFireAt` callback lets Task 7 supply weapon rules without `movement.ts` importing weapons.
 
-- [ ] **Step 4: Run tests and guard**
+- [x] **Step 4: Run tests and guard**
 
 Run: `npm test` then `npm run lint:sim` — PASS.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add src/sim/battle.ts src/sim/soldiers.ts src/sim/commands.ts src/sim/movement.ts tests/sim/battle.test.ts tests/sim/commands.test.ts tests/sim/movement.test.ts
@@ -574,7 +574,7 @@ export function checkVictory(state: BattleState): void;
 ```
 `applyDamage`: `hp = Math.max(0, hp - amount)`; if `hp === 0`: when `WEAPONS[weapon].instantKill && state.rng.chance(INSTANT_KILL_CHANCE)` status becomes `dead`, else `downed`; in both cases `order = hold`, `path = []`, `targetId = null`, `firing = false`. The rng is consulted only when a hit downs a soldier with an instant-kill weapon, in that order, so the stream is stable. Splash uses squared distance against `radius * radius` (centre inside radius counts; soldier radius is not added).
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 `tests/sim/damage.test.ts`:
 - Gunner damage reduces hp; at 0 the soldier is downed, never dead, over 200 seeds.
@@ -589,17 +589,17 @@ export function checkVictory(state: BattleState): void;
 - Both sides at zero: `'draw'`.
 - Through `step`: after a win, further `step` calls do not change `tick`.
 
-- [ ] **Step 2: Run the tests to verify they fail**
+- [x] **Step 2: Run the tests to verify they fail**
 
 Run: `npm test` — FAIL.
 
-- [ ] **Step 3: Implement and wire `checkVictory` into `step` as the last phase before `tick++`**
+- [x] **Step 3: Implement and wire `checkVictory` into `step` as the last phase before `tick++`**
 
-- [ ] **Step 4: Run tests and guard**
+- [x] **Step 4: Run tests and guard**
 
 Run: `npm test` then `npm run lint:sim` — PASS.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add src/sim/damage.ts src/sim/victory.ts src/sim/battle.ts tests/sim/damage.test.ts tests/sim/victory.test.ts
@@ -643,7 +643,7 @@ export function advanceProjectiles(state: BattleState): void;
 
 `battle.ts` phases become: commands, `moveSoldiers(state, (s, t) => canFireAt(state, s, t))`, `fireWeapons`, `advanceProjectiles`, flame (Task 9), medics (Task 10), `checkVictory`, `tick++`.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 `tests/sim/targeting.test.ts`: `inRange` at exactly range is true and one unit beyond is false; `canFireAt` false across a wall for a gunner and true for a chucker (lobbed ignores cover); `chooseTarget` prefers the attack-order target when fireable, else the nearest fireable enemy, lower id on ties; downed enemies are never chosen.
 
@@ -662,19 +662,19 @@ export function advanceProjectiles(state: BattleState): void;
 - A launcher rocket hitting an enemy applies `damage` to it and `splashDamage` to another soldier (either side) within `splashRadius`, not to one outside it.
 - A projectile that reaches `maxDistance` without hitting is removed without an impact event.
 
-- [ ] **Step 2: Run the tests to verify they fail**
+- [x] **Step 2: Run the tests to verify they fail**
 
 Run: `npm test` — FAIL.
 
-- [ ] **Step 3: Implement the three files and wire them into `step`**
+- [x] **Step 3: Implement the three files and wire them into `step`**
 
 Segment-versus-circle: with `d = next - prev`, `f = prev - c`, solve `|f + t d|^2 = r^2` for the smallest `t` in `[0, 1]` using the quadratic formula with `Math.sqrt` only; when `|f|^2 <= r^2` return `t = 0`; when the discriminant is negative, no hit.
 
-- [ ] **Step 4: Run tests and guard**
+- [x] **Step 4: Run tests and guard**
 
 Run: `npm test` then `npm run lint:sim` — PASS.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add src/sim/targeting.ts src/sim/weapons.ts src/sim/projectiles.ts src/sim/battle.ts tests/sim/targeting.test.ts tests/sim/weapons.test.ts tests/sim/projectiles.test.ts
@@ -691,7 +691,7 @@ git commit -m "Add targeting, direct-fire weapons, and projectile flight"
 
 **Behaviour:** In `fireWeapons`, the `lobbed` branch pushes a `Projectile` with `kind 'lobbed'`, `targetX/targetY` = `scatterAim(target, spread)`, `startX/startY` = shooter position, `x/y` = start, `vx/vy 0`, `launchTick = state.tick`, `landTick = state.tick + flightTicks`, `travelled 0`, `maxDistance 0`; `cooldown = WEAPONS.cooldown`; event `shot`. In `advanceProjectiles`, a lobbed projectile each tick sets `prevX/prevY` and moves `x/y` linearly along start to target by `(tick - launchTick) / flightTicks` (the renderer adds the arc); when `state.tick >= landTick` it lands: event `impact` at the target point with `splashRadius`, `applySplash(target, splashRadius, splashDamage, weapon, null)`, removed. Cover is never consulted. Lobbed shots need range only (`canFireAt` already allows this).
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 - A chucker with an enemy behind a wall at 150 units fires (a `lobbed` projectile appears) even though `hasLineOfSight` is false.
 - The projectile lands exactly `flightTicks` ticks after launch (`landTick - launchTick`), emits one `impact`, and damages every standing soldier within `splashRadius` of the landing point on both sides, including a friendly, and not a downed one.
@@ -699,17 +699,17 @@ git commit -m "Add targeting, direct-fire weapons, and projectile flight"
 - A blaster kill: over seeds 0..199 a blaster landing on a soldier at 1 hp produces some `killed` and some `downed` events (instant kill applies to lobbed Blaster hits); a chucker landing on a soldier at 1 hp never kills.
 - Mid-flight position is between start and target (`x` strictly between the two for a horizontal throw on the middle tick).
 
-- [ ] **Step 2: Run the tests to verify they fail**
+- [x] **Step 2: Run the tests to verify they fail**
 
 Run: `npm test` — FAIL (no projectile is created).
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
-- [ ] **Step 4: Run tests and guard**
+- [x] **Step 4: Run tests and guard**
 
 Run: `npm test` then `npm run lint:sim` — PASS.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add src/sim/weapons.ts src/sim/projectiles.ts tests/sim/lobbed.test.ts
@@ -734,7 +734,7 @@ export function inCone(s: Soldier, x: number, y: number, range: number): boolean
 ```
 Damage per tick is `WEAPONS.scorcher.damage` per soldier in the cone, through `applyDamage(target, damage, 'scorcher')` in id order, so a flame tick that downs a soldier rolls the instant kill. `firing` for the scorcher is set in `fireWeapons` whenever `chooseTarget` returns a target (no cooldown).
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 - `inCone`: a point straight ahead at half range is in; at range plus one unit is out; a point 45° off axis at half range is out (cone half angle is 30°); a point 20° off axis is in (use a precomputed point like `(0.9396926, 0.3420201) * 40` written as literals).
 - A scorcher facing an enemy at 60 units damages it by exactly `damage` per tick over 10 ticks (hp drops by `10 * damage`), and a friendly standing inside the cone also takes damage.
@@ -743,17 +743,17 @@ Damage per tick is `WEAPONS.scorcher.damage` per soldier in the cone, through `a
 - A scorcher with no target in range has `firing false` and deals no damage.
 - Over seeds 0..199, a scorcher finishing a 1 hp enemy produces some `killed` events.
 
-- [ ] **Step 2: Run the tests to verify they fail**
+- [x] **Step 2: Run the tests to verify they fail**
 
 Run: `npm test` — FAIL.
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
-- [ ] **Step 4: Run tests and guard**
+- [x] **Step 4: Run tests and guard**
 
 Run: `npm test` then `npm run lint:sim` — PASS.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add src/sim/flame.ts src/sim/weapons.ts src/sim/battle.ts tests/sim/flame.test.ts
@@ -778,7 +778,7 @@ export function advanceMedics(state: BattleState): void;
 ```
 `callMedic` decrements `medicCalls`, pushes `MedicRun` starting at `x = SOLDIER_RADIUS` for blue or `mapWidthUnits - SOLDIER_RADIUS` for red, `y = target.y`, emits `medic`. `advanceMedics` in array order: `prev = pos`; if within `MEDIC_SPEED` of the target, revive: `hp = Math.floor(MAX_HP * REVIVE_FRACTION)`, `status 'standing'`, `order hold`, `path []`, `cooldown 0`, `stuckTicks 0`, event `revived`, remove the run; else move straight toward the target by `MEDIC_SPEED` (cover ignored). If the target is no longer downed (cannot happen in v1, but be safe) the run is dropped.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 - A valid medic command spends one call, creates a run at the correct edge, and emits `medic`.
 - Invalid cases spend nothing and create no run: target standing; target on the other side; zero calls left; a second call for the same downed target while a run is under way.
@@ -787,17 +787,17 @@ export function advanceMedics(state: BattleState): void;
 - Victory still goes to the other side when a side's last standing soldier falls while a medic is en route (step once more after the last soldier is downed: `winner` is set).
 - Through `step` with a `medic` command in the command list.
 
-- [ ] **Step 2: Run the tests to verify they fail**
+- [x] **Step 2: Run the tests to verify they fail**
 
 Run: `npm test` — FAIL.
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
-- [ ] **Step 4: Run tests and guard**
+- [x] **Step 4: Run tests and guard**
 
 Run: `npm test` then `npm run lint:sim` — PASS.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add src/sim/medic.ts src/sim/commands.ts src/sim/battle.ts tests/sim/medic.test.ts
@@ -837,7 +837,7 @@ Then medic: if `medicCalls > 0`, the downed friendlies without a run under way, 
 
 All commands carry `tick: state.tick` and `side`.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 `tests/sim/hash.test.ts`: the same state hashes equal; changing one soldier's `x` by 1 changes the hash; the hash is an integer in `[0, 2^32)`; `serializeState` does not contain `"rng"` with function bodies (it is `{}` or absent) and does contain `"tick"`.
 
@@ -849,19 +849,19 @@ All commands carry `tick: state.tick` and `side`.
 - Medic: with a red soldier downed and no blue soldier within range of the body, the AI issues `medic` for it; with a blue gunner 50 units from the body, it does not.
 - A scorcher far from every enemy gets an `attack` command (charges), a launcher 50 units from an enemy gets a `move` command whose destination is farther from that enemy than the launcher is now (or, if no tile qualifies, an `attack`); assert one of the two and, for `move`, the distance property.
 
-- [ ] **Step 2: Run the tests to verify they fail**
+- [x] **Step 2: Run the tests to verify they fail**
 
 Run: `npm test` — FAIL.
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
 Keep `ai.ts` under 300 lines; split tile scoring into `src/sim/aiPositions.ts` if needed.
 
-- [ ] **Step 4: Run tests and guard**
+- [x] **Step 4: Run tests and guard**
 
 Run: `npm test` then `npm run lint:sim` — PASS.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add src/sim/hash.ts src/sim/ai.ts tests/sim/hash.test.ts tests/sim/ai.test.ts
@@ -901,7 +901,7 @@ export * from './constants';
 export type * from './types';
 ```
 
-- [ ] **Step 1: Write the failing replay test**
+- [x] **Step 1: Write the failing replay test**
 
 `tests/sim/replay.test.ts`:
 ```ts
@@ -942,19 +942,19 @@ describe('replay determinism', () => {
 ```
 Also assert in the first case that `run.log.length` is below `run.ticks` (the AI dedups orders) and that both sides issued at least one command.
 
-- [ ] **Step 2: Run the test to verify it fails**
+- [x] **Step 2: Run the test to verify it fails**
 
 Run: `npm test` — FAIL, `headless` module not found.
 
-- [ ] **Step 3: Implement `headless.ts` and `index.ts`; run the test**
+- [x] **Step 3: Implement `headless.ts` and `index.ts`; run the test**
 
 If a seed does not end within `MAX_TICKS`, do not raise the limit: inspect the final state (who is standing, their orders, positions) and fix the stall in the AI or movement, then record the fix in `docs/decisions.md`. Report the tick counts of the four battles in the PR description.
 
-- [ ] **Step 4: Document**
+- [x] **Step 4: Document**
 
 `docs/decisions.md`: append one dated (2026-11-02) line per item in "Decisions this plan makes" above, in the same terse style as the existing lines, plus any decision made during implementation. Do not edit existing lines. `README.md`: add a short "Headless simulation" paragraph showing `runBattle` and `replayBattle` in a Vitest test. `CLAUDE.md` Plans section: note that Plan 2 is implemented and link this plan.
 
-- [ ] **Step 5: Full check and commit**
+- [x] **Step 5: Full check and commit**
 
 Run: `npm run check`
 Expected: typecheck, lint:sim, all tests (including `replay determinism › AI-vs-AI battle from seed ... ends and replays bit for bit`), and build succeed.

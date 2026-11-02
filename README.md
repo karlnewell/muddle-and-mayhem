@@ -30,6 +30,25 @@ npm run build
 npm run test:e2e
 ```
 
+## Headless simulation
+
+The whole battle runs without a browser. `runBattle` drives it with
+controllers and records every command; `replayBattle` rebuilds it from the
+seed and that log alone. Same seed plus same log gives the same state, bit
+for bit, which is what `tests/sim/replay.test.ts` asserts under `npm test`:
+
+```ts
+import { expect, it } from 'vitest';
+import { createAi, hashState, replayBattle, runBattle } from '../../src/sim';
+
+it('replays bit for bit', () => {
+  const seed = 42;
+  const run = runBattle({ seed, maxTicks: 18000, controllers: [createAi('blue', seed), createAi('red', seed)] });
+  const replayed = replayBattle(seed, run.log, run.ticks);
+  expect(hashState(replayed)).toBe(hashState(run.state));
+});
+```
+
 ## Repository setup (owner, one time)
 
 These cannot be done from a cloud session.
