@@ -18,7 +18,6 @@ One dated line per decision. Newest at the bottom. The roadmap lives at the end.
 - 2026-11-01: Launcher, Scorcher, and Blaster hits that would down a soldier roll a 10% instant-kill chance to start; tune by play.
 - 2026-11-02: The sim arithmetic guard also flags `document`, `window`, and imports from `render`, `input`, or `ui`, since the spec bans them alongside the math and the check is free.
 - 2026-11-02: Vite runs with `appType: 'mpa'` so `vite preview` returns 404 outside the base path, like Pages. Without it the smoke test passed with a wrong base path.
-
 - 2026-11-02: The arithmetic guard is an allowlist: any `Math` member other than `sqrt`, `floor`, `abs`, `min`, `max`, `imul` is flagged, so newly added or overlooked functions (`asinh`, `round`) cannot slip through.
 - 2026-11-02: The ban on the original game's names applies to code, assets, UI text, README, and CLAUDE.md. The design spec and plans under `docs/superpowers/` may name it, since they document what we are deliberately not copying.
 
