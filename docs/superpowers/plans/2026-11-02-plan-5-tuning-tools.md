@@ -263,7 +263,7 @@ Two post sets were measured. The first (road mouth: gunner (11, 9), launcher (9,
 
 ### Task 8: Finish
 
-- [ ] Tick every box in this plan, fill in the results table, `npm run check` and `npm run test:e2e` green, push `plan-5-tuning-tools`, open the PR "Plan 5: tuning tools" against `main` with: what was built, how to use each tool, a sample copied report, the three blue win rates, and anything deferred. Do not merge.
+- [x] Tick every box in this plan, fill in the results table, `npm run check` and `npm run test:e2e` green, push `plan-5-tuning-tools`, open the PR "Plan 5: tuning tools" against `main` with: what was built, how to use each tool, a sample copied report, the three blue win rates, and anything deferred. Do not merge.
 
 ## Self-review
 
