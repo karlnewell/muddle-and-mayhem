@@ -8,15 +8,17 @@
  */
 import { interpretClick, interpretKey } from '../input/interpret';
 import type { Button, InputResult } from '../input/interpret';
-import { SLOT_KEYS } from '../input/keys';
+import { MENU_KEY, SLOT_KEYS } from '../input/keys';
 import { effectsFromEvents, pruneEffects } from '../render/effects';
 import type { Effect } from '../render/effects';
 import { PALETTE } from '../render/palette';
 import { LOGICAL_HEIGHT, LOGICAL_WIDTH } from '../render/renderConstants';
 import { createTopDownRenderer } from '../render/renderer';
 import type { BattleRenderer } from '../render/renderer';
+import { hashState } from '../sim';
 import type { Side } from '../sim';
 import { hitButton } from '../ui/buttons';
+import { drawDebugOverlay } from '../ui/debugOverlay';
 import { drawHud, hudCardRects } from '../ui/hud';
 import { drawMenu, menuButtons } from '../ui/menu';
 import { drawResult, resultButtons } from '../ui/result';
@@ -30,12 +32,19 @@ import type { BattleSession } from './session';
 
 export const PLAYER_SIDE: Side = 'blue';
 
+export interface AppOptions {
+  /** Start with the debug overlay showing (`?debug=1`). */
+  debugOverlay?: boolean;
+}
+
 export interface App {
   readonly renderer: BattleRenderer;
   readonly screen: ScreenState;
   readonly session: BattleSession | null;
   readonly selection: readonly number[];
   readonly seedChoice: SeedChoice;
+  /** True while the debug overlay is drawn over the battlefield. */
+  readonly debugOverlay: boolean;
   /** Advance time and draw. `nowMs` is a monotonic clock in milliseconds. */
   frame(ctx: CanvasRenderingContext2D, nowMs: number): void;
   /** A mouse button pressed at logical canvas coordinates. */
@@ -46,8 +55,9 @@ export interface App {
   advanceTicks(n: number): void;
 }
 
-export function createApp(initialSeed: SeedChoice, random: () => number): App {
+export function createApp(initialSeed: SeedChoice, random: () => number, options: AppOptions = {}): App {
   const renderer = createTopDownRenderer();
+  let debugOverlay = options.debugOverlay === true;
   let screen: ScreenState = INITIAL_SCREEN;
   let session: BattleSession | null = null;
   let selection: number[] = [];
@@ -96,6 +106,9 @@ export function createApp(initialSeed: SeedChoice, random: () => number): App {
     }
     if (result.toggleMenu) {
       dispatch('toggleMenu');
+    }
+    if (result.toggleDebug) {
+      debugOverlay = !debugOverlay;
     }
   }
 
@@ -180,6 +193,10 @@ export function createApp(initialSeed: SeedChoice, random: () => number): App {
     } else if (screen.menuOpen) {
       drawMenu(ctx);
     }
+    if (debugOverlay) {
+      // Drawn last so it stays readable over the menu and result panels.
+      drawDebugOverlay(ctx, state, { seed: session.seed, paused: session.paused, hash: hashState(state) });
+    }
   }
 
   return {
@@ -195,6 +212,9 @@ export function createApp(initialSeed: SeedChoice, random: () => number): App {
     },
     get seedChoice() {
       return seedChoice;
+    },
+    get debugOverlay() {
+      return debugOverlay;
     },
     frame(ctx: CanvasRenderingContext2D, nowMs: number): void {
       const dt = lastNow === null ? 0 : nowMs - lastNow;
@@ -225,18 +245,28 @@ export function createApp(initialSeed: SeedChoice, random: () => number): App {
       battleClick(x, y, button, shift);
     },
     key(key: string, shift: boolean): boolean {
-      if (screen.screen !== 'battle' || session === null) {
+      if (screen.screen === 'title' || session === null) {
         return false;
       }
-      if (screen.menuOpen) {
-        if (key === 'Escape') {
+      if (screen.screen === 'result' || screen.menuOpen) {
+        // Orders are off while the menu or the result panel is up; Escape closes the menu and D still toggles the overlay.
+        if (screen.menuOpen && key === MENU_KEY) {
           dispatch('closeMenu');
+          return true;
+        }
+        if (interpretKey(session.state, selection, key, shift, PLAYER_SIDE).toggleDebug === true) {
+          debugOverlay = !debugOverlay;
           return true;
         }
         return false;
       }
       const result = interpretKey(session.state, selection, key, shift, PLAYER_SIDE);
-      const used = result.commands.length > 0 || result.togglePause === true || result.toggleMenu === true || !sameIds(result.selection, selection);
+      const used =
+        result.commands.length > 0 ||
+        result.togglePause === true ||
+        result.toggleMenu === true ||
+        result.toggleDebug === true ||
+        !sameIds(result.selection, selection);
       applyInput(result);
       return used;
     },

@@ -15,6 +15,8 @@ export interface DebugHook {
   readonly winner: string | null;
   readonly screen: string;
   readonly menuOpen: boolean;
+  /** True while the in-game debug overlay is drawn. */
+  readonly debugOverlay: boolean;
   readonly selection: readonly number[];
   readonly log: unknown;
   readonly pending: unknown;
@@ -47,6 +49,9 @@ export function createDebugHook(app: App, logicalToClient: (x: number, y: number
     },
     get menuOpen() {
       return app.screen.menuOpen;
+    },
+    get debugOverlay() {
+      return app.debugOverlay;
     },
     get selection() {
       return app.selection;

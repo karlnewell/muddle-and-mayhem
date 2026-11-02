@@ -4,6 +4,7 @@ export const HOLD_KEY = 'h';
 export const MEDIC_KEY = 'm';
 export const PAUSE_KEY = ' ';
 export const MENU_KEY = 'Escape';
+export const DEBUG_KEY = 'd'; // toggles the debug overlay; nothing else uses D
 
 /**
  * The key name the app should see for a keyboard event. Digit keys are

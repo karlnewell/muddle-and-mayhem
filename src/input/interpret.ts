@@ -11,12 +11,12 @@
  * standing selected soldiers. `H` holds, `M` calls the medic for the first
  * downed soldier in the selection that no medic is already running to, so a
  * second press helps the next one, 1-5 select by slot, Space toggles pause,
- * Escape toggles the menu.
+ * Escape toggles the menu, D toggles the debug overlay.
  */
 import { PICK_RADIUS } from '../render/renderConstants';
 import { CLASS_ORDER, soldierById } from '../sim';
 import type { BattleState, Command, Side, Soldier } from '../sim';
-import { HOLD_KEY, MEDIC_KEY, MENU_KEY, PAUSE_KEY, SLOT_KEYS } from './keys';
+import { DEBUG_KEY, HOLD_KEY, MEDIC_KEY, MENU_KEY, PAUSE_KEY, SLOT_KEYS } from './keys';
 import { pickSoldier } from './picking';
 
 export type Button = 'left' | 'right';
@@ -26,6 +26,7 @@ export interface InputResult {
   commands: Command[];
   togglePause?: boolean;
   toggleMenu?: boolean;
+  toggleDebug?: boolean;
 }
 
 function sameIds(a: readonly number[], b: readonly number[]): boolean {
@@ -124,6 +125,9 @@ export function interpretKey(state: BattleState, selection: readonly number[], k
     return select(state, selection, withAdded(selection, s.id, shift), side);
   }
   const lower = key.toLowerCase();
+  if (lower === DEBUG_KEY) {
+    return { selection: keep, commands: [], toggleDebug: true };
+  }
   if (lower === HOLD_KEY) {
     const ids = standingSelected(state, selection, side);
     if (ids.length === 0) {

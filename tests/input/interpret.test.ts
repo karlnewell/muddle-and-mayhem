@@ -145,3 +145,22 @@ describe('interpretKey', () => {
     expect(interpretKey(state, [1], 'q', false, 'blue')).toEqual({ selection: [1], commands: [] });
   });
 });
+
+describe('interpretKey, debug overlay', () => {
+  it('D sets toggleDebug, keeps the selection and emits no command', () => {
+    const state = battle();
+    const r = interpretKey(state, [1, 3], 'd', false, 'blue');
+    expect(r.toggleDebug).toBe(true);
+    expect(r.selection).toEqual([1, 3]);
+    expect(r.commands).toEqual([]);
+    expect(r.togglePause).toBeUndefined();
+    expect(r.toggleMenu).toBeUndefined();
+  });
+  it('accepts the upper-case letter too and no other key sets the flag', () => {
+    const state = battle();
+    expect(interpretKey(state, [], 'D', true, 'blue').toggleDebug).toBe(true);
+    expect(interpretKey(state, [], 'h', false, 'blue').toggleDebug).toBeUndefined();
+    expect(interpretKey(state, [], ' ', false, 'blue').toggleDebug).toBeUndefined();
+  });
+});
+
