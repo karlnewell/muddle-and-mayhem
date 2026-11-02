@@ -231,14 +231,14 @@ git commit -m "Add sim arithmetic guard enforcing cross-engine-safe math"
 **Interfaces:**
 - Produces: `npm run test:e2e` builds nothing itself; it expects `dist/` to exist and starts `vite preview` on port 4173 via Playwright's `webServer`, with `baseURL` `http://localhost:4173/muddle-and-mayhem/`.
 
-- [ ] **Step 1: Install Playwright**
+- [x] **Step 1: Install Playwright**
 
 ```bash
 npm install -D @playwright/test
 npx playwright install chromium
 ```
 
-- [ ] **Step 2: Write the smoke test**
+- [x] **Step 2: Write the smoke test**
 
 `e2e/smoke.spec.ts`:
 ```ts
@@ -262,20 +262,20 @@ test('page loads, canvas is painted, no console errors', async ({ page }) => {
 });
 ```
 
-- [ ] **Step 3: Write `playwright.config.ts`**
+- [x] **Step 3: Write `playwright.config.ts`**
 
 `testDir: 'e2e'`, one project `chromium`, `use: { baseURL: 'http://localhost:4173/muddle-and-mayhem/' }`, `webServer: { command: 'npm run preview -- --port 4173 --strictPort', url: 'http://localhost:4173/muddle-and-mayhem/', reuseExistingServer: !process.env.CI }`, `reporter: 'list'`.
 
-- [ ] **Step 4: Run it and verify it passes**
+- [x] **Step 4: Run it and verify it passes**
 
 Run: `npm run build && npm run test:e2e`
 Expected: 1 passed.
 
-- [ ] **Step 5: Verify it catches a broken base path**
+- [x] **Step 5: Verify it catches a broken base path**
 
 Temporarily change `base` in `vite.config.ts` to `/`, rebuild, run `npm run test:e2e`. Expected: FAIL (canvas not painted or page error). Restore `base` to `/muddle-and-mayhem/`, rebuild, confirm PASS again.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add playwright.config.ts e2e package.json package-lock.json
