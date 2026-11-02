@@ -125,22 +125,34 @@ export function applySplash(
 // advanceDirect: unchanged call (absorbed defaults to false): a rocket bursts at the face it struck.
 ```
 
-- [ ] **Step 1: Failing tests in `tests/sim/tuning.test.ts`.** `TUNABLE_NAMES` contains `'COVER_SPLASH_FRACTION'`; `overrideTuning({ COVER_SPLASH_FRACTION: 0.25 })` makes `constants.COVER_SPLASH_FRACTION` 0.25 (restore in `afterEach`).
-- [ ] **Step 2: Failing tests in `tests/sim/damage.test.ts`** on a hand-built map (`parseMap`) with one crate at tile (15, 3), x in [480, 512), y in [96, 128), and open ground around it:
+- [x] **Step 1: Failing tests in `tests/sim/tuning.test.ts`.** `TUNABLE_NAMES` contains `'COVER_SPLASH_FRACTION'`; `overrideTuning({ COVER_SPLASH_FRACTION: 0.25 })` makes `constants.COVER_SPLASH_FRACTION` 0.25 (restore in `afterEach`).
+- [x] **Step 2: Failing tests in `tests/sim/damage.test.ts`** on a hand-built map (`parseMap`) with one crate at tile (15, 3), x in [480, 512), y in [96, 128), and open ground around it:
   - `a soldier behind a crate takes the fraction and one in the open beside it takes full damage from the same burst`: burst at (470, 112), radius 80, amount 40; soldier 7 at (530, 112) (beyond the crate) ends at `MAX_HP - 40 * COVER_SPLASH_FRACTION`; soldier 2 at (470, 160) (open, 48 away) ends at `MAX_HP - 40`; events are `damage` 2 then `damage` 7 with those amounts.
   - `an absorbed burst gives everyone the fraction`: `absorbed = true`, burst at (496, 112) inside the crate, soldiers 2 at (470, 112) and 7 at (522, 112), radius 40: both end at `MAX_HP - 40 * COVER_SPLASH_FRACTION`.
   - `a soaked soldier still receives a damage event of the soaked amount`: with `overrideTuning({ COVER_SPLASH_FRACTION: 0 })`, the soldier behind the crate keeps `MAX_HP` and the event has `amount: 0`; restore the constant afterwards.
   - The existing open-ground splash tests are unchanged and still pass (no cover on the default map between the test points).
-- [ ] **Step 3: Failing tests in `tests/sim/lobbed.test.ts`** with hand-built lobbed projectiles (copy the arena's wall at column 15):
+- [x] **Step 3: Failing tests in `tests/sim/lobbed.test.ts`** with hand-built lobbed projectiles (copy the arena's wall at column 15):
   - `a grenade landing inside a wall tile is absorbed: everyone in the radius takes the fraction`: landing (496, 112), bystanders at (470, 112) and (522, 112): both take `splashDamage * COVER_SPLASH_FRACTION`.
   - `a grenade landing in the open beside a wall soaks only the far side`: landing (470, 112), bystander at (440, 112) takes full `splashDamage`, bystander at (522, 112) takes the fraction (the chucker's radius 40 reaches 52 only if the test uses its own radius; hand-build with `blaster` or set the bystanders within the weapon's radius).
   - `a grenade landing off the map is absorbed`: landing (-5, 256), bystander at (20, 256): takes the fraction.
   - Rename `ignores cover: a grenade landing beyond a wall still splashes` to say it arcs over cover and splashes at full strength when no cover lies between the landing point and the soldier; its assertions stand.
-- [ ] **Step 4: Failing test in `tests/sim/projectiles.test.ts`.** In `splashes around a rocket stopped by cover`, move soldier 6 to the near side at (455, 112) (25 from the face, inside the 32 radius, open tile) and assert full `splashDamage`; add `a rocket that strikes a crate face deals full splash to the near side` as its own case if the existing one is kept for soldier 5's miss.
-- [ ] **Step 5: Run `npx vitest run tests/sim`; expect failures on the missing tunable and the unchanged amounts.**
-- [ ] **Step 6: Implement.** `constants.ts`: the `let`, the union member, the list entry, the switch case. `damage.ts`: import `firstCoverHit` from `./los` and `COVER_SPLASH_FRACTION`; inside the radius test, `const covered = absorbed || firstCoverHit(state.map, x, y, s.x, s.y) !== null;` then `applyDamage(state, s, covered ? amount * COVER_SPLASH_FRACTION : amount, weapon, sourceId)`. `projectiles.ts`: import `isBlocked, worldToTile` from `./map`; `advanceLobbed` computes the landing tile and passes `isBlocked(...)`. Update the file comments in both (`advanceLobbed` no longer says cover is never consulted). `npm run check` green, replay and hash tests included.
-- [ ] **Step 7: Measure.** `npm run measure -- --blue=<ai|passive|holdline>` with `'{"COVER_SPLASH_FRACTION":0.5}'`, `0.25` and `0` (nine runs), seeds 1 to 60. Check the guards. Pick the shipped value by the guards and the hold-line numbers; set the `let` to it.
-- [ ] **Step 8: Decision line** with the three-value table and the shipped value. README: the Tuning section mentions the new tunable only if it lists tunables by name (it refers to `constants.ts`); the Headless or gameplay text that says splash ignores cover is corrected. Commit `Plan 6: cover soaks splash`.
+- [x] **Step 4: Failing test in `tests/sim/projectiles.test.ts`.** In `splashes around a rocket stopped by cover`, move soldier 6 to the near side at (455, 112) (25 from the face, inside the 32 radius, open tile) and assert full `splashDamage`; add `a rocket that strikes a crate face deals full splash to the near side` as its own case if the existing one is kept for soldier 5's miss.
+- [x] **Step 5: Run `npx vitest run tests/sim`; expect failures on the missing tunable and the unchanged amounts.**
+- [x] **Step 6: Implement.** `constants.ts`: the `let`, the union member, the list entry, the switch case. `damage.ts`: import `firstCoverHit` from `./los` and `COVER_SPLASH_FRACTION`; inside the radius test, `const covered = absorbed || firstCoverHit(state.map, x, y, s.x, s.y) !== null;` then `applyDamage(state, s, covered ? amount * COVER_SPLASH_FRACTION : amount, weapon, sourceId)`. `projectiles.ts`: import `isBlocked, worldToTile` from `./map`; `advanceLobbed` computes the landing tile and passes `isBlocked(...)`. Update the file comments in both (`advanceLobbed` no longer says cover is never consulted). `npm run check` green, replay and hash tests included.
+- [x] **Step 7: Measure.** `npm run measure -- --blue=<ai|passive|holdline>` with `'{"COVER_SPLASH_FRACTION":0.5}'`, `0.25` and `0` (nine runs), seeds 1 to 60. Check the guards. Pick the shipped value by the guards and the hold-line numbers; set the `let` to it.
+- [x] **Step 8: Decision line** with the three-value table and the shipped value. README: the Tuning section mentions the new tunable only if it lists tunables by name (it refers to `constants.ts`); the Headless or gameplay text that says splash ignores cover is corrected. Commit `Plan 6: cover soaks splash`.
+
+Implementation notes: the pre-existing open-ground splash test placed its soldiers inside the row 12 wall arm of Crossroads (tiles are cover, soldiers were put there by hand), so the new rule soaked them; its points moved onto the road. The near-side rocket test's bystander had to sit off the rocket's own line or it took the direct hit. The README states no splash rule, so it is unchanged.
+
+**Results (seeds 1 to 60, `COVER_SPLASH_FRACTION` as shown):**
+
+| Blue | Before (PR 1) | 0.5 (shipped) | 0.25 | 0 |
+|---|---|---|---|---|
+| ai: wins, median, red downs | 33, 59.0 s, 8 | 32, 58.4 s, 8 | 31, 59.7 s, 8 | 32, 59.7 s, 8 |
+| passive | 0, 54.2 s, 2 | 0, 54.3 s, 2 | 0, 54.2 s, 2 | 0, 54.2 s, 2 |
+| holdline | 16, 71.4 s, 5 | 13, 69.0 s, 5 | 14, 73.1 s, 5 | 11, 73.5 s, 5 |
+
+The rule fires on 2.9% of splash damage events AI versus AI and 8.5% against the hold-line, so the value of the knob is invisible in these rows; 0.5 ships as the owner's rule, and the hold-line win rate is left to Task 3.
 
 ### Task 3: A costly charge (PR 3)
 

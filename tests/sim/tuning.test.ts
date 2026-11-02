@@ -65,6 +65,19 @@ describe('validateTuning', () => {
   });
 });
 
+describe('COVER_SPLASH_FRACTION', () => {
+  it('is a tunable that other modules read live', () => {
+    const before = constants.COVER_SPLASH_FRACTION;
+    expect(TUNABLE_NAMES).toContain('COVER_SPLASH_FRACTION');
+    try {
+      overrideTuning({ COVER_SPLASH_FRACTION: 0.25 });
+      expect(constants.COVER_SPLASH_FRACTION).toBe(0.25);
+    } finally {
+      overrideTuning({ COVER_SPLASH_FRACTION: before });
+    }
+  });
+});
+
 describe('TUNABLE_NAMES', () => {
   it('lists every scalar tunable once', () => {
     expect(TUNABLE_NAMES).toContain('MOVE_SPEED');

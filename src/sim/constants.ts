@@ -25,6 +25,7 @@ export let INSTANT_KILL_CHANCE = 0.1;
 export let GUNNER_JAM_CHANCE = 0.03;
 export let GUNNER_JAM_TICKS = 45;
 export const FLAME_CONE_COS = 0.8660254037844387; // cos 30°, so a 60° cone
+export let COVER_SPLASH_FRACTION = 0.5; // share of splash damage a soldier takes when cover lies between it and the burst, or the burst was absorbed by cover
 export const FIRE_WHILE_MOVING = true;
 export const REPATH_TICKS = 15;
 export const STUCK_TICKS = 10;
@@ -99,7 +100,7 @@ export type TunableName =
   | 'MAX_HP' | 'MOVE_SPEED' | 'MEDIC_CALLS' | 'MEDIC_SPEED' | 'REVIVE_FRACTION' | 'INSTANT_KILL_CHANCE'
   | 'GUNNER_JAM_CHANCE' | 'GUNNER_JAM_TICKS' | 'AI_THINK_TICKS' | 'AI_COVER_BONUS' | 'AI_RANGE_FRACTION'
   | 'AI_LAUNCHER_DISTANCE_WEIGHT' | 'AI_TRAVEL_WEIGHT' | 'AI_JITTER' | 'AI_LOBBER_TARGET_REACH'
-  | 'AI_MEDIC_PATIENCE_TICKS' | 'AI_MEDIC_DESPERATE_STANDING' | 'AI_SPACING_PENALTY';
+  | 'AI_MEDIC_PATIENCE_TICKS' | 'AI_MEDIC_DESPERATE_STANDING' | 'AI_SPACING_PENALTY' | 'COVER_SPLASH_FRACTION';
 
 export type TuningOverrides = Partial<Record<TunableName, number>> & {
   WEAPONS?: Partial<Record<SoldierClass, Partial<WeaponStats>>>;
@@ -110,7 +111,7 @@ export const TUNABLE_NAMES: readonly TunableName[] = [
   'MAX_HP', 'MOVE_SPEED', 'MEDIC_CALLS', 'MEDIC_SPEED', 'REVIVE_FRACTION', 'INSTANT_KILL_CHANCE',
   'GUNNER_JAM_CHANCE', 'GUNNER_JAM_TICKS', 'AI_THINK_TICKS', 'AI_COVER_BONUS', 'AI_RANGE_FRACTION',
   'AI_LAUNCHER_DISTANCE_WEIGHT', 'AI_TRAVEL_WEIGHT', 'AI_JITTER', 'AI_LOBBER_TARGET_REACH',
-  'AI_MEDIC_PATIENCE_TICKS', 'AI_MEDIC_DESPERATE_STANDING', 'AI_SPACING_PENALTY',
+  'AI_MEDIC_PATIENCE_TICKS', 'AI_MEDIC_DESPERATE_STANDING', 'AI_SPACING_PENALTY', 'COVER_SPLASH_FRACTION',
 ];
 
 function isPlainObject(value: unknown): value is Record<string, unknown> {
@@ -207,6 +208,7 @@ export function overrideTuning(overrides: TuningOverrides): void {
       case 'AI_MEDIC_PATIENCE_TICKS': AI_MEDIC_PATIENCE_TICKS = n; break;
       case 'AI_SPACING_PENALTY': AI_SPACING_PENALTY = n; break;
       case 'AI_MEDIC_DESPERATE_STANDING': AI_MEDIC_DESPERATE_STANDING = n; break;
+      case 'COVER_SPLASH_FRACTION': COVER_SPLASH_FRACTION = n; break;
     }
   }
 }

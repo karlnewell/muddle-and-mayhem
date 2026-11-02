@@ -10,7 +10,9 @@
  * A lobbed projectile is a timed arrival: it slides linearly from its start
  * to its landing point (the renderer adds the arc) and, on the tick
  * `state.tick >= landTick`, splashes the landing point whatever cover or
- * soldiers lie on the way. Cover is never consulted for it.
+ * soldiers lie on the way. Cover matters only at the burst: a landing
+ * point inside a cover tile (or off the map) is absorbed, and `applySplash`
+ * soaks the damage to anyone the cover stands between (see damage.ts).
  *
  * Removal rebuilds the array in order, so survivors keep their sequence and
  * the rng (instant-kill rolls inside `applyDamage`) is consumed the same way
@@ -20,7 +22,7 @@ import type { BattleState, Projectile, Soldier } from './types';
 import { SOLDIER_RADIUS, WEAPONS } from './constants';
 import { applyDamage, applySplash } from './damage';
 import { firstCoverHit } from './los';
-import { mapHeightUnits, mapWidthUnits } from './map';
+import { isBlocked, mapHeightUnits, mapWidthUnits, worldToTile } from './map';
 import { isActive } from './soldiers';
 
 /**
@@ -128,7 +130,10 @@ function advanceLobbed(state: BattleState, p: Projectile): boolean {
     return true;
   }
   // Same order as a direct impact: the splash first, then the impact event.
-  applySplash(state, p.targetX, p.targetY, weapon.splashRadius, weapon.splashDamage, p.weapon, null, p.ownerId);
+  // A landing inside cover (or off the map) is absorbed: everyone in the radius takes the soaked fraction.
+  const landing = worldToTile(p.targetX, p.targetY);
+  const absorbed = isBlocked(state.map, landing.tx, landing.ty);
+  applySplash(state, p.targetX, p.targetY, weapon.splashRadius, weapon.splashDamage, p.weapon, null, p.ownerId, absorbed);
   state.events.push({ kind: 'impact', x: p.targetX, y: p.targetY, weapon: p.weapon, radius: weapon.splashRadius });
   return false;
 }

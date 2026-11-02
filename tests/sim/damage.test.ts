@@ -1,8 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import { createBattle } from '../../src/sim/battle';
-import { INSTANT_KILL_CHANCE, MAX_HP, WEAPONS } from '../../src/sim/constants';
+import { COVER_SPLASH_FRACTION, INSTANT_KILL_CHANCE, MAX_HP, WEAPONS, overrideTuning } from '../../src/sim/constants';
 import { applyDamage, applySplash } from '../../src/sim/damage';
-import type { BattleState, Soldier } from '../../src/sim/types';
+import { parseMap } from '../../src/sim/map';
+import type { BattleState, Soldier, TileMap } from '../../src/sim/types';
 
 const SEEDS = 200;
 
@@ -12,6 +13,16 @@ function scatterFar(state: BattleState): void {
     s.x = -10000 - s.id * 1000;
     s.y = -10000;
   }
+}
+
+/** A 30 by 10 arena with a single crate at tile (15, 3): x in [480, 512), y in [96, 128). */
+function crateArena(): TileMap {
+  const rows: string[] = [];
+  for (let ty = 0; ty < 9; ty++) {
+    rows.push(ty === 3 ? '...............c..............' : '..............................');
+  }
+  rows.push('bbbbb...............rrrrr.....');
+  return parseMap('CrateArena', rows);
 }
 
 function place(state: BattleState, id: number, x: number, y: number): Soldier {
@@ -162,16 +173,17 @@ describe('applySplash', () => {
     scatterFar(state);
     const radius = 40;
     const amount = WEAPONS.chucker.splashDamage;
-    place(state, 7, 430, 400);        // red, 30 inside
-    place(state, 2, 400, 380);        // blue, 20 inside
-    place(state, 8, 440, 400);        // red, exactly on the radius: inside
-    place(state, 9, 441, 400);        // red, just outside
-    place(state, 4, 400, 400);        // blue at the centre, excluded
-    place(state, 6, 410, 400);        // red inside but downed
+    // All on the open road (rows 9 to 10 of Crossroads), so no cover soaks anyone.
+    place(state, 7, 430, 320);        // red, 30 inside
+    place(state, 2, 400, 300);        // blue, 20 inside
+    place(state, 8, 440, 320);        // red, exactly on the radius: inside
+    place(state, 9, 441, 320);        // red, just outside
+    place(state, 4, 400, 320);        // blue at the centre, excluded
+    place(state, 6, 410, 320);        // red inside but downed
     state.soldiers[6].status = 'downed';
     state.soldiers[6].hp = 0;
 
-    applySplash(state, 400, 400, radius, amount, 'chucker', 4, 2);
+    applySplash(state, 400, 320, radius, amount, 'chucker', 4, 2);
 
     expect(state.soldiers[2].hp).toBe(MAX_HP - amount);
     expect(state.soldiers[7].hp).toBe(MAX_HP - amount);
@@ -222,5 +234,46 @@ describe('applySplash', () => {
       { kind: 'damage', soldierId: 5, amount: MAX_HP, weapon: 'chucker', sourceId: 2 },
       { kind: 'downed', soldierId: 5 },
     ]);
+  });
+});
+
+describe('applySplash and cover', () => {
+  it('gives a soldier behind a crate the fraction and one in the open beside it full damage from the same burst', () => {
+    const state = createBattle({ seed: 1, map: crateArena() });
+    scatterFar(state);
+    place(state, 7, 530, 112);   // beyond the crate, 60 from the burst
+    place(state, 2, 470, 160);   // open ground, 48 from the burst, nothing between
+    applySplash(state, 470, 112, 80, 40, 'chucker', null, 2);
+    expect(state.soldiers[2].hp).toBe(MAX_HP - 40);
+    expect(state.soldiers[7].hp).toBe(MAX_HP - 40 * COVER_SPLASH_FRACTION);
+    expect(state.events).toEqual([
+      { kind: 'damage', soldierId: 2, amount: 40, weapon: 'chucker', sourceId: 2 },
+      { kind: 'damage', soldierId: 7, amount: 40 * COVER_SPLASH_FRACTION, weapon: 'chucker', sourceId: 2 },
+    ]);
+  });
+
+  it('gives everyone the fraction when the burst is absorbed, whatever lies between', () => {
+    const state = createBattle({ seed: 1, map: crateArena() });
+    scatterFar(state);
+    place(state, 2, 470, 112);   // west of the crate, 26 from a burst inside it
+    place(state, 7, 522, 112);   // east of the crate, 26 from it
+    applySplash(state, 496, 112, 40, 40, 'blaster', null, 4, true);
+    expect(state.soldiers[2].hp).toBe(MAX_HP - 40 * COVER_SPLASH_FRACTION);
+    expect(state.soldiers[7].hp).toBe(MAX_HP - 40 * COVER_SPLASH_FRACTION);
+  });
+
+  it('still emits a damage event of the soaked amount when the fraction is zero', () => {
+    const before = COVER_SPLASH_FRACTION;
+    overrideTuning({ COVER_SPLASH_FRACTION: 0 });
+    try {
+      const state = createBattle({ seed: 1, map: crateArena() });
+      scatterFar(state);
+      place(state, 7, 530, 112);
+      applySplash(state, 470, 112, 80, 40, 'chucker', null, 2);
+      expect(state.soldiers[7].hp).toBe(MAX_HP);
+      expect(state.events).toEqual([{ kind: 'damage', soldierId: 7, amount: 0, weapon: 'chucker', sourceId: 2 }]);
+    } finally {
+      overrideTuning({ COVER_SPLASH_FRACTION: before });
+    }
   });
 });
