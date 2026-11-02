@@ -1,0 +1,250 @@
+import { describe, expect, it } from 'vitest';
+import { createAi } from '../../src/sim/ai';
+import { besideCover, isCover } from '../../src/sim/aiPositions';
+import { createBattle, step } from '../../src/sim/battle';
+import { AI_SEED_SALT, AI_THINK_TICKS } from '../../src/sim/constants';
+import { parseMap } from '../../src/sim/map';
+import { createRng } from '../../src/sim/rng';
+import type { BattleState, Command, Soldier, TileMap } from '../../src/sim/types';
+import { dist2 } from '../../src/sim/vec';
+
+const RED_IDS = [5, 6, 7, 8, 9];
+
+/**
+ * A 30 by 10 arena: a wall down column 15 from row 0 to row 6 (x in [480, 512),
+ * y below 224), open lanes on rows 7 and 8, spawns on row 9.
+ */
+function arena(): TileMap {
+  const rows: string[] = [];
+  for (let ty = 0; ty < 7; ty++) {
+    rows.push('...............#..............');
+  }
+  rows.push('..............................');
+  rows.push('..............................');
+  rows.push('bbbbb...............rrrrr.....');
+  return parseMap('Arena', rows);
+}
+
+/** Every soldier except `keep` is downed so it plays no part. */
+function isolate(state: BattleState, keep: readonly number[]): void {
+  for (const s of state.soldiers) {
+    if (!keep.includes(s.id)) {
+      s.status = 'downed';
+      s.hp = 0;
+    }
+  }
+}
+
+/**
+ * A 30 by 10 open field with one crate at tile (12, 4) and spawns on row 9.
+ * From a target at tile (5, 4) the crate's west neighbour (11, 4) is the only
+ * tile beside cover within a gunner's reach, so it wins the position search
+ * regardless of jitter.
+ */
+function field(): TileMap {
+  const rows: string[] = [];
+  for (let ty = 0; ty < 9; ty++) {
+    rows.push(ty === 4 ? '............c.................' : '..............................');
+  }
+  rows.push('bbbbb...............rrrrr.....');
+  return parseMap('Field', rows);
+}
+
+function place(s: Soldier, x: number, y: number): void {
+  s.x = x;
+  s.y = y;
+  s.prevX = x;
+  s.prevY = y;
+}
+
+/** Commands that name soldier `id` in their soldierIds. */
+function forSoldier(commands: readonly Command[], id: number): Command[] {
+  return commands.filter((c) => c.type !== 'medic' && c.soldierIds.includes(id));
+}
+
+/** Step `ticks` times, feeding `first` on the first tick only. */
+function advance(state: BattleState, first: readonly Command[], ticks: number): void {
+  step(state, first);
+  for (let i = 1; i < ticks; i++) {
+    step(state, []);
+  }
+}
+
+describe('createAi', () => {
+  it('exposes its side', () => {
+    expect(createAi('red', 1).side).toBe('red');
+    expect(createAi('blue', 1).side).toBe('blue');
+  });
+
+  it('returns no commands on a tick that is not a think tick', () => {
+    const state = createBattle({ seed: 1 });
+    const ai = createAi('red', 1);
+    for (let tick = 1; tick < AI_THINK_TICKS; tick++) {
+      state.tick = tick;
+      expect(ai.think(state)).toEqual([]);
+    }
+  });
+
+  it('returns no commands once the battle is decided', () => {
+    const state = createBattle({ seed: 1 });
+    state.winner = 'blue';
+    expect(createAi('red', 1).think(state)).toEqual([]);
+  });
+
+  it('orders every standing red soldier on tick 0 of a fresh battle', () => {
+    const state = createBattle({ seed: 1 });
+    const commands = createAi('red', 1).think(state);
+    for (const id of RED_IDS) {
+      expect(forSoldier(commands, id).length).toBeGreaterThanOrEqual(1);
+    }
+    for (const c of commands) {
+      expect(c.side).toBe('red');
+      expect(c.tick).toBe(0);
+      if (c.type === 'medic') {
+        expect(RED_IDS).toContain(c.targetId);
+      } else {
+        for (const id of c.soldierIds) {
+          expect(RED_IDS).toContain(id);
+        }
+      }
+    }
+  });
+
+  it('is a pure function of seed and state', () => {
+    const a = createAi('red', 9).think(createBattle({ seed: 3 }));
+    const b = createAi('red', 9).think(createBattle({ seed: 3 }));
+    expect(JSON.stringify(a)).toBe(JSON.stringify(b));
+    expect(a.length).toBeGreaterThan(0);
+  });
+
+  it('does not repeat an attack order the soldier already holds', () => {
+    const state = createBattle({ seed: 1 });
+    isolate(state, [0, 8]); // blue gunner, red scorcher
+    state.sides.red.medicCalls = 0;
+    const ai = createAi('red', 1);
+    const first = ai.think(state);
+    const scorcher = forSoldier(first, 8);
+    expect(scorcher).toHaveLength(1);
+    expect(scorcher[0].type).toBe('attack');
+    advance(state, first, AI_THINK_TICKS);
+    expect(state.tick).toBe(AI_THINK_TICKS);
+    expect(state.soldiers[8].order).toEqual({ kind: 'attack', targetId: 0 });
+    expect(forSoldier(ai.think(state), 8)).toEqual([]);
+  });
+
+  it('calls the medic for a downed friendly whose body is safe', () => {
+    const state = createBattle({ seed: 1 });
+    const gunner = state.soldiers[5];
+    gunner.status = 'downed';
+    gunner.hp = 0;
+    const commands = createAi('red', 1).think(state);
+    const medic = commands.filter((c) => c.type === 'medic');
+    expect(medic).toHaveLength(1);
+    expect(medic[0]).toEqual({ tick: 0, side: 'red', type: 'medic', targetId: 5 });
+  });
+
+  it('does not call the medic while an enemy covers the body', () => {
+    const state = createBattle({ seed: 1 });
+    const gunner = state.soldiers[5];
+    gunner.status = 'downed';
+    gunner.hp = 0;
+    place(state.soldiers[0], gunner.x - 50, gunner.y); // blue gunner, range 224
+    const commands = createAi('red', 1).think(state);
+    expect(commands.filter((c) => c.type === 'medic')).toEqual([]);
+  });
+
+  it('does not call the medic for a body a run is already heading for', () => {
+    const state = createBattle({ seed: 1 });
+    const gunner = state.soldiers[5];
+    gunner.status = 'downed';
+    gunner.hp = 0;
+    state.medics.push({ side: 'red', targetId: 5, x: 1280, y: gunner.y, prevX: 1280, prevY: gunner.y });
+    const commands = createAi('red', 1).think(state);
+    expect(commands.filter((c) => c.type === 'medic')).toEqual([]);
+  });
+
+  it('does not call the medic without calls left', () => {
+    const state = createBattle({ seed: 1 });
+    state.soldiers[5].status = 'downed';
+    state.sides.red.medicCalls = 0;
+    const commands = createAi('red', 1).think(state);
+    expect(commands.filter((c) => c.type === 'medic')).toEqual([]);
+  });
+
+  it('charges with a scorcher that is far from every enemy', () => {
+    const state = createBattle({ seed: 1 });
+    const commands = forSoldier(createAi('red', 1).think(state), 8);
+    expect(commands).toHaveLength(1);
+    const c = commands[0];
+    expect(c.type).toBe('attack');
+    if (c.type === 'attack') {
+      expect([0, 1, 2, 3, 4]).toContain(c.targetId);
+    }
+  });
+
+  it('backs a launcher away from an enemy it cannot fire at', () => {
+    const state = createBattle({ seed: 1, map: arena() });
+    isolate(state, [0, 6]); // blue gunner, red launcher
+    const enemy = state.soldiers[0];
+    const launcher = state.soldiers[6];
+    place(enemy, 470, 100); // tile (14, 3), left of the wall
+    place(launcher, 520, 100); // tile (16, 3), right of the wall, 50 units away
+    const commands = forSoldier(createAi('red', 1).think(state), 6);
+    expect(commands).toHaveLength(1);
+    const c = commands[0];
+    expect(['move', 'attack']).toContain(c.type);
+    if (c.type === 'move') {
+      const now = dist2(launcher.x, launcher.y, enemy.x, enemy.y);
+      expect(dist2(c.x, c.y, enemy.x, enemy.y)).toBeGreaterThan(now);
+    }
+  });
+
+  it('lobbers prefer a target sheltering behind cover over a nearer visible one', () => {
+    const state = createBattle({ seed: 1, map: arena() });
+    isolate(state, [0, 1, 7]); // blue gunner, blue launcher, red chucker
+    place(state.soldiers[7], 560, 100); // tile (17, 3), right of the wall
+    place(state.soldiers[0], 600, 100); // 40 units away, in plain sight
+    place(state.soldiers[1], 440, 100); // 120 units away, behind the wall
+    const commands = forSoldier(createAi('red', 1).think(state), 7);
+    expect(commands).toHaveLength(1);
+    expect(commands[0]).toEqual({ tick: 0, side: 'red', type: 'attack', soldierIds: [7], targetId: 1 });
+  });
+
+  it('does not repeat a move order to the tile the soldier is already heading for', () => {
+    const state = createBattle({ seed: 1, map: field() });
+    isolate(state, [0, 5]); // blue gunner, red gunner
+    place(state.soldiers[0], 176, 144); // tile (5, 4)
+    place(state.soldiers[5], 900, 144); // tile (28, 4), far out of range
+    const ai = createAi('red', 1);
+    const first = ai.think(state);
+    const gunner = forSoldier(first, 5);
+    expect(gunner).toHaveLength(1);
+    expect(gunner[0]).toEqual({ tick: 0, side: 'red', type: 'move', soldierIds: [5], x: 368, y: 144 });
+    advance(state, first, AI_THINK_TICKS);
+    expect(state.soldiers[5].order).toEqual({ kind: 'move', x: 368, y: 144 });
+    expect(forSoldier(ai.think(state), 5)).toEqual([]);
+  });
+
+  it('counts only real cover tiles as cover, never the map border', () => {
+    const map = arena();
+    expect(isCover(map, 15, 3)).toBe(true);
+    expect(isCover(map, 14, 3)).toBe(false);
+    expect(isCover(map, -1, 3)).toBe(false);
+    expect(isCover(map, 0, -1)).toBe(false);
+    expect(isCover(map, map.width, 0)).toBe(false);
+    expect(besideCover(map, 14, 3)).toBe(true); // wall to the east
+    expect(besideCover(map, 15, 7)).toBe(true); // wall to the north
+    expect(besideCover(map, 0, 0)).toBe(false); // corner, no cover beside it
+    expect(besideCover(map, 29, 9)).toBe(false);
+    expect(besideCover(map, 5, 5)).toBe(false);
+  });
+
+  it('salts the seed per side so the two sides draw different streams', () => {
+    for (const seed of [0, 1, 42, 2026]) {
+      const blueSeed = (seed ^ AI_SEED_SALT.blue) >>> 0;
+      const redSeed = (seed ^ AI_SEED_SALT.red) >>> 0;
+      expect(blueSeed).not.toBe(redSeed);
+      expect(createRng(blueSeed).next()).not.toBe(createRng(redSeed).next());
+    }
+  });
+});

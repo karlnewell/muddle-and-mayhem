@@ -1,0 +1,28 @@
+/**
+ * State hashing for replay checks and lockstep multiplayer.
+ *
+ * The hash is 32-bit FNV-1a over the UTF-16 code units of the state's JSON
+ * serialisation. ECMAScript specifies number-to-string conversion exactly,
+ * so two engines that agree on the state agree on the hash. The rng holds
+ * only functions, which `JSON.stringify` skips, so it serialises as `{}`.
+ */
+import type { BattleState } from './types';
+
+const FNV_OFFSET = 0x811c9dc5;
+const FNV_PRIME = 0x01000193;
+
+/** The JSON used by `hashState`: `JSON.stringify(state)` with no replacer or spacing. */
+export function serializeState(state: BattleState): string {
+  return JSON.stringify(state);
+}
+
+/** 32-bit FNV-1a over the UTF-16 code units of `serializeState(state)`, as an unsigned integer. */
+export function hashState(state: BattleState): number {
+  const json = serializeState(state);
+  let h = FNV_OFFSET;
+  for (let i = 0; i < json.length; i++) {
+    h ^= json.charCodeAt(i);
+    h = Math.imul(h, FNV_PRIME);
+  }
+  return h >>> 0;
+}
