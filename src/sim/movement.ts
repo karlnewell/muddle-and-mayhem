@@ -9,7 +9,7 @@
  */
 import type { BattleState, Soldier, Vec2 } from './types';
 import {
-  ARRIVE_SLACK, DIRECTIONS16, MOVE_SPEED, REPATH_TICKS, SOLDIER_RADIUS,
+  ARRIVE_SLACK, DIRECTIONS16, FIRING_MOVE_FRACTION, MOVE_SPEED, REPATH_TICKS, SOLDIER_RADIUS,
   STUCK_EPSILON, STUCK_TICKS, WAYPOINT_EPSILON,
 } from './constants';
 import { coverPushOut, mapHeightUnits, mapWidthUnits, tileIndex, worldToTile } from './map';
@@ -87,19 +87,26 @@ function updateAttack(state: BattleState, s: Soldier, canFireAt: CanFireAt): voi
   }
 }
 
-/** One step of MOVE_SPEED toward the next waypoint; land on it when within reach. */
+/**
+ * One step toward the next waypoint; land on it when within reach. The
+ * step is MOVE_SPEED, or MOVE_SPEED * FIRING_MOVE_FRACTION when the
+ * soldier's weapon discharged on the previous tick (`firing` is set by the
+ * firing phase, which runs after movement in `step`): a soldier that
+ * fights while it walks walks slower.
+ */
 function followPath(s: Soldier): void {
+  const speed = s.firing ? MOVE_SPEED * FIRING_MOVE_FRACTION : MOVE_SPEED;
   const wp = s.path[0];
   const dx = wp.x - s.x;
   const dy = wp.y - s.y;
   const d = Math.sqrt(dx * dx + dy * dy);
-  if (d <= MOVE_SPEED + WAYPOINT_EPSILON) {
+  if (d <= speed + WAYPOINT_EPSILON) {
     s.x = wp.x;
     s.y = wp.y;
     s.path.shift();
   } else {
-    s.x += (dx / d) * MOVE_SPEED;
-    s.y += (dy / d) * MOVE_SPEED;
+    s.x += (dx / d) * speed;
+    s.y += (dy / d) * speed;
   }
   faceToward(s, dx, dy);
 }

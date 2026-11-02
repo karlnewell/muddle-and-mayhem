@@ -8,6 +8,10 @@
  * the target and raises `firing`, and `applyFlame` (flame.ts) burns the cone
  * later in the same tick.
  *
+ * A weapon whose `fireWhileMoving` is false is skipped while the soldier's
+ * path is non-empty, before any target is chosen, so its `firing` flag
+ * stays down and (for the flame) the cone stays off.
+ *
  * Rng discipline per direct or lobbed shot: `int(16)` for the scatter
  * direction, `next()` for the scatter distance, then (Gunner only) the jam
  * roll. Every shot consumes the first two draws whatever the spread, so the
@@ -15,9 +19,7 @@
  */
 import type { BattleState, Soldier, Vec2 } from './types';
 import type { WeaponStats } from './constants';
-import {
-  DIRECTIONS16, FIRE_WHILE_MOVING, GUNNER_JAM_CHANCE, GUNNER_JAM_TICKS, TILE_SIZE, WEAPONS,
-} from './constants';
+import { DIRECTIONS16, GUNNER_JAM_CHANCE, GUNNER_JAM_TICKS, TILE_SIZE, WEAPONS } from './constants';
 import { faceToward, isActive } from './soldiers';
 import { chooseTarget } from './targeting';
 import { normalize } from './vec';
@@ -109,7 +111,10 @@ export function fireWeapons(state: BattleState): void {
     if (s.cooldown > 0) {
       continue;
     }
-    if (!FIRE_WHILE_MOVING && s.order.kind === 'move') {
+    const weapon = WEAPONS[s.cls];
+    // A weapon that may not fire while moving stays silent while the soldier
+    // has a path to walk, whether a move order or an attack order still walking in.
+    if (!weapon.fireWhileMoving && s.path.length > 0) {
       continue;
     }
     const target = chooseTarget(state, s);
@@ -117,7 +122,6 @@ export function fireWeapons(state: BattleState): void {
       continue;
     }
     faceToward(s, target.x - s.x, target.y - s.y);
-    const weapon = WEAPONS[s.cls];
     if (weapon.shot === 'direct') {
       fireDirect(state, s, target, weapon);
     } else if (weapon.shot === 'lobbed') {
