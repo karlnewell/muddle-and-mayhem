@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { createBattle, step } from '../../src/sim/battle';
 import { applyCommand } from '../../src/sim/commands';
-import { MOVE_SPEED, SOLDIER_RADIUS } from '../../src/sim/constants';
+import { FIRING_MOVE_FRACTION, MOVE_SPEED, SOLDIER_RADIUS, overrideTuning } from '../../src/sim/constants';
 import { circleOverlapsCover, mapHeightUnits, mapWidthUnits, parseMap, tileCenter } from '../../src/sim/map';
 import { moveSoldiers } from '../../src/sim/movement';
 import type { BattleState, Soldier, TileMap } from '../../src/sim/types';
@@ -322,5 +322,65 @@ describe('moveSoldiers', () => {
       expect(other.y).toBeLessThan(otherStartY);
       expect(dist(mover, other)).toBeGreaterThanOrEqual(2 * SOLDIER_RADIUS - 0.01);
     });
+  });
+});
+
+describe('FIRING_MOVE_FRACTION', () => {
+  /**
+   * Blue scorcher 3 on open ground at (64, 64) with a one-waypoint path 100
+   * units east; red 9 stands muzzled far away so the battle has no winner.
+   */
+  function walker(): { state: BattleState; s: Soldier } {
+    const state = createBattle({ seed: 1, map: openMap() });
+    isolate(state, [3, 9]);
+    const far = state.soldiers[9];
+    far.x = 480;
+    far.y = 230;
+    far.prevX = 480;
+    far.prevY = 230;
+    far.cooldown = NEVER_FIRES;
+    const s = state.soldiers[3];
+    s.x = 64;
+    s.y = 64;
+    s.prevX = 64;
+    s.prevY = 64;
+    s.order = { kind: 'move', x: 164, y: 64 };
+    s.path = [{ x: 164, y: 64 }];
+    s.lastRepathTick = 0;
+    return { state, s };
+  }
+
+  it('slows a soldier whose weapon discharged last tick to the fraction of MOVE_SPEED', () => {
+    const before = FIRING_MOVE_FRACTION;
+    overrideTuning({ FIRING_MOVE_FRACTION: 0.5 });
+    try {
+      const firing = walker();
+      firing.s.firing = true;
+      moveSoldiers(firing.state, never);
+      expect(firing.s.x).toBeCloseTo(64 + MOVE_SPEED * 0.5, 9);
+      const idle = walker();
+      idle.s.firing = false;
+      moveSoldiers(idle.state, never);
+      expect(idle.s.x).toBeCloseTo(64 + MOVE_SPEED, 9);
+    } finally {
+      overrideTuning({ FIRING_MOVE_FRACTION: before });
+    }
+  });
+
+  it('is back to full speed the tick after the weapon finds no target', () => {
+    const before = FIRING_MOVE_FRACTION;
+    overrideTuning({ FIRING_MOVE_FRACTION: 0.5 });
+    try {
+      const { state, s } = walker();
+      s.firing = true;              // as if it burned last tick; nothing is in range now
+      step(state, []);
+      expect(s.x).toBeCloseTo(64 + MOVE_SPEED * 0.5, 9);
+      expect(s.firing).toBe(false); // fireWeapons found no target
+      const x1 = s.x;
+      step(state, []);
+      expect(s.x - x1).toBeCloseTo(MOVE_SPEED, 9);
+    } finally {
+      overrideTuning({ FIRING_MOVE_FRACTION: before });
+    }
   });
 });

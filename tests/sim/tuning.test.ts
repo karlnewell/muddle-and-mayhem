@@ -78,6 +78,23 @@ describe('COVER_SPLASH_FRACTION', () => {
   });
 });
 
+describe('FIRING_MOVE_FRACTION and fireWhileMoving', () => {
+  it('FIRING_MOVE_FRACTION is a tunable that other modules read live', () => {
+    const before = constants.FIRING_MOVE_FRACTION;
+    expect(TUNABLE_NAMES).toContain('FIRING_MOVE_FRACTION');
+    try {
+      overrideTuning({ FIRING_MOVE_FRACTION: 0.25 });
+      expect(constants.FIRING_MOVE_FRACTION).toBe(0.25);
+    } finally {
+      overrideTuning({ FIRING_MOVE_FRACTION: before });
+    }
+  });
+  it('fireWhileMoving is a boolean weapon field that validates by type', () => {
+    expect(() => validateTuning({ WEAPONS: { scorcher: { fireWhileMoving: false } } })).not.toThrow();
+    expect(() => validateTuning({ WEAPONS: { scorcher: { fireWhileMoving: 0 } } })).toThrow(/must be a boolean/);
+  });
+});
+
 describe('TUNABLE_NAMES', () => {
   it('lists every scalar tunable once', () => {
     expect(TUNABLE_NAMES).toContain('MOVE_SPEED');

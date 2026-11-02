@@ -2,8 +2,8 @@ import { describe, expect, it } from 'vitest';
 import { createBattle, step } from '../../src/sim/battle';
 import { applyCommand } from '../../src/sim/commands';
 import {
-  DIRECTIONS16, FIRE_WHILE_MOVING, GUNNER_JAM_CHANCE, GUNNER_JAM_TICKS, MAX_HP, MOVE_SPEED,
-  TILE_SIZE, WEAPONS,
+  DIRECTIONS16, GUNNER_JAM_CHANCE, GUNNER_JAM_TICKS, MAX_HP, MOVE_SPEED,
+  TILE_SIZE, WEAPONS, overrideTuning,
 } from '../../src/sim/constants';
 import { parseMap } from '../../src/sim/map';
 import { createRng } from '../../src/sim/rng';
@@ -226,7 +226,10 @@ describe('fireWeapons', () => {
     expect(state.soldiers[0].faceY).toBe(-1);
   });
 
-  it.runIf(FIRE_WHILE_MOVING)('fires while carrying out a move order when FIRE_WHILE_MOVING is true', () => {
+  it('fires while carrying out a move order when its weapon may fire while moving, the default for every class', () => {
+    for (const cls of Object.keys(WEAPONS) as (keyof typeof WEAPONS)[]) {
+      expect(WEAPONS[cls].fireWhileMoving).toBe(true);
+    }
     const state = duel(1);
     applyCommand(state, { tick: 0, side: 'blue', type: 'move', soldierIds: [0], x: 100, y: 230 });
     step(state, []);
@@ -235,12 +238,19 @@ describe('fireWeapons', () => {
     expect(state.events).toContainEqual({ kind: 'shot', soldierId: 0, weapon: 'gunner' });
   });
 
-  it.runIf(!FIRE_WHILE_MOVING)('holds fire while carrying out a move order when FIRE_WHILE_MOVING is false', () => {
-    const state = duel(1);
-    applyCommand(state, { tick: 0, side: 'blue', type: 'move', soldierIds: [0], x: 100, y: 230 });
-    step(state, []);
-    expect(state.soldiers[0].order.kind).toBe('move');
-    expect(state.projectiles).toHaveLength(0);
+  it('holds fire while its path is non-empty when its weapon may not fire while moving', () => {
+    overrideTuning({ WEAPONS: { gunner: { fireWhileMoving: false } } });
+    try {
+      const state = duel(1);
+      applyCommand(state, { tick: 0, side: 'blue', type: 'move', soldierIds: [0], x: 100, y: 230 });
+      step(state, []);
+      expect(state.soldiers[0].order.kind).toBe('move');
+      expect(state.soldiers[0].path.length).toBeGreaterThan(0);
+      expect(state.projectiles).toHaveLength(0);
+      expect(state.soldiers[0].firing).toBe(false);
+    } finally {
+      overrideTuning({ WEAPONS: { gunner: { fireWhileMoving: true } } });
+    }
   });
 
   it('stops an attacking gunner inside range with clear sight and starts shooting', () => {

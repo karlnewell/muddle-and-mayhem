@@ -26,7 +26,7 @@ export let GUNNER_JAM_CHANCE = 0.03;
 export let GUNNER_JAM_TICKS = 45;
 export const FLAME_CONE_COS = 0.8660254037844387; // cos 30°, so a 60° cone
 export let COVER_SPLASH_FRACTION = 0.5; // share of splash damage a soldier takes when cover lies between it and the burst, or the burst was absorbed by cover
-export const FIRE_WHILE_MOVING = true;
+export let FIRING_MOVE_FRACTION = 1; // share of MOVE_SPEED a soldier keeps on a tick after its weapon discharged (1: no slowdown)
 export const REPATH_TICKS = 15;
 export const STUCK_TICKS = 10;
 export const STUCK_EPSILON = 0.5;   // moved less than this in a tick counts as no progress
@@ -66,6 +66,7 @@ export interface WeaponStats {
   flightTicks: number;    // lobbed: ticks from launch to landing
   spread: number;         // max aim offset in world units
   instantKill: boolean;
+  fireWhileMoving: boolean; // false: the weapon stays silent while the soldier's path is non-empty, under a move or an attack order
 }
 /**
  * Range relationships to preserve when tuning: Launcher longest, Gunner and
@@ -77,11 +78,11 @@ export interface WeaponStats {
  * `npm run measure` prints the numbers any change should be judged by.
  */
 export let WEAPONS: Readonly<Record<SoldierClass, Readonly<WeaponStats>>> = {
-  gunner:   { shot: 'direct', range: 224, cooldown: 18,  damage: 5,   splashRadius: 0,  splashDamage: 0,  speed: 16, flightTicks: 0,  spread: 40, instantKill: false },
-  launcher: { shot: 'direct', range: 352, cooldown: 270, damage: 35,  splashRadius: 32, splashDamage: 20, speed: 10, flightTicks: 0,  spread: 16, instantKill: true },
-  chucker:  { shot: 'lobbed', range: 224, cooldown: 210, damage: 0,   splashRadius: 40, splashDamage: 30, speed: 0,  flightTicks: 30, spread: 36, instantKill: false },
-  scorcher: { shot: 'flame',  range: 72,  cooldown: 0,   damage: 0.5, splashRadius: 0,  splashDamage: 0,  speed: 0,  flightTicks: 0,  spread: 0,  instantKill: true },
-  blaster:  { shot: 'lobbed', range: 160, cooldown: 300, damage: 0,   splashRadius: 32, splashDamage: 55, speed: 0,  flightTicks: 36, spread: 30, instantKill: true },
+  gunner:   { shot: 'direct', range: 224, cooldown: 18,  damage: 5,   splashRadius: 0,  splashDamage: 0,  speed: 16, flightTicks: 0,  spread: 40, instantKill: false, fireWhileMoving: true },
+  launcher: { shot: 'direct', range: 352, cooldown: 270, damage: 35,  splashRadius: 32, splashDamage: 20, speed: 10, flightTicks: 0,  spread: 16, instantKill: true, fireWhileMoving: true },
+  chucker:  { shot: 'lobbed', range: 224, cooldown: 210, damage: 0,   splashRadius: 40, splashDamage: 30, speed: 0,  flightTicks: 30, spread: 36, instantKill: false, fireWhileMoving: true },
+  scorcher: { shot: 'flame',  range: 72,  cooldown: 0,   damage: 0.5, splashRadius: 0,  splashDamage: 0,  speed: 0,  flightTicks: 0,  spread: 0,  instantKill: true, fireWhileMoving: true },
+  blaster:  { shot: 'lobbed', range: 160, cooldown: 300, damage: 0,   splashRadius: 32, splashDamage: 55, speed: 0,  flightTicks: 36, spread: 30, instantKill: true, fireWhileMoving: true },
 };
 /** 16 unit vectors at 22.5° steps, as literals (no Math.sin/cos in sim code). */
 export const DIRECTIONS16: readonly Vec2[] = [
@@ -100,7 +101,8 @@ export type TunableName =
   | 'MAX_HP' | 'MOVE_SPEED' | 'MEDIC_CALLS' | 'MEDIC_SPEED' | 'REVIVE_FRACTION' | 'INSTANT_KILL_CHANCE'
   | 'GUNNER_JAM_CHANCE' | 'GUNNER_JAM_TICKS' | 'AI_THINK_TICKS' | 'AI_COVER_BONUS' | 'AI_RANGE_FRACTION'
   | 'AI_LAUNCHER_DISTANCE_WEIGHT' | 'AI_TRAVEL_WEIGHT' | 'AI_JITTER' | 'AI_LOBBER_TARGET_REACH'
-  | 'AI_MEDIC_PATIENCE_TICKS' | 'AI_MEDIC_DESPERATE_STANDING' | 'AI_SPACING_PENALTY' | 'COVER_SPLASH_FRACTION';
+  | 'AI_MEDIC_PATIENCE_TICKS' | 'AI_MEDIC_DESPERATE_STANDING' | 'AI_SPACING_PENALTY' | 'COVER_SPLASH_FRACTION'
+  | 'FIRING_MOVE_FRACTION';
 
 export type TuningOverrides = Partial<Record<TunableName, number>> & {
   WEAPONS?: Partial<Record<SoldierClass, Partial<WeaponStats>>>;
@@ -112,6 +114,7 @@ export const TUNABLE_NAMES: readonly TunableName[] = [
   'GUNNER_JAM_CHANCE', 'GUNNER_JAM_TICKS', 'AI_THINK_TICKS', 'AI_COVER_BONUS', 'AI_RANGE_FRACTION',
   'AI_LAUNCHER_DISTANCE_WEIGHT', 'AI_TRAVEL_WEIGHT', 'AI_JITTER', 'AI_LOBBER_TARGET_REACH',
   'AI_MEDIC_PATIENCE_TICKS', 'AI_MEDIC_DESPERATE_STANDING', 'AI_SPACING_PENALTY', 'COVER_SPLASH_FRACTION',
+  'FIRING_MOVE_FRACTION',
 ];
 
 function isPlainObject(value: unknown): value is Record<string, unknown> {
@@ -209,6 +212,7 @@ export function overrideTuning(overrides: TuningOverrides): void {
       case 'AI_SPACING_PENALTY': AI_SPACING_PENALTY = n; break;
       case 'AI_MEDIC_DESPERATE_STANDING': AI_MEDIC_DESPERATE_STANDING = n; break;
       case 'COVER_SPLASH_FRACTION': COVER_SPLASH_FRACTION = n; break;
+      case 'FIRING_MOVE_FRACTION': FIRING_MOVE_FRACTION = n; break;
     }
   }
 }

@@ -1,7 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import { createBattle, step } from '../../src/sim/battle';
-import { MAX_HP, WEAPONS } from '../../src/sim/constants';
+import { MAX_HP, WEAPONS, overrideTuning } from '../../src/sim/constants';
 import { applyFlame, inCone } from '../../src/sim/flame';
+import { applyCommand } from '../../src/sim/commands';
+import { fireWeapons } from '../../src/sim/weapons';
 import { hasLineOfSight } from '../../src/sim/los';
 import { parseMap } from '../../src/sim/map';
 import type { BattleEvent, BattleState, Soldier, TileMap } from '../../src/sim/types';
@@ -235,5 +237,69 @@ describe('flame cone', () => {
     expect(downed).toBeGreaterThan(0);
     expect(killed / 200).toBeGreaterThanOrEqual(0.03);
     expect(killed / 200).toBeLessThanOrEqual(0.2);
+  });
+});
+
+describe('fireWhileMoving', () => {
+  /** Run `fn` with the Scorcher forbidden to fire while moving, then restore the shipped value. */
+  function withGroundedScorcher(fn: () => void): void {
+    const before = WEAPONS.scorcher.fireWhileMoving;
+    overrideTuning({ WEAPONS: { scorcher: { fireWhileMoving: false } } });
+    try {
+      fn();
+    } finally {
+      overrideTuning({ WEAPONS: { scorcher: { fireWhileMoving: before } } });
+    }
+  }
+
+  it('a scorcher that may not fire while moving keeps its cone off while its path is non-empty and lights it once it stops', () => {
+    withGroundedScorcher(() => {
+      const state = duel(1, 50);
+      const scorcher = state.soldiers[3];
+      const target = state.soldiers[5];
+      scorcher.order = { kind: 'move', x: 300, y: 256 };
+      scorcher.path = [{ x: 300, y: 256 }];
+      fireWeapons(state);
+      applyFlame(state);
+      expect(scorcher.firing).toBe(false);
+      expect(scorcher.targetId).toBeNull();
+      expect(target.hp).toBe(MAX_HP);
+      scorcher.path = [];
+      fireWeapons(state);
+      applyFlame(state);
+      expect(scorcher.firing).toBe(true);
+      expect(target.hp).toBe(MAX_HP - SCORCHER.damage);
+    });
+  });
+
+  it('a scorcher under an attack order walks past an enemy in its cone without burning it, then burns its target once in range', () => {
+    withGroundedScorcher(() => {
+      const state = createBattle({ seed: 1, map: arena() });
+      isolate(state, [3]);
+      const scorcher = state.soldiers[3];
+      place(scorcher, 100, 256);
+      const passed = bystander(state, 6, 150, 230);   // 56 away, 27 degrees off the line east: in cone, in range, off the path
+      const target = bystander(state, 5, 400, 256);   // the attack target, out of range until the scorcher has walked in
+      applyCommand(state, { tick: 0, side: 'blue', type: 'attack', soldierIds: [3], targetId: 5 });
+      for (let i = 0; i < 150; i++) {
+        step(state, []);
+      }
+      expect(passed.hp).toBe(MAX_HP);
+      expect(target.hp).toBeLessThan(MAX_HP);
+      expect(scorcher.path).toEqual([]);
+    });
+  });
+
+  it('burns an enemy it walks past when its weapon may fire while moving, which is the default', () => {
+    const state = createBattle({ seed: 1, map: arena() });
+    isolate(state, [3]);
+    place(state.soldiers[3], 100, 256);
+    const passed = bystander(state, 6, 150, 230);
+    bystander(state, 5, 400, 256);
+    applyCommand(state, { tick: 0, side: 'blue', type: 'attack', soldierIds: [3], targetId: 5 });
+    for (let i = 0; i < 150; i++) {
+      step(state, []);
+    }
+    expect(passed.hp).toBeLessThan(MAX_HP);
   });
 });

@@ -175,13 +175,25 @@ export interface WeaponStats { /* ... */ fireWhileMoving: boolean }   // variant
 //   if (!weapon.fireWhileMoving && s.path.length > 0) continue;   // replaces the FIRE_WHILE_MOVING / order.kind === 'move' check
 ```
 
-- [ ] **Step 1: Failing tests, variant (a), `tests/sim/movement.test.ts`.** A standing soldier with a one-waypoint path 100 units east and `firing = true` moves `MOVE_SPEED * FIRING_MOVE_FRACTION` in one `moveSoldiers` call (set `overrideTuning({ FIRING_MOVE_FRACTION: 0.5 })` for the test and restore); with `firing = false` it moves `MOVE_SPEED`; a soldier downed by `applyDamage` has `firing` false (already covered in `damage.test.ts`; assert the next tick's speed is full for a standing soldier whose `firing` was cleared by `fireWeapons` finding no target).
-- [ ] **Step 2: Failing tests, variant (b), `tests/sim/flame.test.ts` and `tests/sim/weapons.test.ts`.** With `overrideTuning({ WEAPONS: { scorcher: { fireWhileMoving: false } } })`: a scorcher with a target in its cone and a non-empty path does not set `firing` and deals no damage that tick; the same scorcher with an empty path burns; a scorcher under an attack order walks in without burning a different enemy it passes within 72 of, and burns once it stops in range of its target. A gunner with a `move` order still fires (`fireWhileMoving` true by default); replace the two `it.runIf(FIRE_WHILE_MOVING)` cases with these.
-- [ ] **Step 3: Run; expect failures on the missing field and tunable.**
-- [ ] **Step 4: Implement both** behind their defaults (`FIRING_MOVE_FRACTION` 1, every `fireWhileMoving` true) so shipped behaviour is unchanged until the measurement picks. `validateTuning` accepts the boolean field already (same `typeof`). `npm run check` green.
-- [ ] **Step 5: Measure each variant alone**, seeds 1 to 60, ai, passive and holdline: `'{"FIRING_MOVE_FRACTION":0.5}'`, `'{"FIRING_MOVE_FRACTION":0.25}'`, `'{"WEAPONS":{"scorcher":{"fireWhileMoving":false}}}'`. Record the table. Then the chosen variant together with the shipped `COVER_SPLASH_FRACTION` (already in the code from PR 2).
-- [ ] **Step 6: Ship the choice**: set the default(s) in `constants.ts`; if a variant is kept as a tunable but not used, say so in the decision line. If red needs an AI change to stay competent (for example the Scorcher waiting for a direct weapon to engage), it goes in `src/sim/ai.ts` as a pure function of state with the determinism tests green, and gets its own line.
-- [ ] **Step 7: Decision line** with what each variant did and which shipped. README: the paragraph on firing while moving, if any. Commit `Plan 6: a costly charge`.
+- [x] **Step 1: Failing tests, variant (a), `tests/sim/movement.test.ts`.** A standing soldier with a one-waypoint path 100 units east and `firing = true` moves `MOVE_SPEED * FIRING_MOVE_FRACTION` in one `moveSoldiers` call (set `overrideTuning({ FIRING_MOVE_FRACTION: 0.5 })` for the test and restore); with `firing = false` it moves `MOVE_SPEED`; a soldier downed by `applyDamage` has `firing` false (already covered in `damage.test.ts`; assert the next tick's speed is full for a standing soldier whose `firing` was cleared by `fireWeapons` finding no target).
+- [x] **Step 2: Failing tests, variant (b), `tests/sim/flame.test.ts` and `tests/sim/weapons.test.ts`.** With `overrideTuning({ WEAPONS: { scorcher: { fireWhileMoving: false } } })`: a scorcher with a target in its cone and a non-empty path does not set `firing` and deals no damage that tick; the same scorcher with an empty path burns; a scorcher under an attack order walks in without burning a different enemy it passes within 72 of, and burns once it stops in range of its target. A gunner with a `move` order still fires (`fireWhileMoving` true by default); replace the two `it.runIf(FIRE_WHILE_MOVING)` cases with these.
+- [x] **Step 3: Run; expect failures on the missing field and tunable.**
+- [x] **Step 4: Implement both** behind their defaults (`FIRING_MOVE_FRACTION` 1, every `fireWhileMoving` true) so shipped behaviour is unchanged until the measurement picks. `validateTuning` accepts the boolean field already (same `typeof`). `npm run check` green.
+- [x] **Step 5: Measure each variant alone**, seeds 1 to 60, ai, passive and holdline: `'{"FIRING_MOVE_FRACTION":0.5}'`, `'{"FIRING_MOVE_FRACTION":0.25}'`, `'{"WEAPONS":{"scorcher":{"fireWhileMoving":false}}}'`. Record the table. Then the chosen variant together with the shipped `COVER_SPLASH_FRACTION` (already in the code from PR 2).
+- [x] **Step 6: Ship the choice**: set the default(s) in `constants.ts`; if a variant is kept as a tunable but not used, say so in the decision line. If red needs an AI change to stay competent (for example the Scorcher waiting for a direct weapon to engage), it goes in `src/sim/ai.ts` as a pure function of state with the determinism tests green, and gets its own line.
+- [x] **Step 7: Decision line** with what each variant did and which shipped. README: the paragraph on firing while moving, if any. Commit `Plan 6: a costly charge`.
+
+Implementation notes: the "full speed again" movement test isolated every red soldier and so handed blue the win after one step, freezing the second; a muzzled red bystander keeps the battle alive. The walk-past flame test places the passed enemy 26 units off the Scorcher's line, outside two soldier radii, so separation does not shove it. Neither variant shipped: `FIRING_MOVE_FRACTION` is 1 and every `fireWhileMoving` is true.
+
+**Results (seeds 1 to 60; "before" is PR 2 with `COVER_SPLASH_FRACTION` 0.5):**
+
+| Blue | Before | fraction 0.5 | fraction 0.25 | fraction 0 | Scorcher grounded | both (0.25 + grounded) |
+|---|---|---|---|---|---|---|
+| ai: wins, median, red downs | 32, 58.4 s, 8 | 27, 56.6 s, 7 | 26, 59.7 s, 7 | not run | 33, 57.4 s, 8 | not run |
+| passive | 0, 54.3 s, 2 | 0, 54.2 s, 2 | 0, 54.2 s, 2 | not run | 0, 54.4 s, 2 | not run |
+| holdline | 13, 69.0 s, 5 | 13, 68.7 s, 5 | 12, 69.5 s, 5 | 7, 66.7 s, 5 | 10, 69.4 s, 5 | 12, 70.1 s, 5 |
+
+Seeds 61 to 120, hold-line: before 10; fraction 0.5 16; grounded 12. Diagnostic over seeds 1 to 60: the red Scorcher deals 3.7% of its flame damage while its path is non-empty against the hold-line (1.1% AI versus AI), arrives at flame range with a mean 78 of 160 hp, and burns standing. The levers act only on that 3.7%, so the table is noise. Task 4 is triggered.
 
 ### Task 4: Attacker spread (PR 4, only if Task 3 leaves the hold-line below target)
 
