@@ -319,7 +319,7 @@ git commit -m "Add CI workflow and GitHub Pages deploy workflow"
 **Files:**
 - Create: `CLAUDE.md`, `docs/decisions.md`, `README.md`, `LICENSE`, `.github/workflows/claude.yml`
 
-- [ ] **Step 1: Write `CLAUDE.md`**
+- [x] **Step 1: Write `CLAUDE.md`**
 
 Sections, each a few lines:
 - **What this is:** one paragraph from the spec's section 1, with the link to the spec and to `docs/decisions.md`.
@@ -329,23 +329,23 @@ Sections, each a few lines:
 - **Legal rules:** section 8 of the spec, verbatim.
 - **Plans:** where plans live and that Plan 2 and 3 are written from the spec with superpowers:writing-plans before implementation.
 
-- [ ] **Step 2: Write `docs/decisions.md`**
+- [x] **Step 2: Write `docs/decisions.md`**
 
 Header: "One dated line per decision. Newest at the bottom. The roadmap lives at the end." Then entries dated 2026-11-01, one line each, for: web/TypeScript/Canvas/no engine; GitHub (not GitLab) because of cloud sessions; top-down with renderer swappable to isometric; inspired-by not recreation; v1 features (core, pause, medics, instant kills); pause is single-player only; public repo and why; name Muddle & Mayhem and the generals; cross-engine arithmetic ban; AI deterministic through the command log; downed soldiers immune, no time limit; friendly fire splash/flame only; 3 medic calls, revive at 50%; instant kill 10% start. Then `## Roadmap` with the spec's section 7 list verbatim.
 
-- [ ] **Step 3: Write `README.md`**
+- [x] **Step 3: Write `README.md`**
 
 Title, one-paragraph description, the live URL `https://karlnewell.github.io/muddle-and-mayhem/`, how to run locally (`npm install`, `npm run dev`), how to test (`npm run check`), a **Repository setup (owner, one time)** list: Settings → Pages → Source → GitHub Actions; Settings → Branches → protect `main`, require the `ci` check; install the Claude GitHub App and add the `CLAUDE_CODE_OAUTH_TOKEN` secret for `@claude` on PRs. Credit line: "Inspired by the squad-tactics genre of the early 1990s. All code, art, and names are original."
 
-- [ ] **Step 4: Write `LICENSE`**
+- [x] **Step 4: Write `LICENSE`**
 
 MIT, copyright 2026 Karl Newell.
 
-- [ ] **Step 5: Write `.github/workflows/claude.yml`**
+- [x] **Step 5: Write `.github/workflows/claude.yml`**
 
 The standard Claude Code GitHub Action workflow: triggers on `issue_comment`, `pull_request_review_comment`, `issues`, and `pull_request_review` when the body contains `@claude`; job with `permissions: { contents: write, pull-requests: write, issues: write, id-token: read }`; `anthropics/claude-code-action@v1` with `claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}`. A comment at the top: "Does nothing until the owner installs the Claude GitHub App and adds the secret (see README)."
 
-- [ ] **Step 6: Run the full check and commit**
+- [x] **Step 6: Run the full check and commit**
 
 Run: `npm run check`
 Expected: typecheck, lint:sim, tests, and build all succeed.
@@ -354,6 +354,6 @@ git add CLAUDE.md docs/decisions.md README.md LICENSE .github/workflows/claude.y
 git commit -m "Add project rules, decisions log, README, license, and Claude GitHub Action"
 ```
 
-- [ ] **Step 7: Open the pull request**
+- [x] **Step 7: Open the pull request**
 
 Push the branch and open a PR against `main` titled "Plan 1: scaffold and pipeline". The PR body lists the five tasks and the owner's one-time setup steps from the README. CI must be green before merge. After merge, the deploy workflow publishes the placeholder page; the plan is done when `https://karlnewell.github.io/muddle-and-mayhem/` shows the green canvas with the title and two circles.
