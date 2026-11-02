@@ -11,6 +11,7 @@ import { CROSSROADS } from './maps/crossroads';
 import { moveSoldiers } from './movement';
 import { createRng } from './rng';
 import { createSoldiers } from './soldiers';
+import { checkVictory } from './victory';
 
 export interface BattleOptions {
   seed: number;
@@ -63,6 +64,7 @@ export function step(state: BattleState, commands: readonly Command[]): void {
   // phase: projectiles (Task 7: advanceProjectiles)
   // phase: flame (Task 9: applyFlame)
   // phase: medics (Task 10: advanceMedics)
-  // phase: win check (Task 6: checkVictory)
+  // phase: win check
+  checkVictory(state);
   state.tick++;
 }

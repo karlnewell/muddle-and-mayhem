@@ -61,7 +61,7 @@ describe('moveSoldiers', () => {
   it('walks around a wall and never enters cover on the way', () => {
     const map = wallMap();
     const state = createBattle({ seed: 1, map });
-    isolate(state, [0]);
+    isolate(state, [0, 9]); // red 9 stays standing, off the route, so the win check does not end the battle
     const s = state.soldiers[0];
     const start = tileCenter(1, 4);
     const dest = tileCenter(8, 4);
