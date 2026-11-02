@@ -18,16 +18,20 @@ engine, no UI framework.
 
 - `npm run dev` starts the Vite dev server (open the URL it prints, at `/muddle-and-mayhem/`).
 - `npm run check` runs typecheck, `lint:sim`, unit tests, and build. Run it before every commit.
-- `npm run test:e2e` runs the Playwright smoke test against the built site. Run `npm run build` first.
+- `npm run test:e2e` runs the Playwright tests against the built site. Run `npm run build` first.
+  Set `PW_CHROMIUM_PATH` to a Chromium binary if the local Playwright has none of its own.
+- Open the game with `?seed=N` to pin a battle; `window.__mm` exposes seed, tick, log and state.
 
 ## Architecture rules
 
 These protect the multiplayer and headless-testing goals. Do not bend them.
 
 1. **Simulation / renderer split.** `src/sim/` lives in world coordinates and
-   never imports from `src/render`, `src/input`, or `src/ui`, and never touches
-   `document`, `window`, `performance`, `Date`, or `Math.random`. The renderer
-   reads simulation state and draws it. Input translates clicks into commands.
+   never imports from `src/render`, `src/input`, `src/ui`, or `src/game`, and
+   never touches `document`, `window`, `performance`, `Date`, or `Math.random`.
+   The renderer reads simulation state and draws it. Input translates clicks
+   into commands. `src/game/` owns the clock, the session and the command log,
+   and is the only code that calls `step`.
 2. **Fixed timestep.** The simulation advances in fixed ticks. The render loop
    interpolates between ticks. Pause stops ticks.
 3. **Commands, not mutations.** Every player and AI action is a command object
@@ -79,6 +83,8 @@ Plans live in `docs/superpowers/plans/`. Plan 1 (scaffold and pipeline) is
 this repository's foundation. Plan 2 (headless deterministic simulation,
 `docs/superpowers/plans/2026-11-02-plan-2-headless-simulation.md`) is
 implemented: `src/sim/index.ts` is its public surface. Plan 3 (playable
-game) is written from the spec with superpowers:writing-plans before any
-implementation begins, then executed task by task with
-superpowers:executing-plans.
+game, `docs/superpowers/plans/2026-11-02-plan-3-playable-game.md`) is
+implemented: `src/game/`, `src/render/`, `src/input/` and `src/ui/` on top
+of the sim, with `src/main.ts` as the entry point. v1 is complete; what
+comes next is the roadmap in `docs/decisions.md`, one design conversation
+and one plan per item.

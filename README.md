@@ -7,6 +7,38 @@ with Claude Code as a learning project.
 
 **Play it:** https://karlnewell.github.io/muddle-and-mayhem/
 
+![A paused battle on the Crossroads map](docs/screenshots/battle.png)
+
+## How to play
+
+You are General Muddle (blue, left). The computer is General Mayhem (red,
+right). Each side has five soldiers, one per class: Gunner, Launcher,
+Chucker, Scorcher, Blaster. Last squad standing wins.
+
+The battle starts **paused** so you can give the first orders. Press Space
+to let it run; press Space again whenever you want to think. Orders given
+while paused are taken at once and shown as faint markers.
+
+| Input | What it does |
+|---|---|
+| Left click a blue soldier | Select it (Shift adds to the selection) |
+| Keys 1 to 5, or click a HUD card | Select by slot (Shift adds) |
+| Right click the ground | Move the selected soldiers there |
+| Right click an enemy | Attack it: move into range, fire until it drops, then hold |
+| Right click a downed friend | Call the medic (three calls per side, back at half health) |
+| H | Hold position and fire at anything in range |
+| M | Call the medic for a selected downed soldier |
+| Space | Pause and resume |
+| Esc | Menu: resume, restart, back to the title |
+
+Walls, crates and trees block movement and straight shots. Grenades and
+dynamite go over them. Rockets, flame and dynamite can kill outright; a
+killed soldier leaves ash and no medic can help.
+
+Add `?seed=123` to the URL to replay the same battle. The page exposes
+`window.__mm` with the seed, tick, command log and state, so a bug report
+can carry everything needed to reproduce a battle.
+
 ## Run locally
 
 ```bash
@@ -23,12 +55,16 @@ npm run check
 ```
 
 That runs the type check, the simulation arithmetic guard, the unit tests,
-and the production build. The browser smoke test needs a build first:
+and the production build. The browser tests (a smoke test and one that
+plays a few seconds of a battle) need a build first:
 
 ```bash
 npm run build
 npm run test:e2e
 ```
+
+If your Playwright has no browser of its own, point it at one with
+`PW_CHROMIUM_PATH=/path/to/chromium`.
 
 ## Headless simulation
 
@@ -51,6 +87,15 @@ it('replays bit for bit', () => {
   expect(hashState(replayed)).toBe(hashState(run.state));
 });
 ```
+
+## Code layout
+
+- `src/sim/` the rules: deterministic, headless, no browser, no clock, no `Math.random`.
+- `src/game/` the clock, the battle session, the command log, the seed, the debug hook.
+- `src/render/` the top-down renderer behind a small `BattleRenderer` interface.
+- `src/input/` mouse and keyboard to `Command` objects.
+- `src/ui/` the HUD, title, menu and result screens, all drawn on the canvas.
+- `src/main.ts` wires them together.
 
 ## Repository setup (owner, one time)
 

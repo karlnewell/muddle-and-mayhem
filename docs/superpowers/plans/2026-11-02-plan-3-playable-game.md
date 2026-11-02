@@ -195,11 +195,12 @@ The test loads `./?seed=7`, asserts the title, clicks to start, reads `__mm` to 
 
 ### Task 9: Playtest and tuning
 
-- [ ] Run AI-vs-AI and scripted-player battles over several seeds headless (a scratch script, not committed) and play in headless Chromium with screenshots of title, battle and result. Judge: can the player give the first orders before contact, are battles long enough to use pause and medics, does any class dominate. Tune only `src/sim/constants.ts`, keep `tests/sim/constants.test.ts` green, and list each change in `docs/decisions.md`. If nothing needs changing, record that too.
+- [x] Run AI-vs-AI and scripted-player battles over several seeds headless (a scratch script, not committed) and play in headless Chromium with screenshots of title, battle and result. Judge: can the player give the first orders before contact, are battles long enough to use pause and medics, does any class dominate. Tune only `src/sim/constants.ts`, keep `tests/sim/constants.test.ts` green, and list each change in `docs/decisions.md`. If nothing needs changing, record that too.
+  Outcome: 12 seeds, three blue players (the AI, a passive squad, a scripted squad holding the left wall gap). Battles 11 to 22 seconds, contact at 5 to 10 seconds, fights 6 to 15 seconds after contact. `MAX_HP` 150 and 200 were tried and stretched fights only to 12 to 18 seconds without changing medic use, so no constant changed. One bug found and fixed: Shift+digit arrived as a symbol; slot keys now come from the key code. Screenshots in `docs/screenshots/`.
 
 ### Task 10: Docs, decisions, README
 
-- [ ] Append every decision above (and Task 9's) to `docs/decisions.md` as dated lines. Update `README.md` with how to play and the controls, the `?seed` parameter and the `window.__mm` hook. Tick every checkbox in this plan. Update `CLAUDE.md`'s Plans paragraph to say Plan 3 is implemented. `npm run check`, commit `Plan 3 task 10: docs and decisions`.
+- [x] Append every decision above (and Task 9's) to `docs/decisions.md` as dated lines. Update `README.md` with how to play and the controls, the `?seed` parameter and the `window.__mm` hook. Tick every checkbox in this plan. Update `CLAUDE.md`'s Plans paragraph to say Plan 3 is implemented. `npm run check`, commit `Plan 3 task 10: docs and decisions`.
 
 ## Self-review
 
