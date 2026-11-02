@@ -292,20 +292,20 @@ git commit -m "Add Playwright smoke test against the built site at the Pages bas
 **Interfaces:**
 - Produces: a required check named `ci` for branch protection to reference; a deployment to the `github-pages` environment on every push to `main`.
 
-- [ ] **Step 1: Write `ci.yml`**
+- [x] **Step 1: Write `ci.yml`**
 
 Triggers: `pull_request` and `push` to `main`. One job `ci` on `ubuntu-latest`: `actions/checkout@v4`; `actions/setup-node@v4` with `node-version: 22` and `cache: npm`; `npm ci`; `npm run typecheck`; `npm run lint:sim`; `npm test`; `npm run build`; `npx playwright install --with-deps chromium`; `npm run test:e2e` with `CI: true` in `env`.
 
-- [ ] **Step 2: Write `deploy.yml`**
+- [x] **Step 2: Write `deploy.yml`**
 
 Trigger: `push` to `main` and `workflow_dispatch`. `permissions: { contents: read, pages: write, id-token: write }`. `concurrency: { group: pages, cancel-in-progress: true }`. Job `build`: checkout, setup-node 22, `npm ci`, `npm run build`, `actions/configure-pages@v5`, `actions/upload-pages-artifact@v3` with `path: dist`. Job `deploy`: `needs: build`, `environment: { name: github-pages, url: ${{ steps.deployment.outputs.page_url }} }`, step `id: deployment` using `actions/deploy-pages@v4`.
 
-- [ ] **Step 3: Validate the YAML locally**
+- [x] **Step 3: Validate the YAML locally**
 
 Run: `node -e "const y=require('yaml');for(const f of ['ci','deploy'])y.parse(require('fs').readFileSync('.github/workflows/'+f+'.yml','utf8'));console.log('ok')"` (install `yaml` as a dev dependency first with `npm i -D yaml`, or skip this step if the implementer prefers to rely on the PR run).
 Expected: `ok`.
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add .github
