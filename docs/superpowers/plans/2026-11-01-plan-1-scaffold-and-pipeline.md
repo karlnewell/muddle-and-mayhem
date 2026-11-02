@@ -165,7 +165,7 @@ git commit -m "Scaffold Vite + TypeScript project with canvas placeholder and se
 **Interfaces:**
 - Produces: `node scripts/check-sim-math.mjs [dir]` exits 0 when no file under `dir` (default `src/sim`) contains a banned token outside comments, else prints `file:line: token` for each offence and exits 1. Also exported for tests: `findViolations(source: string, filename: string): Array<{ file: string; line: number; token: string }>`.
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 `tests/scripts/check-sim-math.test.ts`:
 ```ts
@@ -195,26 +195,26 @@ describe('findViolations', () => {
 });
 ```
 
-- [ ] **Step 2: Run the test to verify it fails**
+- [x] **Step 2: Run the test to verify it fails**
 
 Run: `npm test -- tests/scripts`
 Expected: FAIL, cannot resolve `scripts/check-sim-math.mjs`.
 
-- [ ] **Step 3: Implement `scripts/check-sim-math.mjs`**
+- [x] **Step 3: Implement `scripts/check-sim-math.mjs`**
 
 Export `findViolations`, and declare it in `scripts/check-sim-math.d.mts` as `export function findViolations(source: string, filename: string): Array<{ file: string; line: number; token: string }>`. Strip comments with a small scanner (track `//` to end of line and `/* */` spans, preserving newlines so line numbers survive; do not attempt to handle comment markers inside string literals, note this in a `ponytail:` comment). Match, per line, the regex `/\bMath\.(sin|cos|tan|atan|atan2|asin|acos|pow|exp|log|log2|log10|random|hypot|cbrt)\b|\*\*|\bDate\b|\bperformance\b/g`. When run as a script (`import.meta.url` matches `process.argv[1]`), walk the directory recursively for `.ts` files, print offences, exit 1 if any. Exit 0 with no output when the directory does not exist yet.
 
-- [ ] **Step 4: Run the test to verify it passes**
+- [x] **Step 4: Run the test to verify it passes**
 
 Run: `npm test`
 Expected: PASS.
 
-- [ ] **Step 5: Run the guard against the real sim folder**
+- [x] **Step 5: Run the guard against the real sim folder**
 
 Run: `npm run lint:sim`
 Expected: exit 0, no output (`src/sim/rng.ts` uses only allowed operations).
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add scripts tests/scripts
