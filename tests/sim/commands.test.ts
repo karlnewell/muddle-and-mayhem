@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { createBattle } from '../../src/sim/battle';
 import { applyCommand } from '../../src/sim/commands';
+import { MEDIC_CALLS } from '../../src/sim/constants';
 import { isBlocked, tileCenter, worldToTile } from '../../src/sim/map';
 import type { BattleState } from '../../src/sim/types';
 
@@ -129,9 +130,18 @@ describe('applyCommand hold', () => {
 });
 
 describe('applyCommand medic', () => {
-  it('is ignored until Task 10 wires it in', () => {
+  it('starts a medic run for a downed friendly and spends a call', () => {
     const state = fresh();
     state.soldiers[1].status = 'downed';
+    applyCommand(state, { tick: 0, side: 'blue', type: 'medic', targetId: 1 });
+    expect(state.sides.blue.medicCalls).toBe(MEDIC_CALLS - 1);
+    expect(state.medics).toHaveLength(1);
+    expect(state.medics[0].targetId).toBe(1);
+    expect(state.events).toContainEqual({ kind: 'medic', side: 'blue', targetId: 1 });
+  });
+
+  it('ignores a medic command for a standing soldier', () => {
+    const state = fresh();
     const before = JSON.stringify(state);
     applyCommand(state, { tick: 0, side: 'blue', type: 'medic', targetId: 1 });
     expect(JSON.stringify(state)).toBe(before);

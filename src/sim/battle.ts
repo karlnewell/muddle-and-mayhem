@@ -9,6 +9,7 @@ import { MEDIC_CALLS } from './constants';
 import { applyCommand } from './commands';
 import { applyFlame } from './flame';
 import { CROSSROADS } from './maps/crossroads';
+import { advanceMedics } from './medic';
 import { moveSoldiers } from './movement';
 import { advanceProjectiles } from './projectiles';
 import { createRng } from './rng';
@@ -65,7 +66,8 @@ export function step(state: BattleState, commands: readonly Command[]): void {
   advanceProjectiles(state);
   // phase: flame
   applyFlame(state);
-  // phase: medics (Task 10: advanceMedics)
+  // phase: medics
+  advanceMedics(state);
   // phase: win check
   checkVictory(state);
   state.tick++;

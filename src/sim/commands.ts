@@ -6,6 +6,7 @@
  */
 import type { BattleState, Command, Side, Soldier } from './types';
 import { isBlocked, nearestOpenTile, tileCenter, worldToTile } from './map';
+import { callMedic } from './medic';
 import { planPath } from './movement';
 import { isActive, soldierById } from './soldiers';
 
@@ -87,7 +88,7 @@ export function applyCommand(state: BattleState, cmd: Command): void {
       }
       break;
     case 'medic':
-      // Task 10: callMedic(state, cmd.side, cmd.targetId). Ignored until then.
+      callMedic(state, cmd.side, cmd.targetId);
       break;
   }
 }
