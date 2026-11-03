@@ -1,16 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { clientToLogical, fitViewport } from '../../src/render/viewport';
 import { createTopDownProjection } from '../../src/render/projection';
-import { FIELD_HEIGHT, FIELD_WIDTH, LOGICAL_HEIGHT, LOGICAL_WIDTH, TOP_BAR_HEIGHT } from '../../src/render/renderConstants';
-
-describe('renderConstants', () => {
-  it('stacks the top bar, the field and the HUD', () => {
-    expect(FIELD_WIDTH).toBe(1280);
-    expect(FIELD_HEIGHT).toBe(704);
-    expect(LOGICAL_WIDTH).toBe(FIELD_WIDTH);
-    expect(LOGICAL_HEIGHT).toBeGreaterThan(TOP_BAR_HEIGHT + FIELD_HEIGHT);
-  });
-});
+import { TOP_BAR_HEIGHT } from '../../src/render/renderConstants';
 
 describe('fitViewport', () => {
   it('letterboxes a wide window by height', () => {

@@ -4,7 +4,7 @@
  * code.
  */
 import { FONT_FAMILY } from '../render/palette';
-import { FIELD_HEIGHT, HUD_HEIGHT, LOGICAL_HEIGHT, LOGICAL_WIDTH, TOP_BAR_HEIGHT } from '../render/renderConstants';
+import { FIELD_HEIGHT, LOGICAL_HEIGHT, LOGICAL_WIDTH, SIDE_PANEL_WIDTH, TOP_BAR_HEIGHT } from '../render/renderConstants';
 
 export const GAME_TITLE = 'Muddle & Mayhem';
 
@@ -23,22 +23,31 @@ export const FONT = {
   debugBold: `bold 12px ${FONT_FAMILY}`,
 } as const;
 
+/**
+ * The side panel beside the field (`battleLayout` puts it on the player's
+ * side): five soldier cards stacked in slot order, then the medic calls,
+ * the pause status and the build stamp. Offsets are from the panel's
+ * top-left corner.
+ */
 export const HUD = {
-  top: TOP_BAR_HEIGHT + FIELD_HEIGHT,
-  height: HUD_HEIGHT,
+  top: TOP_BAR_HEIGHT,
+  width: SIDE_PANEL_WIDTH,
+  height: FIELD_HEIGHT,
+  inset: 8,
   cardCount: 5,
-  cardX: 12,
-  cardY: 10,
-  cardWidth: 196,
-  cardHeight: 90,
-  cardGap: 8,
+  cardWidth: SIDE_PANEL_WIDTH - 16,
+  cardHeight: 66,
+  cardGap: 6,
   cardRadius: 6,
-  slotBox: 22,
+  slotBox: 20,
   hpBarHeight: 8,
-  cooldownBarHeight: 4,
-  panelX: 12 + 5 * (196 + 8),
-  panelWidth: LOGICAL_WIDTH - 12 - (12 + 5 * (196 + 8)),
-  hintY: HUD_HEIGHT - 12,
+  cooldownBarHeight: 3,
+  /** The medic-calls box starts this far below the panel's top edge (below the last card) and is this high. */
+  medicTop: 370,
+  medicHeight: 58,
+  /** Baselines below the panel's top edge. */
+  pausedBaseline: 452,
+  buildBaseline: 472,
 } as const;
 
 export const TOP_BAR = {
@@ -65,6 +74,20 @@ export const SPEED_BADGE = {
 } as const;
 
 /**
+ * Monospace character widths per font, for laying out text without a
+ * canvas to measure it (0.6 em, which the usual monospace faces match
+ * or undercut). Layout tests use the same numbers.
+ */
+export const TEXT_CHAR_WIDTH = {
+  title: 43.2,
+  subtitle: 12,
+  body: 9.6,
+  bodyBold: 9.6,
+  small: 7.8,
+  debug: 7.2,
+} as const;
+
+/**
  * The game speed selector on the title screen and in the Esc menu: three
  * segments side by side, a label above and a key hint below. `titleTop`
  * is the segments' top edge on the title screen; in the menu they sit
@@ -77,20 +100,33 @@ export const SPEED_SELECTOR = {
   radius: 6,
   labelGap: 10,
   hintGap: 20,
-  titleTop: 606,
-  menuGap: 42,
+  titleTop: 300,
+  menuGap: 40,
 } as const;
 
-/** The title screen's controls list starts at this baseline, below the speed selector. */
-export const TITLE_CONTROLS_TOP = 700;
+/**
+ * The title screen, fitted to 520 high: the name and the line under it,
+ * the two generals' portraits flanking the name, the Skirmish button and
+ * its hint, the speed selector, the controls list and the build stamp.
+ * Baselines and tops in logical pixels.
+ */
+export const TITLE = {
+  titleBaseline: 78,
+  subtitleBaseline: 112,
+  portraitRadius: 44,
+  /** Portrait centres sit this far in from the left and right edges. */
+  portraitInset: 92,
+  portraitY: 78,
+  startTop: 196,
+  hintBaseline: 262,
+  controlsTop: 392,
+  controlsStep: 20,
+} as const;
 
-/** The build version, small and dim: bottom-right of the title screen, and inside the bottom of the HUD's side panel in battle. */
+/** The build version, small and dim: bottom-right of the title screen; in battle it sits at the bottom of the side panel (`HUD.buildBaseline`). */
 export const BUILD_LABEL = {
   titleRight: LOGICAL_WIDTH - 12,
-  titleBaseline: LOGICAL_HEIGHT - 12,
-  panelInset: 12,
-  /** Below the HUD's top edge: six pixels above the bottom of the side panel. */
-  panelBaseline: HUD.cardY + HUD.cardHeight - 6,
+  titleBaseline: LOGICAL_HEIGHT - 6,
 } as const;
 
 export const BUTTON = {
@@ -105,19 +141,30 @@ export const PANEL = {
   radius: 12,
 } as const;
 
+/** The Esc menu panel: heading, three buttons, the speed selector and the two-line controls hint at its foot. */
+export const MENU = {
+  width: 760,
+  height: 410,
+  headingY: 50,
+  buttonsTop: 76,
+  /** Baseline of the first hint line, from the panel's top; the second follows `hintStep` below. */
+  hintBaseline: 372,
+  hintStep: 18,
+} as const;
+
 /** The result screen: a wider panel holding the winner lines, the per-class report table and three buttons. */
 export const RESULT = {
   panelWidth: 760,
-  panelHeight: 620,
-  headingY: 56,
-  standingY: 92,
-  infoY: 118,
-  tableTop: 150,
+  panelHeight: 500,
+  headingY: 44,
+  standingY: 72,
+  infoY: 94,
+  tableTop: 106,
   tableX: 24,
-  rowHeight: 19,
+  rowHeight: 15,
   /** Header plus five classes and a total per side. */
   tableRows: 13,
-  buttonsTop: 420,
+  buttonsTop: 318,
 } as const;
 
 /** The debug overlay: a translucent panel in the top-right corner of the battlefield, below the paused banner. */
@@ -132,8 +179,11 @@ export const DEBUG_OVERLAY = {
   charWidth: 7.2,
 } as const;
 
-export const CONTROLS_HINT =
-  'Left click: select   Right click: move / attack / medic   A: volley   H: hold   M: medic   1-5: slots   S: all   Space: pause   Esc: menu';
+/** The keys in two lines, at the foot of the Esc menu; the title screen has the longer `TITLE_CONTROLS`. */
+export const CONTROLS_HINT_LINES: readonly string[] = [
+  'Left click: select   Right click: move / attack / medic   A: volley   H: hold',
+  'M: medic   1-5: slots   S: all   Space: pause   Esc: menu',
+];
 
 export const TITLE_CONTROLS: readonly string[] = [
   'Left click a blue soldier to select it (shift adds). Keys 1 to 5 pick by slot, S all.',

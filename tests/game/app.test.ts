@@ -4,6 +4,7 @@ import type { ButtonRect } from '../../src/ui/buttons';
 import { menuSpeedRects } from '../../src/ui/menu';
 import { resultButtons } from '../../src/ui/result';
 import { titleSpeedRects } from '../../src/ui/title';
+import { hudCardRects, sidePanelRect } from '../../src/ui/hud';
 
 const FIXED = { seed: 7, fixed: true };
 const never = () => 0.5;
@@ -149,5 +150,23 @@ describe('game speed choice', () => {
     app.key('Escape', false);
     app.key('ArrowLeft', false);
     expect(app.speed.speed).toBe(1);
+  });
+});
+
+describe('side panel cards', () => {
+  it('a click on a card selects that slot, shift-click adds, and a click below the cards selects nothing new', () => {
+    const app = createApp(FIXED, never, {});
+    app.click(10, 10, 'left', false);
+    const cards = hudCardRects('blue');
+    for (let i = 0; i < cards.length; i++) {
+      app.click(...mid(cards[i]), 'left', false);
+      expect(app.selection).toEqual([i]);
+    }
+    app.click(...mid(cards[0]), 'left', true);
+    expect([...app.selection].sort()).toEqual([0, 4]);
+    const panel = sidePanelRect('blue');
+    const last = cards[cards.length - 1];
+    app.click(panel.x + panel.w / 2, last.y + last.h + 10, 'left', false);
+    expect([...app.selection].sort()).toEqual([0, 4]);
   });
 });

@@ -10,7 +10,7 @@ import { LOGICAL_HEIGHT, LOGICAL_WIDTH } from '../render/renderConstants';
 import { standingCount } from '../sim';
 import type { BattleState, Side } from '../sim';
 import { stackButtons } from './buttons';
-import type { ButtonRect } from './buttons';
+import type { ButtonRect, Rect } from './buttons';
 import { drawButton, drawOverlayPanel } from './drawButtons';
 import { formatClock } from './text';
 import { BUTTON, FONT, RESULT } from './uiConstants';
@@ -31,6 +31,16 @@ const COPY_LABEL: Readonly<Record<CopyState, string>> = {
 
 function panelTop(): number {
   return (LOGICAL_HEIGHT - RESULT.panelHeight) / 2;
+}
+
+/** The panel, centred on the canvas. */
+export function resultPanelRect(): Rect {
+  return { x: (LOGICAL_WIDTH - RESULT.panelWidth) / 2, y: panelTop(), w: RESULT.panelWidth, h: RESULT.panelHeight };
+}
+
+/** The canvas y of the middle of table row `i` (0 is the header). */
+export function resultRowY(i: number): number {
+  return panelTop() + RESULT.tableTop + (i + 0.5) * RESULT.rowHeight;
 }
 
 /** The canvas y just below the last table row. */
@@ -69,7 +79,7 @@ function drawTable(ctx: CanvasRenderingContext2D, panelX: number, rows: readonly
   ctx.textBaseline = 'middle';
   const x = panelX + RESULT.tableX;
   rows.forEach((row, i) => {
-    const y = panelTop() + RESULT.tableTop + (i + 0.5) * RESULT.rowHeight;
+    const y = resultRowY(i);
     const isTotal = row.includes(' total ');
     ctx.fillStyle = i === 0 ? PALETTE.textDim : isTotal ? PALETTE.text : PALETTE.debugText;
     ctx.font = isTotal ? FONT.debugBold : FONT.debug;

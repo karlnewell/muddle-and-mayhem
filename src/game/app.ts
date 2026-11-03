@@ -92,7 +92,7 @@ export interface App {
 }
 
 export function createApp(initialSeed: SeedChoice, random: () => number, options: AppOptions = {}): App {
-  const renderer = createTopDownRenderer();
+  const renderer = createTopDownRenderer(PLAYER_SIDE);
   let debugOverlay = options.debugOverlay === true;
   const tuning = options.tuning ?? NO_TUNING;
   let speed = options.speed ?? DEFAULT_SPEED_STATUS;
@@ -253,7 +253,7 @@ export function createApp(initialSeed: SeedChoice, random: () => number, options
       return;
     }
     if (button === 'left') {
-      const id = hitButton(hudCardRects(), x, y);
+      const id = hitButton(hudCardRects(PLAYER_SIDE), x, y);
       if (id !== null && id.startsWith('slot')) {
         const slot = Number(id.slice(4));
         applyInput(interpretKey(session.state, selection, SLOT_KEYS[slot], shift, PLAYER_SIDE));
