@@ -89,3 +89,16 @@ describe('app volley key', () => {
     expect(app.session!.pending).toEqual([]);
   });
 });
+
+describe('volley cue', () => {
+  it('starts when A is pressed while paused, covering the squad and the enemy nearest the cursor', () => {
+    const app = createApp(FIXED, never, {});
+    app.click(10, 10, 'left', false);
+    expect(app.volleyCue).toBeNull();
+    const target = app.session!.state.soldiers[8];
+    const at = app.renderer.projection.worldToScreen(target.x, target.y);
+    expect(app.key('a', false, at)).toBe(true);
+    expect(app.session!.paused).toBe(true);
+    expect(app.volleyCue).toEqual({ soldierIds: [0, 1, 2, 3, 4], targetId: 8, startMs: null });
+  });
+});

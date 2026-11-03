@@ -33,6 +33,8 @@ export interface DebugHook {
   readonly state: unknown;
   /** The `BattleStats` of the current battle, or null. */
   readonly stats: unknown;
+  /** The volley cue waiting or showing (soldiers, target, start time), or null. */
+  readonly volleyCue: unknown;
   /** The Markdown battle report (what Copy report copies), or null before a battle. */
   report(): string | null;
   hash(): number | null;
@@ -93,6 +95,9 @@ export function createDebugHook(app: App, logicalToClient: (x: number, y: number
     },
     get state() {
       return app.session?.state ?? null;
+    },
+    get volleyCue() {
+      return app.volleyCue;
     },
     get stats() {
       return app.session?.stats() ?? null;

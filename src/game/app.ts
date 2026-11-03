@@ -14,6 +14,8 @@ import type { Effect } from '../render/effects';
 import { PALETTE } from '../render/palette';
 import { LOGICAL_HEIGHT, LOGICAL_WIDTH } from '../render/renderConstants';
 import { createTopDownRenderer } from '../render/renderer';
+import { startVolleyCue, volleyCueFromCommands, volleyCueProgress } from '../render/volleyCue';
+import type { VolleyCue } from '../render/volleyCue';
 import type { BattleRenderer } from '../render/renderer';
 import { hashState } from '../sim';
 import type { Side } from '../sim';
@@ -67,6 +69,8 @@ export interface App {
   readonly speed: SpeedStatus;
   /** What the Copy report button says about its last press. */
   readonly copyState: CopyState;
+  /** The volley cue waiting or showing, or null. */
+  readonly volleyCue: VolleyCue | null;
   /** The Markdown battle report for the current battle, or null before one. */
   report(): string | null;
   /** Advance time and draw. `nowMs` is a monotonic clock in milliseconds. */
@@ -94,6 +98,7 @@ export function createApp(initialSeed: SeedChoice, random: () => number, options
   let session: BattleSession | null = null;
   let selection: number[] = [];
   let effects: Effect[] = [];
+  let volleyCue: VolleyCue | null = null;
   let seedChoice = initialSeed;
   let lastNow: number | null = null;
 
@@ -102,6 +107,7 @@ export function createApp(initialSeed: SeedChoice, random: () => number, options
     session = createSession(seed.seed, tuning.overrides, speed.speed);
     selection = [];
     effects = [];
+    volleyCue = null;
     lastNow = null;
     copyState = 'idle';
   }
@@ -145,6 +151,7 @@ export function createApp(initialSeed: SeedChoice, random: () => number, options
       session = null;
       selection = [];
       effects = [];
+      volleyCue = null;
       if (!seedChoice.fixed) {
         seedChoice = nextSeed(seedChoice, random);
       }
@@ -159,6 +166,7 @@ export function createApp(initialSeed: SeedChoice, random: () => number, options
     for (const cmd of result.commands) {
       session.queue(cmd);
     }
+    volleyCue = volleyCueFromCommands(result.commands, PLAYER_SIDE) ?? volleyCue;
     if (result.togglePause) {
       session.paused = !session.paused;
     }
@@ -238,7 +246,21 @@ export function createApp(initialSeed: SeedChoice, random: () => number, options
     }
   }
 
-  function draw(ctx: CanvasRenderingContext2D): void {
+  /** Stamp a fresh volley cue with this frame's time and drop it once over; returns what to draw. */
+  function volleyView(nowMs: number) {
+    if (volleyCue === null) {
+      return null;
+    }
+    volleyCue = startVolleyCue(volleyCue, nowMs);
+    const progress = volleyCueProgress(volleyCue, nowMs);
+    const view = { cue: volleyCue, progress, side: PLAYER_SIDE };
+    if (progress >= 1) {
+      volleyCue = null;
+    }
+    return view;
+  }
+
+  function draw(ctx: CanvasRenderingContext2D, nowMs: number): void {
     ctx.fillStyle = PALETTE.pageBackground;
     ctx.fillRect(0, 0, LOGICAL_WIDTH, LOGICAL_HEIGHT);
     if (screen.screen === 'title' || session === null) {
@@ -246,7 +268,7 @@ export function createApp(initialSeed: SeedChoice, random: () => number, options
       return;
     }
     const state = session.state;
-    renderer.draw(ctx, state, { selection, alpha: session.alpha(), effects, playerSide: PLAYER_SIDE, pending: session.pending });
+    renderer.draw(ctx, state, { selection, alpha: session.alpha(), effects, playerSide: PLAYER_SIDE, pending: session.pending, volley: volleyView(nowMs) });
     drawHud(ctx, state, { playerSide: PLAYER_SIDE, selection, paused: session.paused, tuned: tuning.active, speed: speed.speed });
     if (screen.screen === 'result') {
       drawResult(ctx, state, PLAYER_SIDE, { rows: formatReportRows(session.stats()), copyState });
@@ -285,6 +307,9 @@ export function createApp(initialSeed: SeedChoice, random: () => number, options
     get copyState() {
       return copyState;
     },
+    get volleyCue() {
+      return volleyCue;
+    },
     report,
     frame(ctx: CanvasRenderingContext2D, nowMs: number): void {
       const dt = lastNow === null ? 0 : nowMs - lastNow;
@@ -299,7 +324,7 @@ export function createApp(initialSeed: SeedChoice, random: () => number, options
         effects = pruneEffects(effects, session.state.tick);
         absorbEvents();
       }
-      draw(ctx);
+      draw(ctx, nowMs);
     },
     click(x: number, y: number, button: Button, shift: boolean): void {
       if (screen.screen === 'title') {

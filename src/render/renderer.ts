@@ -9,6 +9,8 @@ import { drawEffects } from './drawEffects';
 import { drawMap } from './drawMap';
 import { drawMedics, drawProjectiles } from './drawProjectiles';
 import { drawPendingOrders, drawSoldiers } from './drawSoldiers';
+import { drawVolleyCue } from './drawVolleyCue';
+import type { VolleyView } from './drawVolleyCue';
 import type { Effect } from './effects';
 import { createTopDownProjection } from './projection';
 import type { Projection } from './projection';
@@ -21,6 +23,8 @@ export interface ViewState {
   playerSide: Side;
   /** Player commands queued for the next tick, drawn as ghost orders. */
   pending: readonly Command[];
+  /** The volley cue still showing, if any. */
+  volley?: VolleyView | null;
 }
 
 export interface BattleRenderer {
@@ -51,6 +55,9 @@ export function createTopDownRenderer(): BattleRenderer {
       drawSoldiers(ctx, state, { selection: view.selection, alpha: view.alpha, playerSide: view.playerSide });
       drawProjectiles(ctx, state, view.alpha);
       drawEffects(ctx, state, view.effects, view.alpha);
+      if (view.volley) {
+        drawVolleyCue(ctx, state, view.volley, view.alpha);
+      }
       ctx.restore();
     },
   };

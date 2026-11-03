@@ -141,6 +141,10 @@ test('A volleys the whole squad at the enemy under the cursor and S selects it',
   expect(await page.evaluate(() => window.__mm!.pending)).toEqual([
     { tick: 0, side: 'blue', type: 'attack', soldierIds: [0, 1, 2, 3, 4], targetId: 8, stand: true },
   ]);
+  // The volley cue is stamped on the next frame even though the battle is paused, then runs out in real time.
+  await page.waitForFunction(() => (window.__mm!.volleyCue as { startMs: number | null } | null)?.startMs != null);
+  expect(await page.evaluate(() => (window.__mm!.volleyCue as { targetId: number }).targetId)).toBe(8);
+  await page.waitForFunction(() => window.__mm!.volleyCue === null, undefined, { timeout: 3000 });
 
   // S selects the whole squad.
   await page.keyboard.press('s');
