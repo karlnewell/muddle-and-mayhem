@@ -95,13 +95,16 @@ export interface ClassStats {
 /**
  * Health and walking speed per class, absolute values (Plan 8). Health bars
  * show hp as a fraction of the class's own maxHp (`hpFraction` in
- * soldiers.ts). Every class is at the pre-Plan 8 shared values for now.
+ * soldiers.ts). Roles: the Scorcher is a fast glass cannon, strong held at
+ * a corner or gap and dead caught in the open; the Launcher is the heavy
+ * weapon, 15% slower and slightly fragile; the Gunner and Chucker are the
+ * reference; the Blaster was already cut in Plan 7 and stays as it was.
  */
 export let CLASS_STATS: Readonly<Record<SoldierClass, Readonly<ClassStats>>> = {
   gunner:   { maxHp: 160, speed: 1.8 },
-  launcher: { maxHp: 160, speed: 1.8 },
+  launcher: { maxHp: 140, speed: 1.53 },
   chucker:  { maxHp: 160, speed: 1.8 },
-  scorcher: { maxHp: 160, speed: 1.8 },
+  scorcher: { maxHp: 100, speed: 2.07 },
   blaster:  { maxHp: 160, speed: 1.8 },
 };
 /** 16 unit vectors at 22.5° steps, as literals (no Math.sin/cos in sim code). */

@@ -63,11 +63,14 @@ afterEach(() => {
 });
 
 describe('CLASS_STATS', () => {
-  it('has exactly the five classes, each at today\'s 160 health and 1.8 speed', () => {
-    expect(Object.keys(constants.CLASS_STATS).sort()).toEqual([...CLASS_ORDER].sort());
-    for (const cls of CLASS_ORDER) {
-      expect(constants.CLASS_STATS[cls]).toEqual({ maxHp: 160, speed: 1.8 });
-    }
+  it('ships a fragile, fast Scorcher and a slower, slightly fragile Launcher; the rest at 160 and 1.8', () => {
+    expect(constants.CLASS_STATS).toEqual({
+      gunner:   { maxHp: 160, speed: 1.8 },
+      launcher: { maxHp: 140, speed: 1.53 },
+      chucker:  { maxHp: 160, speed: 1.8 },
+      scorcher: { maxHp: 100, speed: 2.07 },
+      blaster:  { maxHp: 160, speed: 1.8 },
+    });
   });
 
   it('starts each soldier at its own class\'s maxHp', () => {

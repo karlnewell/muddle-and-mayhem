@@ -70,7 +70,7 @@ export type TuningOverrides = Partial<Record<TunableName, number>> & {
 export function hpFraction(s: Soldier): number;  // clamp(hp / CLASS_STATS[s.cls].maxHp, 0, 1)
 ```
 
-- [ ] **Step 1: Failing tests.** `tests/sim/classStats.test.ts`, each test restoring `CLASS_STATS` afterwards:
+- [x] **Step 1: Failing tests.** `tests/sim/classStats.test.ts`, each test restoring `CLASS_STATS` afterwards:
   - `CLASS_STATS` lists exactly the five classes of `CLASS_ORDER`, each `{ maxHp: 160, speed: 1.8 }`.
   - With `{ gunner: 150, launcher: 140, chucker: 130, scorcher: 100, blaster: 120 }` as `maxHp` overrides, every soldier of `createBattle({ seed: 1 })` has `hp === CLASS_STATS[s.cls].maxHp`.
   - Under the same override, a downed soldier of each class revived by a medic run stands at `Math.floor(CLASS_STATS[cls].maxHp * REVIVE_FRACTION)` (Scorcher 50, Launcher 70); reuse the medic test's call-and-arrive helper.
@@ -84,12 +84,12 @@ export function hpFraction(s: Soldier): number;  // clamp(hp / CLASS_STATS[s.cls
   - `MAX_HP` and `MOVE_SPEED` are not in `TUNABLE_NAMES`; `validateTuning({ MAX_HP: 120 })` throws `/unknown tunable MAX_HP/`.
 
   `tests/game/tuning.test.ts`: `readTune('?tune={"CLASS_STATS":{"scorcher":{"maxHp":100,"speed":2.07}}}')` is active with those overrides; `?tune={"MOVE_SPEED":2}` comes back inactive with an `unknown tunable` error.
-- [ ] **Step 2: Run `npx vitest run tests/sim/classStats.test.ts tests/sim/tuning.test.ts tests/game/tuning.test.ts`; expect failures on the missing exports.**
-- [ ] **Step 3: Implement** per the interfaces and decisions 1 and 2; `hud.ts` and `drawSoldiers.ts` call `hpFraction`. Update the other tests per decision 3, and the tests that used `MOVE_SPEED` as an example override to use another tunable (`MEDIC_SPEED`) so they keep testing what they tested. `e2e/tune.spec.ts`: the override gains `CLASS_STATS: { scorcher: { maxHp: 100 } }` and the test asserts the red Scorcher (id 8) starts the battle at hp 100.
-- [ ] **Step 4: README.** The Tuning section says scalars go by name and `WEAPONS` and `CLASS_STATS` are merged per class, with a `CLASS_STATS` example; the measure script's usage comment uses an existing tunable in its example.
-- [ ] **Step 5: `npm run check` and `npm run build && npm run test:e2e` green.** Commit `Per-class health and speed table at today's values`.
-- [ ] **Step 6: No-op proof.** With `main` checked out in a worktree, `npm run measure -- --blue=ai`, `--blue=passive` and `--blue=holdline` (seeds 1 to 60) into one directory per tree; `diff -r before after` prints nothing. Command and empty result into the PR body.
-- [ ] **Step 7: Preview.** `npm run measure` with `{"CLASS_STATS":{"scorcher":{"maxHp":100,"speed":2.07},"launcher":{"maxHp":140,"speed":1.53}}}` for `ai`, `passive`, `holdline` on seeds 1 to 60 and 61 to 180; a table against every guard into the PR body with the live-site link (readable and encoded, spec section 5). Open PR 2 "Per-class health and speed", noting it is cut from PR 1's branch.
+- [x] **Step 2: Run `npx vitest run tests/sim/classStats.test.ts tests/sim/tuning.test.ts tests/game/tuning.test.ts`; expect failures on the missing exports.**
+- [x] **Step 3: Implement** per the interfaces and decisions 1 and 2; `hud.ts` and `drawSoldiers.ts` call `hpFraction`. Update the other tests per decision 3, and the tests that used `MOVE_SPEED` as an example override to use another tunable (`MEDIC_SPEED`) so they keep testing what they tested. `e2e/tune.spec.ts`: the override gains `CLASS_STATS: { scorcher: { maxHp: 100 } }` and the test asserts the red Scorcher (id 8) starts the battle at hp 100.
+- [x] **Step 4: README.** The Tuning section says scalars go by name and `WEAPONS` and `CLASS_STATS` are merged per class, with a `CLASS_STATS` example; the measure script's usage comment uses an existing tunable in its example.
+- [x] **Step 5: `npm run check` and `npm run build && npm run test:e2e` green.** Commit `Per-class health and speed table at today's values`.
+- [x] **Step 6: No-op proof.** With `main` checked out in a worktree, `npm run measure -- --blue=ai`, `--blue=passive` and `--blue=holdline` (seeds 1 to 60) into one directory per tree; `diff -r before after` prints nothing. Command and empty result into the PR body.
+- [x] **Step 7: Preview.** `npm run measure` with `{"CLASS_STATS":{"scorcher":{"maxHp":100,"speed":2.07},"launcher":{"maxHp":140,"speed":1.53}}}` for `ai`, `passive`, `holdline` on seeds 1 to 60 and 61 to 180; a table against every guard into the PR body with the live-site link (readable and encoded, spec section 5). Open PR 2 "Per-class health and speed", noting it is cut from PR 1's branch.
 
 ### Task 3: Fragile Scorcher, heavy Launcher (PR 3)
 
@@ -98,11 +98,11 @@ export function hpFraction(s: Soldier): number;  // clamp(hp / CLASS_STATS[s.cls
 - Modify: tests that pin a whole-battle outcome or a hash, if any change (determinism tests compare two runs and need nothing)
 - Test: `tests/sim/classStats.test.ts`
 
-- [ ] **Step 1: Failing test.** Replace the "every class 160 and 1.8" assertion with the shipped table: Gunner, Chucker, Blaster `{ maxHp: 160, speed: 1.8 }`, Launcher `{ maxHp: 140, speed: 1.53 }`, Scorcher `{ maxHp: 100, speed: 2.07 }`.
-- [ ] **Step 2: Run; expect the one failure.**
-- [ ] **Step 3: Set the values** and a comment on `CLASS_STATS` naming the roles (spec section 4).
-- [ ] **Step 4: `npm run check` and the e2e tests green.**
-- [ ] **Step 5: Measure** `ai`, `passive`, `holdline` on seeds 1 to 60 and 61 to 180 before (today's values) and after; a table of every guard, before and after, into the PR body and a decision line. Commit `Fragile Scorcher, heavy Launcher`. Open PR 3 "Fragile Scorcher, heavy Launcher", cut from PR 2's branch; its body asks the owner to play the PR 2 link and paste two or three reports before merging.
+- [x] **Step 1: Failing test.** Replace the "every class 160 and 1.8" assertion with the shipped table: Gunner, Chucker, Blaster `{ maxHp: 160, speed: 1.8 }`, Launcher `{ maxHp: 140, speed: 1.53 }`, Scorcher `{ maxHp: 100, speed: 2.07 }`.
+- [x] **Step 2: Run; expect the one failure.**
+- [x] **Step 3: Set the values** and a comment on `CLASS_STATS` naming the roles (spec section 4).
+- [x] **Step 4: `npm run check` and the e2e tests green.**
+- [x] **Step 5: Measure** `ai`, `passive`, `holdline` on seeds 1 to 60 and 61 to 180 before (today's values) and after; a table of every guard, before and after, into the PR body and a decision line. Commit `Fragile Scorcher, heavy Launcher`. Open PR 3 "Fragile Scorcher, heavy Launcher", cut from PR 2's branch; its body asks the owner to play the PR 2 link and paste two or three reports before merging.
 - [ ] **Step 6: Stop and report.** Lever PRs start only if a guard fails on Step 5's numbers.
 
 ### Task 4: Levers, only where a guard fails (PR 4 onward)
