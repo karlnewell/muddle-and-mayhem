@@ -121,6 +121,10 @@ test('half speed is the default: no SPEED badge, slower steps, and a replayable 
   expect(tick).toBeLessThan(25);
   expect(await page.evaluate(() => window.__mm!.replayMatches())).toBe(true);
   expect(await page.evaluate(() => window.__mm!.report())).toContain('- Speed: 0.5x');
+  // the build the page came from: package version, short commit (dev without git), UTC date
+  const build = await page.evaluate(() => window.__mm!.build);
+  expect(build).toMatch(/^\d+\.\d+\.\d+\+([0-9a-f]{4,40}|dev) \d{4}-\d{2}-\d{2}$/);
+  expect(await page.evaluate(() => window.__mm!.report())).toContain(`- Build: ${build}\n`);
   expect(errors).toEqual([]);
 });
 

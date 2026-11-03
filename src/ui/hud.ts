@@ -2,7 +2,8 @@
  * The in-battle HUD (spec 4.8): a top bar with the clock, enemies standing
  * and the pause state; a bottom strip with five soldier cards for the
  * player's squad (slot number, name, class, HP bar, cooldown bar, status),
- * a side panel with both sides' medic calls, and a controls hint. Cards
+ * a side panel with both sides' medic calls and the build version, and a
+ * controls hint. Cards
  * double as buttons: `hudCardRects` gives their rectangles so a click on
  * one selects that slot.
  */
@@ -13,8 +14,9 @@ import type { BattleState, Side, Soldier } from '../sim';
 import type { ButtonRect } from './buttons';
 import { roundRect } from './drawButtons';
 import { formatClock } from './text';
+import { BUILD_VERSION } from '../game/buildVersion';
 import { DEFAULT_SPEED, formatSpeed } from '../game/speed';
-import { CONTROLS_HINT, FONT, GAME_TITLE, HUD, SPEED_BADGE, STATUS_TEXT, TOP_BAR, TUNED_BADGE } from './uiConstants';
+import { BUILD_LABEL, CONTROLS_HINT, FONT, GAME_TITLE, HUD, SPEED_BADGE, STATUS_TEXT, TOP_BAR, TUNED_BADGE } from './uiConstants';
 
 export interface HudView {
   playerSide: Side;
@@ -161,6 +163,11 @@ function drawSidePanel(ctx: CanvasRenderingContext2D, state: BattleState, view: 
     ctx.fillText('+'.repeat(calls) + '·'.repeat(Math.max(0, 3 - calls)), x + HUD.panelWidth - 12, rowY);
     ctx.textAlign = 'left';
   });
+  ctx.font = FONT.debug;
+  ctx.fillStyle = PALETTE.textDim;
+  ctx.textAlign = 'right';
+  ctx.fillText(BUILD_VERSION, x + HUD.panelWidth - BUILD_LABEL.panelInset, HUD.top + BUILD_LABEL.panelBaseline);
+  ctx.textAlign = 'left';
   if (view.paused) {
     ctx.font = FONT.bodyBold;
     ctx.fillStyle = PALETTE.selection;

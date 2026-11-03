@@ -85,3 +85,11 @@ describe('formatReportMarkdown, speed', () => {
     expect(formatReportMarkdown(sample(), [])).toContain('- Speed: 1x\n');
   });
 });
+
+describe('formatReportMarkdown, build', () => {
+  it('lists the build right after the seed, dev when not given', () => {
+    const md = formatReportMarkdown(sample(), [], 0.5, '0.1.0+b11b13d 2026-11-03');
+    expect(md).toContain('- Seed: 7\n- Build: 0.1.0+b11b13d 2026-11-03\n');
+    expect(formatReportMarkdown(sample(), [])).toContain('- Build: dev\n');
+  });
+});

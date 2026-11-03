@@ -132,3 +132,12 @@ describe('formatDebugHeader, speed', () => {
     ]);
   });
 });
+
+describe('formatDebugHeader, build', () => {
+  it('ends with the build line when given one', () => {
+    const state = createBattle({ seed: 7 });
+    const lines = formatDebugHeader(state, { seed: 7, paused: true, hash: 1, build: '0.1.0+b11b13d 2026-11-03' });
+    expect(lines[lines.length - 1]).toBe('build 0.1.0+b11b13d 2026-11-03');
+    expect(formatDebugHeader(state, { seed: 7, paused: true, hash: 1 })).toHaveLength(3);
+  });
+});

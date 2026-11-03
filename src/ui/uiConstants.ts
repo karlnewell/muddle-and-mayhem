@@ -4,7 +4,7 @@
  * code.
  */
 import { FONT_FAMILY } from '../render/palette';
-import { FIELD_HEIGHT, HUD_HEIGHT, LOGICAL_WIDTH, TOP_BAR_HEIGHT } from '../render/renderConstants';
+import { FIELD_HEIGHT, HUD_HEIGHT, LOGICAL_HEIGHT, LOGICAL_WIDTH, TOP_BAR_HEIGHT } from '../render/renderConstants';
 
 export const GAME_TITLE = 'Muddle & Mayhem';
 
@@ -83,6 +83,15 @@ export const SPEED_SELECTOR = {
 
 /** The title screen's controls list starts at this baseline, below the speed selector. */
 export const TITLE_CONTROLS_TOP = 700;
+
+/** The build version, small and dim: bottom-right of the title screen, and inside the bottom of the HUD's side panel in battle. */
+export const BUILD_LABEL = {
+  titleRight: LOGICAL_WIDTH - 12,
+  titleBaseline: LOGICAL_HEIGHT - 12,
+  panelInset: 12,
+  /** Below the HUD's top edge: six pixels above the bottom of the side panel. */
+  panelBaseline: HUD.cardY + HUD.cardHeight - 6,
+} as const;
 
 export const BUTTON = {
   width: 260,

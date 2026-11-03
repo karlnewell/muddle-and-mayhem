@@ -30,6 +30,7 @@ import { INITIAL_SCREEN, reduceScreen } from '../ui/screens';
 import type { ScreenEvent, ScreenState } from '../ui/screens';
 import { speedFromButton } from '../ui/speedSelector';
 import { drawTitle, titleSpeedRects } from '../ui/title';
+import { BUILD_VERSION } from './buildVersion';
 import { nextSeed } from './seed';
 import type { SeedChoice } from './seed';
 import { createSession } from './session';
@@ -117,7 +118,7 @@ export function createApp(initialSeed: SeedChoice, random: () => number, options
   }
 
   function report(): string | null {
-    return session === null ? null : formatReportMarkdown(session.stats(), session.log, speed.speed);
+    return session === null ? null : formatReportMarkdown(session.stats(), session.log, speed.speed, BUILD_VERSION);
   }
 
   /** Hand the report to the clipboard callback; the label follows the outcome, and a stale battle's answer is ignored. */
@@ -305,7 +306,7 @@ export function createApp(initialSeed: SeedChoice, random: () => number, options
     }
     if (debugOverlay) {
       // Drawn last so it stays readable over the menu and result panels.
-      drawDebugOverlay(ctx, state, { seed: session.seed, paused: session.paused, hash: hashState(state), tuning, speed });
+      drawDebugOverlay(ctx, state, { seed: session.seed, paused: session.paused, hash: hashState(state), tuning, speed, build: BUILD_VERSION });
     }
   }
 

@@ -7,9 +7,12 @@
 import { hashState } from '../sim';
 import type { TuningOverrides, Vec2 } from '../sim';
 import type { App } from './app';
+import { BUILD_VERSION } from './buildVersion';
 
 export interface DebugHook {
   readonly seed: number;
+  /** The build version (`0.1.0+b11b13d 2026-11-03`, or `dev`), as the report's Build line gives it. */
+  readonly build: string;
   readonly tick: number;
   readonly paused: boolean;
   readonly winner: string | null;
@@ -50,6 +53,9 @@ export function createDebugHook(app: App, logicalToClient: (x: number, y: number
   return {
     get seed() {
       return app.session?.seed ?? app.seedChoice.seed;
+    },
+    get build() {
+      return BUILD_VERSION;
     },
     get tick() {
       return app.session?.state.tick ?? 0;
