@@ -33,3 +33,15 @@ export const MUZZLE_FLASH_TICKS = 3;
 export const LOB_ARC_HEIGHT = 64;
 /** Rockets draw a trail this many logical pixels long. */
 export const ROCKET_TRAIL = 18;
+
+/**
+ * The volley cue: lines from each ordered soldier to the target, a ring on
+ * the target and a VOLLEY label. Real milliseconds, not ticks, so it shows
+ * when the volley is given while paused and lasts the same at any speed.
+ */
+export const VOLLEY_CUE_MS = 600;
+export const VOLLEY_LINE_WIDTH = 3;
+/** The target ring grows from the soldier ring radius by this many logical pixels. */
+export const VOLLEY_RING_GROWTH = 18;
+/** The VOLLEY label sits this far above the target's centre. */
+export const VOLLEY_LABEL_OFFSET = 30;
