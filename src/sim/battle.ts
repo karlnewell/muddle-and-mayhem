@@ -8,7 +8,7 @@ import type { BattleState, Command, TileMap } from './types';
 import { MEDIC_CALLS } from './constants';
 import { applyCommand } from './commands';
 import { applyFlame } from './flame';
-import { CROSSROADS } from './maps/crossroads';
+import { DEFAULT_MAP } from './maps/registry';
 import { advanceMedics } from './medic';
 import { moveSoldiers } from './movement';
 import { advanceProjectiles } from './projectiles';
@@ -23,9 +23,9 @@ export interface BattleOptions {
   map?: TileMap;
 }
 
-/** A fresh battle at tick 0 on the given map (Crossroads by default), seeded for replay. */
+/** A fresh battle at tick 0 on the given map (`DEFAULT_MAP` when none is given), seeded for replay. */
 export function createBattle(options: BattleOptions): BattleState {
-  const map = options.map ?? CROSSROADS;
+  const map = options.map ?? DEFAULT_MAP;
   return {
     tick: 0,
     seed: options.seed,

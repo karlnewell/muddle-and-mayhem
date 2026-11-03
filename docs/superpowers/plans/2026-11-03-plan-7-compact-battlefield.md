@@ -73,10 +73,10 @@ export const DEFAULT_MAP: TileMap;
 export function mapIdOf(map: TileMap): MapId | null;
 ```
 
-- [ ] **Step 1: Failing tests.** `compactCrossroads.test.ts`: width 26, height 15, `tiles.length` 390, rows all 26 long; `tiles[y*26+x] === tiles[y*26+25-x]` and `tiles[y*26+x] === tiles[(14-y)*26+x]` for every tile; five spawns per side on open tiles, blue in column 1 and red in column 24, rows 3, 5, 7, 9, 11; road rows 6 to 8 and columns 11 to 14 entirely open; walls, crates and trees all present; `findPath` from every blue spawn tile to every red spawn tile returns a non-empty path; line of sight symmetric over every tile-centre pair (reuse the sweep from `tests/sim/los.test.ts`, moved to a shared helper if needed). `mapRegistry.test.ts`: `MAPS.crossroads === CROSSROADS`, `MAPS.compact === COMPACT_CROSSROADS`, `MAP_IDS` lists both, `mapIdOf` of each map is its id, `mapIdOf(parseMap('Other', …))` is null, `DEFAULT_MAP === MAPS[DEFAULT_MAP_ID]`.
-- [ ] **Step 2: Run `npx vitest run tests/sim/compactCrossroads.test.ts tests/sim/mapRegistry.test.ts`; expect failures on the missing modules.**
-- [ ] **Step 3: Implement** the two files with a header comment in the Crossroads style; `battle.ts` defaults to `DEFAULT_MAP` (still Crossroads, so nothing changes).
-- [ ] **Step 4: `npm run check` green.** Commit `Compact Crossroads map and map registry`.
+- [x] **Step 1: Failing tests.** `compactCrossroads.test.ts`: width 26, height 15, `tiles.length` 390, rows all 26 long; `tiles[y*26+x] === tiles[y*26+25-x]` and `tiles[y*26+x] === tiles[(14-y)*26+x]` for every tile; five spawns per side on open tiles, blue in column 1 and red in column 24, rows 3, 5, 7, 9, 11; road rows 6 to 8 and columns 11 to 14 entirely open; walls, crates and trees all present; `findPath` from every blue spawn tile to every red spawn tile returns a non-empty path; line of sight symmetric over every tile-centre pair (reuse the sweep from `tests/sim/los.test.ts`, moved to a shared helper if needed). `mapRegistry.test.ts`: `MAPS.crossroads === CROSSROADS`, `MAPS.compact === COMPACT_CROSSROADS`, `MAP_IDS` lists both, `mapIdOf` of each map is its id, `mapIdOf(parseMap('Other', …))` is null, `DEFAULT_MAP === MAPS[DEFAULT_MAP_ID]`.
+- [x] **Step 2: Run `npx vitest run tests/sim/compactCrossroads.test.ts tests/sim/mapRegistry.test.ts`; expect failures on the missing modules.**
+- [x] **Step 3: Implement** the two files with a header comment in the Crossroads style; `battle.ts` defaults to `DEFAULT_MAP` (still Crossroads, so nothing changes).
+- [x] **Step 4: `npm run check` green.** Commit `Compact Crossroads map and map registry`.
 
 ### Task 3: Measure on either map, hold-line posts per map (PR 2)
 
@@ -91,12 +91,12 @@ export const HOLD_POSTS: Readonly<Record<MapId, Readonly<Record<SoldierClass, Ti
 export function holdTiles(map: TileMap): Readonly<Record<SoldierClass, TileCoord>>; // throws `no hold-line posts for map <name>`
 ```
 
-- [ ] **Step 1: Failing tests.** Replace `HOLD_TILES` with `HOLD_POSTS.crossroads` (same five tiles as today); for every map id the posts are five distinct open tiles; the compact posts have `tx <= 7` (west of or beside the left wall arms' west end at column 7) and lie on rows 3 to 11; `holdTiles(MAPS.compact)` equals `HOLD_POSTS.compact`; `holdTiles(parseMap('Other', rows))` throws `/no hold-line posts/`; a hold-line battle on `MAPS.compact` opens with five move commands to the compact posts and replays bit for bit with the map given.
-- [ ] **Step 2: Run; expect failures.**
-- [ ] **Step 3: Implement.** `holdTiles` via `mapIdOf`. Measure: `--map=crossroads|compact` (anything else throws `unknown map`), default `DEFAULT_MAP_ID`, passed to `runBattle`; header prints `map <id>`; usage comment updated.
-- [ ] **Step 4: Choose the compact posts.** Measure two or three candidate sets with `npm run measure -- --map=compact --blue=holdline` (seeds 1 to 60), starting from the Crossroads pattern moved to the new geometry: Gunner and Chucker on the west faces of the wall arms (column 6, rows 5 and 9), Scorcher at the road mouth (6, 7), Launcher rearmost on the road axis, Blaster beside a road-mouth crate. Record each set's blue wins, median length and red downs per battle; keep the set that plays most like a person holding the mouth (not the one that games the number), and say why in the decision line.
-- [ ] **Step 5: Baseline tables.** On both maps, `--blue=ai`, `passive`, `holdline`: blue wins, median length, first damage, red downs per battle, per-class share of downs. Into the PR body and a decision line.
-- [ ] **Step 6: `npm run check` green.** Commit `Measure on either map; hold-line posts for Compact Crossroads`. Open PR 2 "Compact Crossroads" from this branch, noting it is cut from PR 1's branch.
+- [x] **Step 1: Failing tests.** Replace `HOLD_TILES` with `HOLD_POSTS.crossroads` (same five tiles as today); for every map id the posts are five distinct open tiles; the compact posts have `tx <= 7` (west of or beside the left wall arms' west end at column 7) and lie on rows 3 to 11; `holdTiles(MAPS.compact)` equals `HOLD_POSTS.compact`; `holdTiles(parseMap('Other', rows))` throws `/no hold-line posts/`; a hold-line battle on `MAPS.compact` opens with five move commands to the compact posts and replays bit for bit with the map given.
+- [x] **Step 2: Run; expect failures.**
+- [x] **Step 3: Implement.** `holdTiles` via `mapIdOf`. Measure: `--map=crossroads|compact` (anything else throws `unknown map`), default `DEFAULT_MAP_ID`, passed to `runBattle`; header prints `map <id>`; usage comment updated.
+- [x] **Step 4: Choose the compact posts.** Measure two or three candidate sets with `npm run measure -- --map=compact --blue=holdline` (seeds 1 to 60), starting from the Crossroads pattern moved to the new geometry: Gunner and Chucker on the west faces of the wall arms (column 6, rows 5 and 9), Scorcher at the road mouth (6, 7), Launcher rearmost on the road axis, Blaster beside a road-mouth crate. Record each set's blue wins, median length and red downs per battle; keep the set that plays most like a person holding the mouth (not the one that games the number), and say why in the decision line.
+- [x] **Step 5: Baseline tables.** On both maps, `--blue=ai`, `passive`, `holdline`: blue wins, median length, first damage, red downs per battle, per-class share of downs. Into the PR body and a decision line.
+- [x] **Step 6: `npm run check` green.** Commit `Measure on either map; hold-line posts for Compact Crossroads`. Open PR 2 "Compact Crossroads" from this branch, noting it is cut from PR 1's branch.
 
 ### Task 4: The compact battlefield on screen (PR 3)
 

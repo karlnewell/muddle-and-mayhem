@@ -17,13 +17,15 @@
  *   npm run measure -- --seeds=100 --blue=passive    a blue squad that never moves
  *   npm run measure -- --blue=holdline               a scripted blue squad that holds the left wall gap
  *   npm run measure -- --cap=300                     tick cap in seconds (default 600)
+ *   npm run measure -- --map=compact                 crossroads or compact (default: the game's default map)
+ *   npm run measure -- --first-seed=61 --seeds=120   another seed range
  *
  * Overrides are applied through `overrideTuning` in src/sim/constants.ts, so
  * every battle here runs the shipped code with the candidate values; the
  * same JSON in the game's `?tune=` parameter gives the same battle.
  */
-import type { BattleState, Command, Controller, Side, TuningOverrides } from '../src/sim/index.ts';
-import { CLASS_ORDER, SIDES, TICK_RATE, TILE_SIZE, createAi, overrideTuning, runBattle } from '../src/sim/index.ts';
+import type { BattleState, Command, Controller, MapId, Side, TuningOverrides } from '../src/sim/index.ts';
+import { CLASS_ORDER, DEFAULT_MAP_ID, MAPS, MAP_IDS, SIDES, TICK_RATE, TILE_SIZE, createAi, overrideTuning, runBattle } from '../src/sim/index.ts';
 import { createStatsCollector, sideTotals } from '../src/stats/battleStats.ts';
 import type { BattleStats, ClassStats } from '../src/stats/battleStats.ts';
 import { createHoldLine } from './holdline.mts';
@@ -35,6 +37,7 @@ interface Options {
   firstSeed: number;
   capSeconds: number;
   blue: BlueKind;
+  map: MapId;
   overrides: TuningOverrides;
 }
 
@@ -71,7 +74,7 @@ function countSwings(log: readonly Command[]): number {
 }
 
 function parseArgs(argv: readonly string[]): Options {
-  const options: Options = { seeds: 60, firstSeed: 1, capSeconds: 600, blue: 'ai', overrides: {} };
+  const options: Options = { seeds: 60, firstSeed: 1, capSeconds: 600, blue: 'ai', map: DEFAULT_MAP_ID, overrides: {} };
   const env = process.env.MM_OVERRIDES;
   if (env !== undefined && env !== '') {
     options.overrides = JSON.parse(env) as TuningOverrides;
@@ -85,6 +88,12 @@ function parseArgs(argv: readonly string[]): Options {
       options.capSeconds = Number(arg.slice('--cap='.length));
     } else if (arg === '--blue=passive' || arg === '--blue=ai' || arg === '--blue=holdline') {
       options.blue = arg.slice('--blue='.length) as BlueKind;
+    } else if (arg.startsWith('--map=')) {
+      const id = arg.slice('--map='.length) as MapId;
+      if (!MAP_IDS.includes(id)) {
+        throw new Error(`unknown map ${id}; expected one of ${MAP_IDS.join(', ')}`);
+      }
+      options.map = id;
     } else if (arg.startsWith('{')) {
       options.overrides = { ...options.overrides, ...(JSON.parse(arg) as TuningOverrides) };
     } else {
@@ -111,6 +120,7 @@ function measureBattle(seed: number, options: Options): Measured {
   const run = runBattle({
     seed,
     maxTicks: options.capSeconds * TICK_RATE,
+    map: MAPS[options.map],
     controllers: [blueController(options.blue, seed), createAi('red', seed)],
     onStep(state: BattleState) {
       collector.observe(state);
@@ -178,7 +188,7 @@ function report(all: readonly Measured[], options: Options): void {
   const downs = (s: BattleStats, side: Side): number => sideTotals(s, side).timesDowned;
   const medics = (s: BattleStats, side: Side): number => sideTotals(s, side).medicCalls;
 
-  console.log(`seeds ${options.firstSeed}..${options.firstSeed + options.seeds - 1}, blue ${options.blue}, cap ${options.capSeconds}s`);
+  console.log(`seeds ${options.firstSeed}..${options.firstSeed + options.seeds - 1}, map ${options.map}, blue ${options.blue}, cap ${options.capSeconds}s`);
   console.log(`overrides ${JSON.stringify(options.overrides)}`);
   console.log('');
   row('battle length (s) median', seconds(median(lengths)));

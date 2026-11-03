@@ -3,6 +3,7 @@ import { TILE_SIZE } from '../../src/sim/constants';
 import { firstCoverHit, hasLineOfSight } from '../../src/sim/los';
 import { isBlocked, parseMap, tileCenter } from '../../src/sim/map';
 import { CROSSROADS } from '../../src/sim/maps/crossroads';
+import { COMPACT_CROSSROADS } from '../../src/sim/maps/compactCrossroads';
 import type { TileMap } from '../../src/sim/types';
 
 // A 10 by 6 map with a vertical wall at column 5, rows 1 to 4, and a gap
@@ -257,6 +258,12 @@ describe('symmetry sweeps over every pair of open tile centres', () => {
   it('is symmetric on Crossroads', () => {
     const result = sweep(CROSSROADS);
     expect(result.pairs).toBeGreaterThan(100000);
+    expect(result.asymmetric).toBe(0);
+  });
+
+  it('is symmetric on Compact Crossroads', () => {
+    const result = sweep(COMPACT_CROSSROADS);
+    expect(result.pairs).toBeGreaterThan(30000);
     expect(result.asymmetric).toBe(0);
   });
 });

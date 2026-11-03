@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
-import { HOLD_TILES, createHoldLine, focusTarget } from '../../scripts/holdline.mts';
+import { HOLD_POSTS, createHoldLine, focusTarget, holdTiles } from '../../scripts/holdline.mts';
 import {
-  AI_THINK_TICKS, CLASS_ORDER, CROSSROADS, createAi, createBattle, hashState, isBlocked, replayBattle, runBattle, step, tileCenter,
+  AI_THINK_TICKS, CLASS_ORDER, CROSSROADS, MAPS, MAP_IDS, parseMap, createAi, createBattle, hashState, isBlocked, replayBattle, runBattle, step, tileCenter,
 } from '../../src/sim';
 import type { BattleState, Command, Soldier } from '../../src/sim';
 
@@ -29,24 +29,68 @@ function atPosts(state: BattleState): void {
   }
 }
 
+/** The Crossroads posts, which every test below that does not name a map uses. */
+const HOLD_TILES = HOLD_POSTS.crossroads;
+
 const blueOf = (log: readonly Command[]): Command[] => log.filter((c) => c.side === 'blue');
 
-describe('HOLD_TILES', () => {
-  it('are distinct open tiles west of the left wall arms', () => {
-    const seen = new Set<string>();
-    for (const cls of CLASS_ORDER) {
-      const t = HOLD_TILES[cls];
-      expect(isBlocked(CROSSROADS, t.tx, t.ty)).toBe(false);
-      expect(t.tx).toBeLessThanOrEqual(11);
-      seen.add(`${t.tx},${t.ty}`);
+describe('HOLD_POSTS', () => {
+  it('are five distinct open tiles on every map', () => {
+    for (const id of MAP_IDS) {
+      const seen = new Set<string>();
+      for (const cls of CLASS_ORDER) {
+        const t = HOLD_POSTS[id][cls];
+        expect(isBlocked(MAPS[id], t.tx, t.ty)).toBe(false);
+        seen.add(`${t.tx},${t.ty}`);
+      }
+      expect(seen.size).toBe(CLASS_ORDER.length);
     }
-    expect(seen.size).toBe(CLASS_ORDER.length);
+  });
+
+  it('sit west of the left wall arms on Crossroads', () => {
+    for (const cls of CLASS_ORDER) {
+      expect(HOLD_POSTS.crossroads[cls].tx).toBeLessThanOrEqual(11);
+    }
+  });
+
+  it('sit at the left road mouth on Compact Crossroads, no further east than the wall arms begin', () => {
+    for (const cls of CLASS_ORDER) {
+      const t = HOLD_POSTS.compact[cls];
+      expect(t.tx).toBeLessThanOrEqual(7);
+      expect(t.ty).toBeGreaterThanOrEqual(3);
+      expect(t.ty).toBeLessThanOrEqual(11);
+    }
+  });
+
+  it('are looked up by map, and a map without posts throws', () => {
+    expect(holdTiles(MAPS.compact)).toBe(HOLD_POSTS.compact);
+    expect(holdTiles(CROSSROADS)).toBe(HOLD_POSTS.crossroads);
+    const other = parseMap('Other', ['b.r', 'b.r', 'b.r', 'b.r', 'b.r']);
+    expect(() => holdTiles(other)).toThrow(/no hold-line posts/);
+  });
+});
+
+describe('createHoldLine on Compact Crossroads', () => {
+  it('opens by sending every soldier to its compact post', () => {
+    const state = createBattle({ seed: 1, map: MAPS.compact });
+    const commands = createHoldLine('blue').think(state);
+    expect(commands).toHaveLength(5);
+    for (const s of state.soldiers.filter((x) => x.side === 'blue')) {
+      const c = tileCenter(HOLD_POSTS.compact[s.cls].tx, HOLD_POSTS.compact[s.cls].ty);
+      expect(commands).toContainEqual({ tick: 0, side: 'blue', type: 'move', soldierIds: [s.id], x: c.x, y: c.y });
+    }
+  });
+
+  it('replays bit for bit with the map given', () => {
+    const run = runBattle({ seed: 7, maxTicks: 18000, map: MAPS.compact, controllers: [createHoldLine('blue'), createAi('red', 7)] });
+    expect(run.state.winner).not.toBeNull();
+    expect(hashState(replayBattle(7, run.log, run.ticks, MAPS.compact))).toBe(hashState(run.state));
   });
 });
 
 describe('createHoldLine', () => {
   it('opens by sending every soldier to its post', () => {
-    const state = createBattle({ seed: 1 });
+    const state = createBattle({ seed: 1, map: CROSSROADS });
     const commands = createHoldLine('blue').think(state);
     expect(commands).toHaveLength(5);
     for (const s of state.soldiers.filter((x) => x.side === 'blue')) {
@@ -57,19 +101,19 @@ describe('createHoldLine', () => {
 
   it('is deterministic and replays bit for bit', () => {
     const run = (): ReturnType<typeof runBattle> =>
-      runBattle({ seed: 7, maxTicks: 18000, controllers: [createHoldLine('blue'), createAi('red', 7)] });
+      runBattle({ seed: 7, maxTicks: 18000, map: CROSSROADS, controllers: [createHoldLine('blue'), createAi('red', 7)] });
     const a = run();
     const b = run();
     expect(a.state.winner).not.toBeNull();
     expect(hashState(a.state)).toBe(hashState(b.state));
     expect(a.log).toEqual(b.log);
-    expect(hashState(replayBattle(7, a.log, a.ticks))).toBe(hashState(a.state));
+    expect(hashState(replayBattle(7, a.log, a.ticks, CROSSROADS))).toBe(hashState(a.state));
     expect(blueOf(a.log).length).toBeLessThan(a.ticks / AI_THINK_TICKS);
   });
 
   it('issues nothing after the opening moves while the enemy stays out of reach', () => {
     // Red stands at its spawns and gets no orders: too far for anyone to fire, so blue walks to its posts and waits.
-    const state = createBattle({ seed: 1 });
+    const state = createBattle({ seed: 1, map: CROSSROADS });
     const blue = createHoldLine('blue');
     const log: Command[] = [];
     for (let i = 0; i < 600; i++) {
@@ -82,7 +126,7 @@ describe('createHoldLine', () => {
   });
 
   it('calls the medic for a body no enemy has in range, by revive priority', () => {
-    const state = createBattle({ seed: 1 });
+    const state = createBattle({ seed: 1, map: CROSSROADS });
     down(state, 0);
     down(state, 1);
     const commands = createHoldLine('blue').think(state);
@@ -91,7 +135,7 @@ describe('createHoldLine', () => {
   });
 
   it('leaves a body alone while an enemy has it in range, unless only one soldier stands', () => {
-    const state = createBattle({ seed: 1 });
+    const state = createBattle({ seed: 1, map: CROSSROADS });
     down(state, 1);
     const body = state.soldiers[1];
     place(state.soldiers[5], body.x + 100, body.y);
@@ -104,7 +148,7 @@ describe('createHoldLine', () => {
   });
 
   it('focuses fire on the enemy a majority can fire at and leaves the rest holding', () => {
-    const state = createBattle({ seed: 1 });
+    const state = createBattle({ seed: 1, map: CROSSROADS });
     atPosts(state);
     // One red soldier just inside the road mouth; the other four stay at their spawns, out of everyone's range,
     // so blue does not outnumber red and the hold rules apply. From the posts, the Launcher sees it down the
@@ -126,7 +170,7 @@ describe('createHoldLine', () => {
   });
 
   it('has no focus when fewer than a majority can fire', () => {
-    const state = createBattle({ seed: 1 });
+    const state = createBattle({ seed: 1, map: CROSSROADS });
     atPosts(state);
     const enemy = state.soldiers[5]; // at its spawn, far to the east
     const own = state.soldiers.filter((s) => s.side === 'blue');
@@ -134,7 +178,7 @@ describe('createHoldLine', () => {
   });
 
   it('advances on the nearest enemy with every soldier once it outnumbers the enemy', () => {
-    const state = createBattle({ seed: 1 });
+    const state = createBattle({ seed: 1, map: CROSSROADS });
     atPosts(state);
     for (let id = 7; id < 10; id++) down(state, id);
     const commands = createHoldLine('blue').think(state);
@@ -144,7 +188,7 @@ describe('createHoldLine', () => {
   });
 
   it('does not repeat an order a soldier already holds', () => {
-    const state = createBattle({ seed: 1 });
+    const state = createBattle({ seed: 1, map: CROSSROADS });
     atPosts(state);
     for (let id = 7; id < 10; id++) down(state, id);
     const blue = createHoldLine('blue');
