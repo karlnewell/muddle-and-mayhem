@@ -55,7 +55,7 @@ export const TUNED_BADGE = {
   radius: 4,
 } as const;
 
-/** The SPEED badge, just right of the TUNED badge's place, shown while `?speed=` is below 1. */
+/** The SPEED badge, just right of the TUNED badge's place, shown while the speed is not the half-speed default. */
 export const SPEED_BADGE = {
   x: TUNED_BADGE.x + TUNED_BADGE.w + 8,
   y: TUNED_BADGE.y,
@@ -63,6 +63,26 @@ export const SPEED_BADGE = {
   h: TUNED_BADGE.h,
   radius: TUNED_BADGE.radius,
 } as const;
+
+/**
+ * The game speed selector on the title screen and in the Esc menu: three
+ * segments side by side, a label above and a key hint below. `titleTop`
+ * is the segments' top edge on the title screen; in the menu they sit
+ * `menuGap` below the last button.
+ */
+export const SPEED_SELECTOR = {
+  segmentWidth: 84,
+  height: 36,
+  gap: 6,
+  radius: 6,
+  labelGap: 10,
+  hintGap: 20,
+  titleTop: 606,
+  menuGap: 42,
+} as const;
+
+/** The title screen's controls list starts at this baseline, below the speed selector. */
+export const TITLE_CONTROLS_TOP = 700;
 
 export const BUTTON = {
   width: 260,

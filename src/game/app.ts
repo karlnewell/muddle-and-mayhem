@@ -23,17 +23,18 @@ import { formatReportMarkdown, formatReportRows } from '../stats/reportText';
 import { hitButton } from '../ui/buttons';
 import { drawDebugOverlay } from '../ui/debugOverlay';
 import { drawHud, hudCardRects } from '../ui/hud';
-import { drawMenu, menuButtons } from '../ui/menu';
+import { drawMenu, menuButtons, menuSpeedRects } from '../ui/menu';
 import { drawResult, resultButtons } from '../ui/result';
 import type { CopyState } from '../ui/result';
 import { INITIAL_SCREEN, reduceScreen } from '../ui/screens';
 import type { ScreenEvent, ScreenState } from '../ui/screens';
-import { drawTitle } from '../ui/title';
+import { speedFromButton } from '../ui/speedSelector';
+import { drawTitle, titleSpeedRects } from '../ui/title';
 import { nextSeed } from './seed';
 import type { SeedChoice } from './seed';
 import { createSession } from './session';
 import type { BattleSession } from './session';
-import { FULL_SPEED } from './speed';
+import { DEFAULT_SPEED_STATUS, stepSpeed } from './speed';
 import type { SpeedStatus } from './speed';
 import { NO_TUNING } from './tuning';
 import type { TuneStatus } from './tuning';
@@ -45,8 +46,10 @@ export interface AppOptions {
   debugOverlay?: boolean;
   /** The `?tune=` status, already applied by the caller; shown as the TUNED badge and in the overlay. */
   tuning?: TuneStatus;
-  /** The `?speed=` status: the factor every battle's stepper scales real time by, shown as the SPEED badge. */
+  /** The starting speed status (URL, stored choice or default): the factor the stepper scales real time by. */
   speed?: SpeedStatus;
+  /** Remember a speed the player picked on the title screen or in the menu. */
+  saveSpeed?: (speed: number) => void;
   /**
    * Put the report text where the player can take it: resolve true when the
    * clipboard took it, false when it was shown another way (the DOM fallback).
@@ -65,7 +68,7 @@ export interface App {
   readonly debugOverlay: boolean;
   /** The `?tune=` overrides in force, if any, and any parse error. */
   readonly tuning: TuneStatus;
-  /** The `?speed=` factor in force and any parse error. */
+  /** The speed in force and any `?speed=` parse error. */
   readonly speed: SpeedStatus;
   /** What the Copy report button says about its last press. */
   readonly copyState: CopyState;
@@ -91,7 +94,8 @@ export function createApp(initialSeed: SeedChoice, random: () => number, options
   const renderer = createTopDownRenderer();
   let debugOverlay = options.debugOverlay === true;
   const tuning = options.tuning ?? NO_TUNING;
-  const speed = options.speed ?? FULL_SPEED;
+  let speed = options.speed ?? DEFAULT_SPEED_STATUS;
+  const saveSpeed = options.saveSpeed ?? (() => undefined);
   const copyText = options.copyText ?? (() => Promise.resolve(false));
   let copyState: CopyState = 'idle';
   let screen: ScreenState = INITIAL_SCREEN;
@@ -135,6 +139,25 @@ export function createApp(initialSeed: SeedChoice, random: () => number, options
         }
       },
     );
+  }
+
+  /** The player picked a speed: it applies to the battle in progress at once, and to every later one. */
+  function setSpeed(next: number): void {
+    if (next === speed.speed) {
+      return;
+    }
+    speed = { ...speed, speed: next };
+    session?.setSpeed(next);
+    saveSpeed(next);
+  }
+
+  /** Left and Right arrows step the speed on the title screen and in the menu. */
+  function speedKey(key: string): boolean {
+    if (key !== 'ArrowLeft' && key !== 'ArrowRight') {
+      return false;
+    }
+    setSpeed(stepSpeed(speed.speed, key === 'ArrowLeft' ? -1 : 1));
+    return true;
   }
 
   function dispatch(e: ScreenEvent): void {
@@ -208,6 +231,11 @@ export function createApp(initialSeed: SeedChoice, random: () => number, options
       if (button !== 'left') {
         return;
       }
+      const picked = speedFromButton(hitButton(menuSpeedRects(), x, y));
+      if (picked !== null) {
+        setSpeed(picked);
+        return;
+      }
       const id = hitButton(menuButtons(), x, y);
       if (id === 'resume') {
         dispatch('closeMenu');
@@ -264,7 +292,7 @@ export function createApp(initialSeed: SeedChoice, random: () => number, options
     ctx.fillStyle = PALETTE.pageBackground;
     ctx.fillRect(0, 0, LOGICAL_WIDTH, LOGICAL_HEIGHT);
     if (screen.screen === 'title' || session === null) {
-      drawTitle(ctx);
+      drawTitle(ctx, speed.speed);
       return;
     }
     const state = session.state;
@@ -273,7 +301,7 @@ export function createApp(initialSeed: SeedChoice, random: () => number, options
     if (screen.screen === 'result') {
       drawResult(ctx, state, PLAYER_SIDE, { rows: formatReportRows(session.stats()), copyState });
     } else if (screen.menuOpen) {
-      drawMenu(ctx);
+      drawMenu(ctx, speed.speed);
     }
     if (debugOverlay) {
       // Drawn last so it stays readable over the menu and result panels.
@@ -328,7 +356,13 @@ export function createApp(initialSeed: SeedChoice, random: () => number, options
     },
     click(x: number, y: number, button: Button, shift: boolean): void {
       if (screen.screen === 'title') {
-        if (button === 'left') {
+        if (button !== 'left') {
+          return;
+        }
+        const picked = speedFromButton(hitButton(titleSpeedRects(), x, y));
+        if (picked !== null) {
+          setSpeed(picked);
+        } else {
           dispatch('start');
         }
         return;
@@ -341,12 +375,15 @@ export function createApp(initialSeed: SeedChoice, random: () => number, options
     },
     key(key: string, shift: boolean, cursor: { x: number; y: number } | null = null): boolean {
       if (screen.screen === 'title' || session === null) {
-        return false;
+        return screen.screen === 'title' && speedKey(key);
       }
       if (screen.screen === 'result' || screen.menuOpen) {
         // Orders are off while the menu or the result panel is up; Escape closes the menu and D still toggles the overlay.
         if (screen.menuOpen && key === MENU_KEY) {
           dispatch('closeMenu');
+          return true;
+        }
+        if (screen.menuOpen && speedKey(key)) {
           return true;
         }
         if (interpretKey(session.state, selection, key, shift, PLAYER_SIDE).toggleDebug === true) {

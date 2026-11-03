@@ -31,15 +31,21 @@ while paused are taken at once and shown as faint markers.
 | H | Hold position and fire at anything in range |
 | M | Call the medic for a selected downed soldier |
 | Space | Pause and resume |
-| Esc | Menu: resume, restart, back to the title |
+| Esc | Menu: resume, restart, back to the title, game speed |
+| Left / Right arrows | On the title screen or in the menu, step the game speed between 0.5x, 0.75x and 1x |
 
 Walls, crates and trees block movement and straight shots. Grenades and
 dynamite go over them. Rockets, flame and dynamite can kill outright; a
 killed soldier leaves ash and no medic can help.
 
-Add `?speed=0.5` (or `0.75`) to the URL to slow the game down while you
-learn it: the battle is exactly the same, only slower on screen, and a
-SPEED badge in the top bar says so. Any other value runs at full speed and
+The game runs at **half speed** by default. Pick 0.5x, 0.75x or 1x with
+the Game speed selector on the title screen or in the Esc menu (click a
+segment, or use the Left and Right arrow keys); the choice applies at once
+and is remembered in this browser. The battle is exactly the same at any
+speed, only slower on screen. A SPEED badge in the top bar shows whenever
+the speed is not 0.5x, and the copied report always lists it. Add
+`?speed=0.5`, `0.75` or `1` to the URL to override the remembered choice
+for that visit; any other value falls back to it (or to half speed) and
 the debug overlay says why.
 
 Add `?seed=123` to the URL to replay the same battle. The page exposes

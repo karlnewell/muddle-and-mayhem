@@ -17,7 +17,7 @@ export interface DebugHeaderInfo {
   hash: number;
   /** The `?tune=` status; absent or inactive with no error adds nothing. */
   tuning?: TuneStatus;
-  /** The `?speed=` status; full speed with no error adds nothing. */
+  /** The speed status: always a `speed` line, and the `?speed=` error when there is one. */
   speed?: SpeedStatus;
 }
 
@@ -97,15 +97,16 @@ export function formatSoldierRow(state: BattleState, s: Soldier): string {
   );
 }
 
-/** `speed 0.5x` when slowed, `speed error <message>` when rejected, nothing at full speed. */
+/** `speed 0.5x`, followed by `speed error <message>` when `?speed=` was rejected. */
 export function formatSpeedLines(speed: SpeedStatus): string[] {
+  const lines = [`speed ${formatSpeed(speed.speed)}`];
   if (speed.error !== null) {
-    return [`speed error ${speed.error}`];
+    lines.push(`speed error ${speed.error}`);
   }
-  return speed.speed === 1 ? [] : [`speed ${formatSpeed(speed.speed)}`];
+  return lines;
 }
 
-/** Seed, tick and clock, pause flag, medic calls per side, hash, the tune and speed lines when any, and the winner once set. */
+/** Seed, tick and clock, pause flag, medic calls per side, hash, the tune lines when any, the speed lines, and the winner once set. */
 export function formatDebugHeader(state: BattleState, info: DebugHeaderInfo): string[] {
   const lines = [
     `seed ${info.seed}   tick ${state.tick}   ${formatClock(state.tick)}   ${info.paused ? 'PAUSED' : 'RUNNING'}`,

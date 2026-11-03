@@ -138,4 +138,23 @@ describe('session speed', () => {
     expect(half.log).toEqual(full.log);
     expect(half.replayMatches()).toBe(true);
   });
+  it('changing speed mid-battle changes only how fast it steps, not what it steps', () => {
+    const full = createSession(242832287);
+    const mixed = createSession(242832287, {}, 0.5);
+    full.paused = false;
+    mixed.paused = false;
+    for (let i = 0; i < 120; i++) {
+      full.advance(1000 / 60);
+    }
+    for (let i = 0; i < 120; i++) {
+      mixed.advance(1000 / 60);
+    }
+    mixed.setSpeed(1);
+    for (let i = 0; i < 60; i++) {
+      mixed.advance(1000 / 60);
+    }
+    expect(mixed.state.tick).toBe(full.state.tick);
+    expect(hashState(mixed.state)).toBe(hashState(full.state));
+    expect(mixed.replayMatches()).toBe(true);
+  });
 });

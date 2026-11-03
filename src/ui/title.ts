@@ -1,7 +1,8 @@
 /**
  * The title screen (spec 4.7): the name, two placeholder portraits of the
- * rival generals, a Skirmish button, and the controls. Any click starts a
- * battle; the button is there so it is obvious where to click.
+ * rival generals, a Skirmish button, the game speed selector, and the
+ * controls. Any click off the selector starts a battle; the button is
+ * there so it is obvious where to click.
  */
 import { PALETTE, SIDE_COLOUR, SIDE_NAME } from '../render/palette';
 import { LOGICAL_HEIGHT, LOGICAL_WIDTH } from '../render/renderConstants';
@@ -9,10 +10,16 @@ import type { Side } from '../sim';
 import { stackButtons } from './buttons';
 import type { ButtonRect } from './buttons';
 import { drawButton } from './drawButtons';
-import { BUTTON, FONT, GAME_TITLE, TITLE_CONTROLS } from './uiConstants';
+import { drawSpeedSelector, speedSelectorRects } from './speedSelector';
+import { BUTTON, FONT, GAME_TITLE, SPEED_SELECTOR, TITLE_CONTROLS, TITLE_CONTROLS_TOP } from './uiConstants';
 
 export function titleButtons(): ButtonRect[] {
   return stackButtons([{ id: 'start', label: 'Skirmish' }], LOGICAL_WIDTH / 2, LOGICAL_HEIGHT * 0.56, BUTTON.width, BUTTON.height, BUTTON.gap);
+}
+
+/** The speed selector's segments on the title screen. */
+export function titleSpeedRects(): ButtonRect[] {
+  return speedSelectorRects(LOGICAL_WIDTH / 2, SPEED_SELECTOR.titleTop);
 }
 
 function drawPortrait(ctx: CanvasRenderingContext2D, side: Side, cx: number, cy: number, initial: string): void {
@@ -56,7 +63,7 @@ function drawPortrait(ctx: CanvasRenderingContext2D, side: Side, cx: number, cy:
   ctx.fillText(initial, cx, cy + r + 46);
 }
 
-export function drawTitle(ctx: CanvasRenderingContext2D): void {
+export function drawTitle(ctx: CanvasRenderingContext2D, speed: number): void {
   ctx.fillStyle = PALETTE.pageBackground;
   ctx.fillRect(0, 0, LOGICAL_WIDTH, LOGICAL_HEIGHT);
   ctx.fillStyle = PALETTE.text;
@@ -82,10 +89,12 @@ export function drawTitle(ctx: CanvasRenderingContext2D): void {
   ctx.font = FONT.small;
   ctx.textAlign = 'center';
   ctx.fillText('or click anywhere to start', LOGICAL_WIDTH / 2, LOGICAL_HEIGHT * 0.56 + BUTTON.height + 24);
+  drawSpeedSelector(ctx, LOGICAL_WIDTH / 2, SPEED_SELECTOR.titleTop, speed);
 
   ctx.font = FONT.body;
   ctx.fillStyle = PALETTE.text;
+  ctx.textAlign = 'center';
   TITLE_CONTROLS.forEach((line, i) => {
-    ctx.fillText(line, LOGICAL_WIDTH / 2, LOGICAL_HEIGHT * 0.7 + i * 26);
+    ctx.fillText(line, LOGICAL_WIDTH / 2, TITLE_CONTROLS_TOP + i * 26);
   });
 }

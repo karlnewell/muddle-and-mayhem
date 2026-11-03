@@ -66,6 +66,12 @@ describe('createFixedStepper', () => {
     expect(t.accumulate(TICK_MS)).toBe(0);
     expect(t.alpha()).toBeCloseTo(0.5, 9);
   });
+  it('takes a new speed from the next frame on', () => {
+    const s = createFixedStepper(TICK_MS, 250, 8, 0.5);
+    expect(s.accumulate(TICK_MS * 2)).toBe(1);
+    s.setSpeed(1);
+    expect(s.accumulate(TICK_MS * 2)).toBe(2);
+  });
   it('clamps the real frame before scaling it', () => {
     const s = createFixedStepper(TICK_MS, 250, 100, 0.5);
     expect(s.accumulate(5000)).toBe(3); // floor(125 / 33.33)
