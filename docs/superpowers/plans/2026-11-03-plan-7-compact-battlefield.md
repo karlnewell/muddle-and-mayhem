@@ -122,10 +122,10 @@ export function hudCardRects(playerSide: Side): ButtonRect[];   // five, stacked
 export function sidePanelRect(playerSide: Side): ButtonRect;
 ```
 
-- [ ] **Step 1: Failing tests.** `layout.test.ts`: `LOGICAL_WIDTH` 1032, `LOGICAL_HEIGHT` 520, field 832 × 480; `battleLayout('blue')` is `{ panelX: 0, fieldX: 200, top: 40 }` and `battleLayout('red')` `{ panelX: 832, fieldX: 0, top: 40 }`; the blue renderer's `worldToScreen(0, 0)` is (200, 40), `onField(199, 100)` false, `onField(200, 40)` true, `onField(1031, 519)` true. `hud.test.ts`: for both sides the five card rects lie inside `sidePanelRect`, are in slot order top to bottom, do not overlap, and leave at least 70 pixels below the last card for medic calls, pause status and build stamp. `app.test.ts`: in a battle, a left click at the centre of card *i* selects blue soldier *i* (and shift-click adds), a click in the panel below the cards selects nothing. `battle.test.ts`: `createBattle({ seed: 1 }).map` is `COMPACT_CROSSROADS`.
-- [ ] **Step 2: Run; expect failures.**
-- [ ] **Step 3: Implement.** Switch the default; derive sizes; the renderer takes the player side; `drawHud` draws the top bar across the full width, fills the panel, the stacked cards (content per decision 5), the medic calls, PAUSED and the build stamp; the controls hint is no longer drawn in battle; the paused banner and debug overlay centre or right-align on the field. Fix the tests that pinned Crossroads by default by passing `map: CROSSROADS` where the test is about Crossroads geometry.
-- [ ] **Step 4: `npm run check` green.** Commit `Compact Crossroads by default, side panel beside the field`.
+- [x] **Step 1: Failing tests.** `layout.test.ts`: `LOGICAL_WIDTH` 1032, `LOGICAL_HEIGHT` 520, field 832 × 480; `battleLayout('blue')` is `{ panelX: 0, fieldX: 200, top: 40 }` and `battleLayout('red')` `{ panelX: 832, fieldX: 0, top: 40 }`; the blue renderer's `worldToScreen(0, 0)` is (200, 40), `onField(199, 100)` false, `onField(200, 40)` true, `onField(1031, 519)` true. `hud.test.ts`: for both sides the five card rects lie inside `sidePanelRect`, are in slot order top to bottom, do not overlap, and leave at least 70 pixels below the last card for medic calls, pause status and build stamp. `app.test.ts`: in a battle, a left click at the centre of card *i* selects blue soldier *i* (and shift-click adds), a click in the panel below the cards selects nothing. `battle.test.ts`: `createBattle({ seed: 1 }).map` is `COMPACT_CROSSROADS`.
+- [x] **Step 2: Run; expect failures.**
+- [x] **Step 3: Implement.** Switch the default; derive sizes; the renderer takes the player side; `drawHud` draws the top bar across the full width, fills the panel, the stacked cards (content per decision 5), the medic calls, PAUSED and the build stamp; the controls hint is no longer drawn in battle; the paused banner and debug overlay centre or right-align on the field. Fix the tests that pinned Crossroads by default by passing `map: CROSSROADS` where the test is about Crossroads geometry.
+- [x] **Step 4: `npm run check` green.** Committed together with Task 5 (they share `uiConstants.ts`, and the result screen had to fit 520 before the suite could pass) as `Compact Crossroads by default, side panel beside the field, screens fitted to 520 high`.
 
 ### Task 5: Title, menu and result refitted to 520 (PR 3)
 
@@ -147,10 +147,10 @@ export function resultRowY(i: number): number;   // centre line of table row i
 ```
 (`Rect` is `{ x, y, w, h }`; reuse `ButtonRect`'s shape if one exists.)
 
-- [ ] **Step 1: Failing tests.** Title: every `titleLayout()` element inside 1032 × 520 and no two overlapping (portraits, start, hint, speed segments, controls block, build). Menu: panel inside the canvas; buttons, speed segments and both hint lines inside the panel; each hint line at `FONT.small` fits the panel width (count characters × 7.8). Result: panel inside the canvas; all thirteen `resultRowY` lines (header plus twelve) inside the panel and above the first button; all three buttons inside the panel and the canvas.
-- [ ] **Step 2: Run; expect failures.**
-- [ ] **Step 3: Implement.** Title: portraits flank the title text instead of sitting below it, Skirmish and its hint, the speed selector, then the controls list, build stamp bottom-right. Menu: wider, taller panel with the two hint lines at its foot. Result: panel 760 × 500, rows 15 high, tighter heading, standing and info lines, buttons stacked below the table.
-- [ ] **Step 4: `npm run check` green.** Commit `Title, menu and result screens fit 520 high`.
+- [x] **Step 1: Failing tests.** Title: every `titleLayout()` element inside 1032 × 520 and no two overlapping (portraits, start, hint, speed segments, controls block, build). Menu: panel inside the canvas; buttons, speed segments and both hint lines inside the panel; each hint line at `FONT.small` fits the panel width (count characters × 7.8). Result: panel inside the canvas; all thirteen `resultRowY` lines (header plus twelve) inside the panel and above the first button; all three buttons inside the panel and the canvas.
+- [x] **Step 2: Run; expect failures.**
+- [x] **Step 3: Implement.** Title: portraits flank the title text instead of sitting below it, Skirmish and its hint, the speed selector, then the controls list, build stamp bottom-right. Menu: wider, taller panel with the two hint lines at its foot. Result: panel 760 × 470 below the top bar (so the badges stay visible), rows 15 high, tighter heading, standing and info lines, buttons stacked below the table.
+- [x] **Step 4: `npm run check` green.** Commit `Title, menu and result screens fit 520 high`.
 
 ### Task 6: Reports name the map (PR 3)
 
@@ -158,20 +158,20 @@ export function resultRowY(i: number): number;   // centre line of table row i
 - Modify: `src/stats/reportText.ts`, `src/game/app.ts`
 - Test: `tests/stats/reportText.test.ts`, `tests/sim/replay.test.ts`
 
-- [ ] **Step 1: Failing tests.** `formatReportMarkdown(stats, log, 1, 'dev', 'compact')` contains `- Map: Compact Crossroads (\`compact\`)\n` after the build line and `replayBattle(<seed>, log, <ticks>, MAPS.compact)`; with `'crossroads'` it names `Crossroads` and `MAPS.crossroads`; with no fifth argument it uses `DEFAULT_MAP_ID`. Replay: a 900-tick AI-versus-AI battle on `MAPS.crossroads` replays to the same hash with `replayBattle(seed, log, 900, MAPS.crossroads)`, and the same call without the map does not match.
-- [ ] **Step 2: Run; expect failures.**
-- [ ] **Step 3: Implement**; the app passes `mapIdOf(session.state.map) ?? DEFAULT_MAP_ID`.
-- [ ] **Step 4: `npm run check` green.** Commit `Battle report names its map`.
+- [x] **Step 1: Failing tests.** `formatReportMarkdown(stats, log, 1, 'dev', 'compact')` contains `- Map: Compact Crossroads (\`compact\`)\n` after the build line and `replayBattle(<seed>, log, <ticks>, MAPS.compact)`; with `'crossroads'` it names `Crossroads` and `MAPS.crossroads`; with no fifth argument it uses `DEFAULT_MAP_ID`. Replay: a 900-tick AI-versus-AI battle on `MAPS.crossroads` replays to the same hash with `replayBattle(seed, log, 900, MAPS.crossroads)`, and the same call without the map does not match.
+- [x] **Step 2: Run; expect failures.**
+- [x] **Step 3: Implement**; the app passes `mapIdOf(session.state.map) ?? DEFAULT_MAP_ID`.
+- [x] **Step 4: `npm run check` green.** Commit `Battle report names its map`.
 
 ### Task 7: End to end, screenshots, README (PR 3)
 
 **Files:**
 - Modify: `e2e/play.spec.ts`, `e2e/tune.spec.ts`, `README.md`, `docs/screenshots/*.png`
 
-- [ ] **Step 1: Update the e2e tests** to the new layout: start, select a soldier by clicking it through `worldToClient`, order a move, finish via `advanceTicks`; the volley cue pixel check at the new target position; TUNED and SPEED badge pixel checks at their rects; any check that read "the bottom fifth is the HUD" reads the side panel instead.
-- [ ] **Step 2: `npm run build && PW_CHROMIUM_PATH=/opt/pw-browsers/chromium npm run test:e2e` green.**
-- [ ] **Step 3: Regenerate** title, battle, medic, result and debug screenshots with a short Playwright script against the build (not committed), and update README text that describes the map size, the layout or the HUD.
-- [ ] **Step 4: Decision lines** for decisions 4 to 7. Commit `End to end tests, screenshots and README for the compact battlefield`. Open PR 3 "Compact battlefield on screen", cut from PR 2's branch.
+- [x] **Step 1: Update the e2e tests** to the new layout: start, select a soldier by clicking it through `worldToClient`, order a move, finish via `advanceTicks`; the volley cue pixel check at the new target position; TUNED and SPEED badge pixel checks at their rects; any check that read "the bottom fifth is the HUD" reads the side panel instead.
+- [x] **Step 2: `npm run build && PW_CHROMIUM_PATH=/opt/pw-browsers/chromium npm run test:e2e` green.**
+- [x] **Step 3: Regenerate** title, battle, medic, result and debug screenshots with a short Playwright script against the build (not committed), and update README text that describes the map size, the layout or the HUD.
+- [x] **Step 4: Decision lines** for decisions 4 to 7. Commit `End to end tests, screenshots and README for the compact battlefield`. Open PR 3 "Compact battlefield on screen", cut from PR 2's branch.
 
 ### Task 8: Measure on Compact Crossroads; tune only where a guard fails; close
 

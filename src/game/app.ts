@@ -17,7 +17,7 @@ import { createTopDownRenderer } from '../render/renderer';
 import { startVolleyCue, volleyCueFromCommands, volleyCueProgress } from '../render/volleyCue';
 import type { VolleyCue } from '../render/volleyCue';
 import type { BattleRenderer } from '../render/renderer';
-import { hashState } from '../sim';
+import { DEFAULT_MAP_ID, hashState, mapIdOf } from '../sim';
 import type { Side } from '../sim';
 import { formatReportMarkdown, formatReportRows } from '../stats/reportText';
 import { hitButton } from '../ui/buttons';
@@ -92,7 +92,7 @@ export interface App {
 }
 
 export function createApp(initialSeed: SeedChoice, random: () => number, options: AppOptions = {}): App {
-  const renderer = createTopDownRenderer();
+  const renderer = createTopDownRenderer(PLAYER_SIDE);
   let debugOverlay = options.debugOverlay === true;
   const tuning = options.tuning ?? NO_TUNING;
   let speed = options.speed ?? DEFAULT_SPEED_STATUS;
@@ -118,7 +118,7 @@ export function createApp(initialSeed: SeedChoice, random: () => number, options
   }
 
   function report(): string | null {
-    return session === null ? null : formatReportMarkdown(session.stats(), session.log, speed.speed, BUILD_VERSION);
+    return session === null ? null : formatReportMarkdown(session.stats(), session.log, speed.speed, BUILD_VERSION, mapIdOf(session.state.map) ?? DEFAULT_MAP_ID);
   }
 
   /** Hand the report to the clipboard callback; the label follows the outcome, and a stale battle's answer is ignored. */
@@ -253,7 +253,7 @@ export function createApp(initialSeed: SeedChoice, random: () => number, options
       return;
     }
     if (button === 'left') {
-      const id = hitButton(hudCardRects(), x, y);
+      const id = hitButton(hudCardRects(PLAYER_SIDE), x, y);
       if (id !== null && id.startsWith('slot')) {
         const slot = Number(id.slice(4));
         applyInput(interpretKey(session.state, selection, SLOT_KEYS[slot], shift, PLAYER_SIDE));

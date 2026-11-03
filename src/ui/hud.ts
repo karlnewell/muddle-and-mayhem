@@ -1,14 +1,15 @@
 /**
- * The in-battle HUD (spec 4.8): a top bar with the clock, enemies standing
- * and the pause state; a bottom strip with five soldier cards for the
- * player's squad (slot number, name, class, HP bar, cooldown bar, status),
- * a side panel with both sides' medic calls and the build version, and a
- * controls hint. Cards
- * double as buttons: `hudCardRects` gives their rectangles so a click on
- * one selects that slot.
+ * The in-battle HUD (spec 4.8, Plan 7 layout): a top bar across the full
+ * width with the title, badges, clock and squad counts; and a side panel
+ * beside the field, on the player's side, with five soldier cards stacked
+ * in slot order (slot number, name, class, HP, HP bar, cooldown bar,
+ * status), both sides' medic calls, the pause status and the build
+ * version. Cards double as buttons: `hudCardRects` gives their rectangles
+ * so a click on one selects that slot. The controls hint lives on the
+ * title screen and in the Esc menu, not here.
  */
 import { CLASS_NAME, PALETTE, SIDE_COLOUR, SIDE_NAME } from '../render/palette';
-import { LOGICAL_WIDTH, TOP_BAR_HEIGHT } from '../render/renderConstants';
+import { FIELD_WIDTH, LOGICAL_WIDTH, TOP_BAR_HEIGHT, battleLayout } from '../render/renderConstants';
 import { CLASS_ORDER, MAX_HP, WEAPONS, standingCount } from '../sim';
 import type { BattleState, Side, Soldier } from '../sim';
 import type { ButtonRect } from './buttons';
@@ -16,7 +17,7 @@ import { roundRect } from './drawButtons';
 import { formatClock } from './text';
 import { BUILD_VERSION } from '../game/buildVersion';
 import { DEFAULT_SPEED, formatSpeed } from '../game/speed';
-import { BUILD_LABEL, CONTROLS_HINT, FONT, GAME_TITLE, HUD, SPEED_BADGE, STATUS_TEXT, TOP_BAR, TUNED_BADGE } from './uiConstants';
+import { FONT, GAME_TITLE, HUD, SPEED_BADGE, STATUS_TEXT, TOP_BAR, TUNED_BADGE } from './uiConstants';
 
 export interface HudView {
   playerSide: Side;
@@ -49,14 +50,21 @@ function drawBadge(ctx: CanvasRenderingContext2D, r: ButtonRect): void {
   ctx.fillText(r.label, r.x + r.w / 2, r.y + r.h / 2 + 1);
 }
 
-export function hudCardRects(): ButtonRect[] {
+/** The side panel: below the top bar, on the player's side of the field. */
+export function sidePanelRect(playerSide: Side): ButtonRect {
+  return { id: 'panel', label: '', x: battleLayout(playerSide).panelX, y: HUD.top, w: HUD.width, h: HUD.height };
+}
+
+/** The five soldier cards, stacked top to bottom in slot order inside the side panel. */
+export function hudCardRects(playerSide: Side): ButtonRect[] {
+  const panel = sidePanelRect(playerSide);
   const rects: ButtonRect[] = [];
   for (let i = 0; i < HUD.cardCount; i++) {
     rects.push({
       id: `slot${i}`,
       label: '',
-      x: HUD.cardX + i * (HUD.cardWidth + HUD.cardGap),
-      y: HUD.top + HUD.cardY,
+      x: panel.x + HUD.inset,
+      y: panel.y + HUD.inset + i * (HUD.cardHeight + HUD.cardGap),
       w: HUD.cardWidth,
       h: HUD.cardHeight,
     });
@@ -90,42 +98,44 @@ function drawCard(ctx: CanvasRenderingContext2D, rect: ButtonRect, slot: number,
   const dim = s.status !== 'standing';
   ctx.globalAlpha = dim ? 0.6 : 1;
   // slot box
+  const box = HUD.slotBox;
   ctx.fillStyle = SIDE_COLOUR[s.side];
-  ctx.fillRect(rect.x + 8, rect.y + 8, HUD.slotBox, HUD.slotBox);
+  ctx.fillRect(rect.x + 6, rect.y + 6, box, box);
   ctx.fillStyle = PALETTE.text;
   ctx.font = FONT.bodyBold;
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
-  ctx.fillText(String(slot + 1), rect.x + 8 + HUD.slotBox / 2, rect.y + 8 + HUD.slotBox / 2 + 1);
-  // name and class
+  ctx.fillText(String(slot + 1), rect.x + 6 + box / 2, rect.y + 6 + box / 2 + 1);
+  // name and status on the first line, class and HP on the second
+  const textX = rect.x + 6 + box + 8;
+  const right = rect.x + rect.w - 8;
   ctx.textAlign = 'left';
   ctx.textBaseline = 'alphabetic';
   ctx.font = FONT.bodyBold;
-  ctx.fillText(s.name, rect.x + 40, rect.y + 22);
-  ctx.font = FONT.small;
-  ctx.fillStyle = PALETTE.textDim;
-  ctx.fillText(CLASS_NAME[s.cls], rect.x + 40, rect.y + 38);
-  // status
+  ctx.fillText(s.name, textX, rect.y + 21);
   ctx.textAlign = 'right';
   ctx.font = FONT.smallBold;
   ctx.fillStyle = s.status === 'standing' ? PALETTE.hpHigh : PALETTE.hpLow;
-  ctx.fillText(statusOf(s), rect.x + rect.w - 10, rect.y + 22);
+  ctx.fillText(statusOf(s), right, rect.y + 21);
+  ctx.textAlign = 'left';
+  ctx.font = FONT.small;
+  ctx.fillStyle = PALETTE.textDim;
+  ctx.fillText(CLASS_NAME[s.cls], textX, rect.y + 39);
+  ctx.textAlign = 'right';
+  ctx.fillText(`HP ${Math.max(0, Math.floor(s.hp))}`, right, rect.y + 39);
   ctx.textAlign = 'left';
   // hp bar
-  const barX = rect.x + 10;
-  const barW = rect.w - 20;
-  const barY = rect.y + 52;
+  const barX = rect.x + 8;
+  const barW = rect.w - 16;
+  const barY = rect.y + 46;
   ctx.fillStyle = PALETTE.hpBack;
   ctx.fillRect(barX, barY, barW, HUD.hpBarHeight);
   const fraction = Math.max(0, Math.min(1, s.hp / MAX_HP));
   ctx.fillStyle = hpColour(fraction);
   ctx.fillRect(barX, barY, barW * fraction, HUD.hpBarHeight);
-  ctx.font = FONT.small;
-  ctx.fillStyle = PALETTE.textDim;
-  ctx.fillText(`HP ${Math.max(0, Math.floor(s.hp))}`, barX, barY + HUD.hpBarHeight + 16);
   // cooldown bar
   const weapon = WEAPONS[s.cls];
-  const cdY = barY + HUD.hpBarHeight + 22;
+  const cdY = barY + HUD.hpBarHeight + 4;
   ctx.fillStyle = PALETTE.hpBack;
   ctx.fillRect(barX, cdY, barW, HUD.cooldownBarHeight);
   if (weapon.cooldown > 0 && s.cooldown > 0) {
@@ -135,10 +145,13 @@ function drawCard(ctx: CanvasRenderingContext2D, rect: ButtonRect, slot: number,
   ctx.globalAlpha = 1;
 }
 
-function drawSidePanel(ctx: CanvasRenderingContext2D, state: BattleState, view: HudView): void {
-  const x = HUD.panelX;
-  const y = HUD.top + HUD.cardY;
-  roundRect(ctx, x, y, HUD.panelWidth, HUD.cardHeight, HUD.cardRadius);
+/** Below the cards: both sides' medic calls in a box, then PAUSED while paused, then the build stamp. */
+function drawPanelFooter(ctx: CanvasRenderingContext2D, state: BattleState, view: HudView): void {
+  const panel = sidePanelRect(view.playerSide);
+  const x = panel.x + HUD.inset;
+  const w = HUD.cardWidth;
+  const y = panel.y + HUD.medicTop;
+  roundRect(ctx, x, y, w, HUD.medicHeight, HUD.cardRadius);
   ctx.fillStyle = PALETTE.panel;
   ctx.fill();
   ctx.strokeStyle = PALETTE.panelEdge;
@@ -148,33 +161,32 @@ function drawSidePanel(ctx: CanvasRenderingContext2D, state: BattleState, view: 
   ctx.textBaseline = 'alphabetic';
   ctx.font = FONT.smallBold;
   ctx.fillStyle = PALETTE.textDim;
-  ctx.fillText('MEDIC CALLS', x + 12, y + 22);
+  ctx.fillText('MEDIC CALLS', x + 10, y + 18);
   const sides: Side[] = ['blue', 'red'];
   sides.forEach((side, i) => {
-    const rowY = y + 44 + i * 22;
+    const rowY = y + 36 + i * 16;
     ctx.fillStyle = SIDE_COLOUR[side];
-    ctx.fillRect(x + 12, rowY - 11, 12, 12);
+    ctx.fillRect(x + 10, rowY - 10, 10, 10);
     ctx.fillStyle = PALETTE.text;
     ctx.font = FONT.small;
-    ctx.fillText(SIDE_NAME[side], x + 32, rowY);
+    ctx.fillText(SIDE_NAME[side], x + 26, rowY);
     const calls = state.sides[side].medicCalls;
     ctx.font = FONT.bodyBold;
     ctx.textAlign = 'right';
-    ctx.fillText('+'.repeat(calls) + '·'.repeat(Math.max(0, 3 - calls)), x + HUD.panelWidth - 12, rowY);
+    ctx.fillText('+'.repeat(calls) + '·'.repeat(Math.max(0, 3 - calls)), x + w - 10, rowY);
     ctx.textAlign = 'left';
   });
-  ctx.font = FONT.debug;
-  ctx.fillStyle = PALETTE.textDim;
-  ctx.textAlign = 'right';
-  ctx.fillText(BUILD_VERSION, x + HUD.panelWidth - BUILD_LABEL.panelInset, HUD.top + BUILD_LABEL.panelBaseline);
-  ctx.textAlign = 'left';
   if (view.paused) {
     ctx.font = FONT.bodyBold;
     ctx.fillStyle = PALETTE.selection;
-    ctx.textAlign = 'right';
-    ctx.fillText('PAUSED', x + HUD.panelWidth - 12, y + 22);
-    ctx.textAlign = 'left';
+    ctx.textAlign = 'center';
+    ctx.fillText('PAUSED', panel.x + panel.w / 2, panel.y + HUD.pausedBaseline);
   }
+  ctx.font = FONT.debug;
+  ctx.fillStyle = PALETTE.textDim;
+  ctx.textAlign = 'right';
+  ctx.fillText(BUILD_VERSION, x + w, panel.y + HUD.buildBaseline);
+  ctx.textAlign = 'left';
 }
 
 function drawTopBar(ctx: CanvasRenderingContext2D, state: BattleState, view: HudView): void {
@@ -207,10 +219,11 @@ function drawTopBar(ctx: CanvasRenderingContext2D, state: BattleState, view: Hud
   );
 }
 
-function drawPausedBanner(ctx: CanvasRenderingContext2D): void {
+function drawPausedBanner(ctx: CanvasRenderingContext2D, playerSide: Side): void {
   const w = 420;
   const h = 40;
-  const x = (LOGICAL_WIDTH - w) / 2;
+  const centreX = battleLayout(playerSide).fieldX + FIELD_WIDTH / 2;
+  const x = centreX - w / 2;
   const y = TOP_BAR_HEIGHT + 12;
   roundRect(ctx, x, y, w, h, 8);
   ctx.fillStyle = PALETTE.pausedBanner;
@@ -222,28 +235,23 @@ function drawPausedBanner(ctx: CanvasRenderingContext2D): void {
   ctx.font = FONT.banner;
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
-  ctx.fillText('PAUSED   press Space to resume', LOGICAL_WIDTH / 2, y + h / 2 + 1);
+  ctx.fillText('PAUSED   press Space to resume', centreX, y + h / 2 + 1);
 }
 
 export function drawHud(ctx: CanvasRenderingContext2D, state: BattleState, view: HudView): void {
   drawTopBar(ctx, state, view);
+  const panel = sidePanelRect(view.playerSide);
   ctx.fillStyle = PALETTE.pageBackground;
-  ctx.fillRect(0, HUD.top, LOGICAL_WIDTH, HUD.height);
-  const rects = hudCardRects();
+  ctx.fillRect(panel.x, panel.y, panel.w, panel.h);
   const sideIndex = view.playerSide === 'blue' ? 0 : 1;
-  rects.forEach((rect, i) => {
+  hudCardRects(view.playerSide).forEach((rect, i) => {
     const s = state.soldiers[sideIndex * CLASS_ORDER.length + i];
     if (s !== undefined) {
       drawCard(ctx, rect, i, s, view.selection.includes(s.id));
     }
   });
-  drawSidePanel(ctx, state, view);
-  ctx.font = FONT.small;
-  ctx.fillStyle = PALETTE.textDim;
-  ctx.textAlign = 'center';
-  ctx.textBaseline = 'alphabetic';
-  ctx.fillText(CONTROLS_HINT, LOGICAL_WIDTH / 2, HUD.top + HUD.hintY);
+  drawPanelFooter(ctx, state, view);
   if (view.paused && state.winner === null) {
-    drawPausedBanner(ctx);
+    drawPausedBanner(ctx, view.playerSide);
   }
 }

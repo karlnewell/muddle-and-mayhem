@@ -2,12 +2,16 @@
  * Canvas buttons: a rectangle with an id and a label. Screens lay them out,
  * draw them, and ask `hitButton` which one a click landed on.
  */
-export interface ButtonRect {
-  id: string;
+/** A rectangle in logical canvas pixels. */
+export interface Rect {
   x: number;
   y: number;
   w: number;
   h: number;
+}
+
+export interface ButtonRect extends Rect {
+  id: string;
   label: string;
 }
 

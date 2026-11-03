@@ -1,6 +1,7 @@
 /**
  * The battlefield renderer behind a small interface. `createTopDownRenderer`
- * draws the world at one logical pixel per unit below the top bar; an
+ * draws the world at one logical pixel per unit below the top bar, beside
+ * the side panel; an
  * isometric renderer would implement the same `BattleRenderer` with its own
  * projection and draw modules, and nothing in input, HUD or app changes.
  */
@@ -14,7 +15,7 @@ import type { VolleyView } from './drawVolleyCue';
 import type { Effect } from './effects';
 import { createTopDownProjection } from './projection';
 import type { Projection } from './projection';
-import { FIELD_HEIGHT, FIELD_WIDTH, TOP_BAR_HEIGHT } from './renderConstants';
+import { FIELD_HEIGHT, FIELD_WIDTH, battleLayout } from './renderConstants';
 
 export interface ViewState {
   selection: readonly number[];
@@ -34,8 +35,10 @@ export interface BattleRenderer {
   draw(ctx: CanvasRenderingContext2D, state: BattleState, view: ViewState): void;
 }
 
-export function createTopDownRenderer(): BattleRenderer {
-  const projection = createTopDownProjection(0, TOP_BAR_HEIGHT);
+/** A renderer for the player commanding `playerSide`: the field sits beside the side panel on that side. */
+export function createTopDownRenderer(playerSide: Side): BattleRenderer {
+  const layout = battleLayout(playerSide);
+  const projection = createTopDownProjection(layout.fieldX, layout.top);
   return {
     projection,
     onField(sx: number, sy: number): boolean {

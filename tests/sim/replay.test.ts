@@ -4,6 +4,7 @@ import { hashState, serializeState } from '../../src/sim/hash';
 import { replayBattle, runBattle } from '../../src/sim/headless';
 import { TICK_RATE } from '../../src/sim/constants';
 import type { Command } from '../../src/sim/types';
+import { DEFAULT_MAP, MAPS } from '../../src/sim/maps/registry';
 
 const MAX_TICKS = TICK_RATE * 600; // ten minutes of battle, far more than any seed needs
 
@@ -41,5 +42,20 @@ describe('replay determinism', () => {
     const log = run.log.filter((_, i) => i !== drop);
     const replayed = replayBattle(42, log, run.ticks);
     expect(hashState(replayed)).not.toBe(hashState(run.state));
+  });
+});
+
+describe('replay on a named map', () => {
+  it('an old Crossroads battle still replays when its map is given, and not on the default map', () => {
+    const run = runBattle({ seed: 11, maxTicks: 900, map: MAPS.crossroads, controllers: [createAi('blue', 11), createAi('red', 11)] });
+    expect(hashState(replayBattle(11, run.log, run.ticks, MAPS.crossroads))).toBe(hashState(run.state));
+    expect(hashState(replayBattle(11, run.log, run.ticks))).not.toBe(hashState(run.state));
+  });
+
+  it('replays the default map, Compact Crossroads, when no map is given', () => {
+    expect(DEFAULT_MAP).toBe(MAPS.compact);
+    const run = runBattle({ seed: 11, maxTicks: 900, controllers: [createAi('blue', 11), createAi('red', 11)] });
+    expect(run.state.map).toBe(MAPS.compact);
+    expect(hashState(replayBattle(11, run.log, run.ticks))).toBe(hashState(run.state));
   });
 });

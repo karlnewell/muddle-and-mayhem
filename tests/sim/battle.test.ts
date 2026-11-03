@@ -1,16 +1,16 @@
 import { describe, expect, it } from 'vitest';
 import { createBattle, step } from '../../src/sim/battle';
 import { CLASS_ORDER, MAX_HP, MEDIC_CALLS, SQUAD_NAMES } from '../../src/sim/constants';
-import { CROSSROADS } from '../../src/sim/maps/crossroads';
+import { COMPACT_CROSSROADS } from '../../src/sim/maps/compactCrossroads';
 import type { Command } from '../../src/sim/types';
 
 describe('createBattle', () => {
-  it('builds ten standing soldiers on the Crossroads spawns in class order', () => {
+  it('builds ten standing soldiers on the Compact Crossroads spawns (the default map) in class order', () => {
     const state = createBattle({ seed: 1 });
     expect(state.tick).toBe(0);
     expect(state.seed).toBe(1);
     expect(state.winner).toBeNull();
-    expect(state.map).toBe(CROSSROADS);
+    expect(state.map).toBe(COMPACT_CROSSROADS);
     expect(state.soldiers.length).toBe(10);
     expect(state.projectiles).toEqual([]);
     expect(state.medics).toEqual([]);
@@ -27,8 +27,8 @@ describe('createBattle', () => {
       expect(s.side).toBe(side);
       expect(s.cls).toBe(CLASS_ORDER[i]);
       expect(s.name).toBe(SQUAD_NAMES[side][i]);
-      expect({ x: s.x, y: s.y }).toEqual(CROSSROADS.spawns[side][i]);
-      expect({ x: s.prevX, y: s.prevY }).toEqual(CROSSROADS.spawns[side][i]);
+      expect({ x: s.x, y: s.y }).toEqual(COMPACT_CROSSROADS.spawns[side][i]);
+      expect({ x: s.prevX, y: s.prevY }).toEqual(COMPACT_CROSSROADS.spawns[side][i]);
       expect(s.hp).toBe(MAX_HP);
       expect(s.status).toBe('standing');
       expect(s.order).toEqual({ kind: 'hold' });
@@ -72,7 +72,7 @@ describe('step', () => {
     const late: Command = { tick: 5, side: 'blue', type: 'move', soldierIds: [0], x: 200, y: 208 };
     step(state, [late]);
     expect(state.soldiers[0].order).toEqual({ kind: 'hold' });
-    expect(state.soldiers[0].x).toBe(CROSSROADS.spawns.blue[0].x);
+    expect(state.soldiers[0].x).toBe(COMPACT_CROSSROADS.spawns.blue[0].x);
   });
 
   it('applies a command tagged with the current tick', () => {
@@ -80,7 +80,7 @@ describe('step', () => {
     const now: Command = { tick: 0, side: 'blue', type: 'move', soldierIds: [0], x: 200, y: 208 };
     step(state, [now]);
     expect(state.soldiers[0].order).toEqual({ kind: 'move', x: 200, y: 208 });
-    expect(state.soldiers[0].x).toBeGreaterThan(CROSSROADS.spawns.blue[0].x);
+    expect(state.soldiers[0].x).toBeGreaterThan(COMPACT_CROSSROADS.spawns.blue[0].x);
   });
 
   it('clears the events list at the start of every step', () => {

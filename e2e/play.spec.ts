@@ -1,5 +1,7 @@
 import { expect, test } from '@playwright/test';
 import type { Page } from '@playwright/test';
+import { LOGICAL_WIDTH, TOP_BAR_HEIGHT, battleLayout } from '../src/render/renderConstants';
+import { hudCardRects, sidePanelRect } from '../src/ui/hud';
 import { resultButtons } from '../src/ui/result';
 
 // Plays a few seconds of a battle through the real page: title, start,
@@ -28,16 +30,23 @@ async function soldierClient(page: Page, id: number): Promise<{ x: number; y: nu
   }, id);
 }
 
+/** A hash of the canvas pixels inside a logical rectangle. */
+async function regionHash(page: Page, r: { x: number; y: number; w: number; h: number }): Promise<string> {
+  return page.locator('canvas#game').evaluate(
+    (c: HTMLCanvasElement, [x, y, w, h, logicalWidth]) => {
+      const scale = c.width / logicalWidth;
+      const d = c.getContext('2d')!.getImageData(Math.floor(x * scale), Math.floor(y * scale), Math.ceil(w * scale), Math.ceil(h * scale)).data;
+      let hash = 2166136261;
+      for (let i = 0; i < d.length; i += 4) hash = Math.imul(hash ^ (d[i] + 7 * d[i + 1] + 13 * d[i + 2]), 16777619);
+      return String(hash >>> 0);
+    },
+    [r.x, r.y, r.w, r.h, LOGICAL_WIDTH] as const,
+  );
+}
+
+/** The side panel beside the field, with the cards, medic calls, PAUSED and the build stamp. */
 async function hudPixels(page: Page): Promise<string> {
-  return page.locator('canvas#game').evaluate((c: HTMLCanvasElement) => {
-    const ctx = c.getContext('2d')!;
-    // the bottom fifth of the canvas is the HUD
-    const y = Math.floor(c.height * 0.85);
-    const d = ctx.getImageData(0, y, c.width, c.height - y).data;
-    let hash = 2166136261;
-    for (let i = 0; i < d.length; i += 16) hash = Math.imul(hash ^ d[i], 16777619);
-    return String(hash >>> 0);
-  });
+  return regionHash(page, sidePanelRect('blue'));
 }
 
 test('a battle can be started, ordered, run, and finished', async ({ page }) => {
@@ -80,7 +89,7 @@ test('a battle can be started, ordered, run, and finished', async ({ page }) => 
   const hudBefore = await hudPixels(page);
   await page.keyboard.press(' ');
   await page.waitForFunction(() => window.__mm!.tick >= 30, undefined, { timeout: 5000 });
-  // the PAUSED badge is gone and the clock has moved, so the HUD differs from the paused frame
+  // PAUSED is gone from the side panel and the cards have moved on, so the panel differs from the paused frame
   expect(await hudPixels(page)).not.toBe(hudBefore);
   const log = await page.evaluate(() => (window.__mm!.log as { type: string; side: string }[]));
   expect(log.filter((c) => c.side === 'blue').map((c) => c.type)).toEqual(['select', 'move', 'select', 'select', 'select', 'attack']);
@@ -135,6 +144,12 @@ test('A volleys the whole squad at the enemy under the cursor and S selects it',
 
   // Nothing selected: the volley still orders every standing soldier to stand fast, and waits in pending while paused.
   const target = await soldierClient(page, 8);
+  const targetLogical = await page.evaluate(() => {
+    const s = (window.__mm!.state as { soldiers: { x: number; y: number }[] }).soldiers[8];
+    return { x: s.x, y: s.y };
+  });
+  // the field around the target in logical canvas pixels: the field sits beside the side panel
+  const around = { x: battleLayout('blue').fieldX + targetLogical.x - 40, y: TOP_BAR_HEIGHT + targetLogical.y - 50, w: 80, h: 80 };
   await page.mouse.move(target.x + 3, target.y + 2);
   await page.keyboard.press('a');
   expect(await page.evaluate(() => [...window.__mm!.selection])).toEqual([]);
@@ -144,10 +159,21 @@ test('A volleys the whole squad at the enemy under the cursor and S selects it',
   // The volley cue is stamped on the next frame even though the battle is paused, then runs out in real time.
   await page.waitForFunction(() => (window.__mm!.volleyCue as { startMs: number | null } | null)?.startMs != null);
   expect(await page.evaluate(() => (window.__mm!.volleyCue as { targetId: number }).targetId)).toBe(8);
+  // the ring and the VOLLEY label are drawn over the target, at the field's place beside the side panel
+  const during = await regionHash(page, around);
   await page.waitForFunction(() => window.__mm!.volleyCue === null, undefined, { timeout: 3000 });
+  await page.waitForTimeout(100);
+  // once it runs out only the queued order's ghost reticle is left there
+  expect(await regionHash(page, around)).not.toBe(during);
 
   // S selects the whole squad.
   await page.keyboard.press('s');
   expect(await page.evaluate(() => [...window.__mm!.selection])).toEqual([0, 1, 2, 3, 4]);
+
+  // A click on the third card in the side panel selects Maud alone.
+  const card = hudCardRects('blue')[2];
+  const at = await page.evaluate(([x, y]) => window.__mm!.logicalToClient(x, y), [card.x + card.w / 2, card.y + card.h / 2] as const);
+  await page.mouse.click(at.x, at.y);
+  expect(await page.evaluate(() => [...window.__mm!.selection])).toEqual([2]);
   expect(errors).toEqual([]);
 });

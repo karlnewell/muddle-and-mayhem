@@ -11,6 +11,10 @@ import { FONT, SPEED_SELECTOR } from './uiConstants';
 
 const ID_PREFIX = 'speed:';
 
+/** The label above the segments and the key hint below them. */
+export const SPEED_LABEL = 'Game speed';
+export const SPEED_HINT = 'click, or Left / Right arrow keys';
+
 /** The three segments, centred on `centreX` with their top edge at `top`. */
 export function speedSelectorRects(centreX: number, top: number): ButtonRect[] {
   const { segmentWidth: w, height: h, gap } = SPEED_SELECTOR;
@@ -28,7 +32,7 @@ export function drawSpeedSelector(ctx: CanvasRenderingContext2D, centreX: number
   ctx.textBaseline = 'alphabetic';
   ctx.font = FONT.bodyBold;
   ctx.fillStyle = PALETTE.text;
-  ctx.fillText('Game speed', centreX, top - SPEED_SELECTOR.labelGap);
+  ctx.fillText(SPEED_LABEL, centreX, top - SPEED_SELECTOR.labelGap);
   for (const r of speedSelectorRects(centreX, top)) {
     const on = speedFromButton(r.id) === current;
     roundRect(ctx, r.x, r.y, r.w, r.h, SPEED_SELECTOR.radius);
@@ -45,5 +49,5 @@ export function drawSpeedSelector(ctx: CanvasRenderingContext2D, centreX: number
   }
   ctx.font = FONT.small;
   ctx.fillStyle = PALETTE.textDim;
-  ctx.fillText('click, or Left / Right arrow keys', centreX, top + SPEED_SELECTOR.height + SPEED_SELECTOR.hintGap);
+  ctx.fillText(SPEED_HINT, centreX, top + SPEED_SELECTOR.height + SPEED_SELECTOR.hintGap);
 }

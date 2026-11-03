@@ -1,3 +1,4 @@
+import { DEFAULT_MAP_ID } from '../../src/sim';
 import { describe, expect, it } from 'vitest';
 import type { Command } from '../../src/sim';
 import { createStatsCollector } from '../../src/stats/battleStats';
@@ -91,5 +92,21 @@ describe('formatReportMarkdown, build', () => {
     const md = formatReportMarkdown(sample(), [], 0.5, '0.1.0+b11b13d 2026-11-03');
     expect(md).toContain('- Seed: 7\n- Build: 0.1.0+b11b13d 2026-11-03\n');
     expect(formatReportMarkdown(sample(), [])).toContain('- Build: dev\n');
+  });
+});
+
+describe('formatReportMarkdown, map', () => {
+  it('names the map after the build and in the replay instruction', () => {
+    const md = formatReportMarkdown(sample(), [], 1, 'dev', 'compact');
+    expect(md).toContain('- Build: dev\n- Map: Compact Crossroads (`compact`)\n');
+    expect(md).toContain(`replayBattle(7, log, 1860, MAPS.compact)`);
+  });
+  it('names Crossroads for an old-map battle', () => {
+    const md = formatReportMarkdown(sample(), [], 1, 'dev', 'crossroads');
+    expect(md).toContain('- Map: Crossroads (`crossroads`)\n');
+    expect(md).toContain('replayBattle(7, log, 1860, MAPS.crossroads)');
+  });
+  it('uses the default map when none is given', () => {
+    expect(formatReportMarkdown(sample(), [])).toContain(`MAPS.${DEFAULT_MAP_ID})`);
   });
 });

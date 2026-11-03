@@ -1,17 +1,38 @@
 /**
  * Layout and timing tunables for the renderer and the game loop. Logical
- * canvas pixels: the battlefield is drawn at one logical pixel per world
- * unit, with a top bar above it and the HUD below; the viewport scales the
- * whole logical canvas to fit the window.
+ * canvas pixels: a top bar across the full width, and below it the side
+ * panel (the HUD) beside the battlefield, which is drawn at one logical
+ * pixel per world unit. The viewport scales the whole logical canvas to fit
+ * the window, so a smaller field is what makes soldiers draw bigger.
  */
-import { CROSSROADS, TICK_RATE, mapHeightUnits, mapWidthUnits } from '../sim';
+import { DEFAULT_MAP, TICK_RATE, mapHeightUnits, mapWidthUnits } from '../sim';
+import type { Side } from '../sim';
 
-export const FIELD_WIDTH = mapWidthUnits(CROSSROADS);
-export const FIELD_HEIGHT = mapHeightUnits(CROSSROADS);
+export const FIELD_WIDTH = mapWidthUnits(DEFAULT_MAP);
+export const FIELD_HEIGHT = mapHeightUnits(DEFAULT_MAP);
 export const TOP_BAR_HEIGHT = 40;
-export const HUD_HEIGHT = 132;
-export const LOGICAL_WIDTH = FIELD_WIDTH;
-export const LOGICAL_HEIGHT = TOP_BAR_HEIGHT + FIELD_HEIGHT + HUD_HEIGHT;
+/** The side panel holding the soldier cards, medic calls, pause status and build stamp. */
+export const SIDE_PANEL_WIDTH = 200;
+export const LOGICAL_WIDTH = SIDE_PANEL_WIDTH + FIELD_WIDTH;
+export const LOGICAL_HEIGHT = TOP_BAR_HEIGHT + FIELD_HEIGHT;
+
+/** Where the side panel and the field sit below the top bar. */
+export interface BattleLayout {
+  panelX: number;
+  fieldX: number;
+  top: number;
+}
+
+/**
+ * The side panel sits on the player's side of the field, the side the
+ * player's squad spawns on: left for blue (always, today), right for red,
+ * so a future second player commanding red gets the panel on the right.
+ */
+export function battleLayout(playerSide: Side): BattleLayout {
+  return playerSide === 'blue'
+    ? { panelX: 0, fieldX: SIDE_PANEL_WIDTH, top: TOP_BAR_HEIGHT }
+    : { panelX: FIELD_WIDTH, fieldX: 0, top: TOP_BAR_HEIGHT };
+}
 
 export const TICK_MS = 1000 / TICK_RATE;
 /** A frame longer than this (a hidden tab, a stall) is treated as this long. */

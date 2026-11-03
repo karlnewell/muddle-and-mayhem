@@ -32,11 +32,19 @@ export function drawButton(ctx: CanvasRenderingContext2D, b: ButtonRect): void {
 }
 
 /** A dim overlay over the whole canvas and a centred panel of the given size; returns the panel's top-left. */
-export function drawOverlayPanel(ctx: CanvasRenderingContext2D, canvasW: number, canvasH: number, panelW: number, panelH: number): { x: number; y: number } {
+/** Dims the whole canvas and draws a panel, centred unless `top` is given. */
+export function drawOverlayPanel(
+  ctx: CanvasRenderingContext2D,
+  canvasW: number,
+  canvasH: number,
+  panelW: number,
+  panelH: number,
+  top?: number,
+): { x: number; y: number } {
   ctx.fillStyle = PALETTE.overlay;
   ctx.fillRect(0, 0, canvasW, canvasH);
   const x = (canvasW - panelW) / 2;
-  const y = (canvasH - panelH) / 2;
+  const y = top ?? (canvasH - panelH) / 2;
   roundRect(ctx, x, y, panelW, panelH, PANEL.radius);
   ctx.fillStyle = PALETTE.panel;
   ctx.fill();

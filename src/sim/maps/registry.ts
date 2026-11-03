@@ -19,7 +19,7 @@ export const MAPS: Readonly<Record<MapId, TileMap>> = {
 
 export const MAP_IDS: readonly MapId[] = ['crossroads', 'compact'];
 
-export const DEFAULT_MAP_ID: MapId = 'crossroads';
+export const DEFAULT_MAP_ID: MapId = 'compact';
 
 export const DEFAULT_MAP: TileMap = MAPS[DEFAULT_MAP_ID];
 
