@@ -125,7 +125,7 @@ test('a battle can be started, ordered, run, and finished', async ({ page }) => 
   expect(errors).toEqual([]);
 });
 
-test('A volleys the whole squad at the enemy under the cursor', async ({ page }) => {
+test('A volleys the whole squad at the enemy under the cursor and S selects it', async ({ page }) => {
   const errors = collectErrors(page);
   await page.goto('./?seed=7');
   await page.waitForFunction(() => window.__mm !== undefined && window.__mm.screen === 'title');
@@ -141,5 +141,9 @@ test('A volleys the whole squad at the enemy under the cursor', async ({ page })
   expect(await page.evaluate(() => window.__mm!.pending)).toEqual([
     { tick: 0, side: 'blue', type: 'attack', soldierIds: [0, 1, 2, 3, 4], targetId: 8 },
   ]);
+
+  // S selects the whole squad.
+  await page.keyboard.press('s');
+  expect(await page.evaluate(() => [...window.__mm!.selection])).toEqual([0, 1, 2, 3, 4]);
   expect(errors).toEqual([]);
 });

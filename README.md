@@ -23,6 +23,7 @@ while paused are taken at once and shown as faint markers.
 |---|---|
 | Left click a blue soldier | Select it (Shift adds to the selection) |
 | Keys 1 to 5, or click a HUD card | Select by slot (Shift adds) |
+| S | Select the whole squad, so the next right click moves or attacks with everyone |
 | Right click the ground | Move the selected soldiers there |
 | Right click an enemy | Attack it: move into range, fire until it drops, then hold |
 | Right click a downed friend | Call the medic (three calls per side, back at half health) |

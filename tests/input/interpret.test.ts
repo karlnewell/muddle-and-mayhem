@@ -234,3 +234,35 @@ describe('interpretKey, volley', () => {
     expect(interpretKey(state, [], 'a', false, 'blue', null)).toEqual({ selection: [], commands: [] });
   });
 });
+
+describe('interpretKey, select all', () => {
+  it('S selects the whole squad in id order and mirrors it as a select command', () => {
+    const state = battle();
+    const r = interpretKey(state, [3], 's', false, 'blue');
+    expect(r.selection).toEqual([0, 1, 2, 3, 4]);
+    expect(r.commands).toEqual([{ tick: 12, side: 'blue', type: 'select', soldierIds: [0, 1, 2, 3, 4] }]);
+    expect(interpretKey(state, [], 'S', true, 'blue').selection).toEqual([0, 1, 2, 3, 4]);
+  });
+  it('includes downed soldiers, as a click does, and leaves the dead out', () => {
+    const state = battle();
+    soldierById(state, 1)!.status = 'downed';
+    soldierById(state, 3)!.status = 'dead';
+    expect(interpretKey(state, [], 's', false, 'blue').selection).toEqual([0, 1, 2, 4]);
+  });
+  it('emits no command when the whole squad is already selected', () => {
+    const state = battle();
+    expect(interpretKey(state, [0, 1, 2, 3, 4], 's', false, 'blue')).toEqual({ selection: [0, 1, 2, 3, 4], commands: [] });
+  });
+  it('selects the red squad for the red side', () => {
+    const state = battle();
+    expect(interpretKey(state, [], 's', false, 'red').selection).toEqual([5, 6, 7, 8, 9]);
+  });
+  it('a right click after S moves every standing soldier, downed ones left out', () => {
+    const state = battle();
+    soldierById(state, 2)!.status = 'downed';
+    const all = interpretKey(state, [], 's', false, 'blue').selection;
+    expect(interpretClick(state, all, 'right', 500, 300, false, 'blue').commands).toEqual([
+      { tick: 12, side: 'blue', type: 'move', soldierIds: [0, 1, 3, 4], x: 500, y: 300 },
+    ]);
+  });
+});
