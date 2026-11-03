@@ -19,6 +19,8 @@ export interface DebugHeaderInfo {
   tuning?: TuneStatus;
   /** The speed status: always a `speed` line, and the `?speed=` error when there is one. */
   speed?: SpeedStatus;
+  /** The build version string; absent adds nothing. */
+  build?: string;
 }
 
 /** Widest line of the overlay; a longer override JSON wraps to this. */
@@ -106,7 +108,7 @@ export function formatSpeedLines(speed: SpeedStatus): string[] {
   return lines;
 }
 
-/** Seed, tick and clock, pause flag, medic calls per side, hash, the tune lines when any, the speed lines, and the winner once set. */
+/** Seed, tick and clock, pause flag, medic calls per side, hash, the tune lines when any, the speed lines, the winner once set, and the build. */
 export function formatDebugHeader(state: BattleState, info: DebugHeaderInfo): string[] {
   const lines = [
     `seed ${info.seed}   tick ${state.tick}   ${formatClock(state.tick)}   ${info.paused ? 'PAUSED' : 'RUNNING'}`,
@@ -121,6 +123,9 @@ export function formatDebugHeader(state: BattleState, info: DebugHeaderInfo): st
   }
   if (state.winner !== null) {
     lines.push(`winner ${state.winner}`);
+  }
+  if (info.build !== undefined) {
+    lines.push(`build ${info.build}`);
   }
   return lines;
 }

@@ -1,9 +1,11 @@
 /**
  * The title screen (spec 4.7): the name, two placeholder portraits of the
- * rival generals, a Skirmish button, the game speed selector, and the
- * controls. Any click off the selector starts a battle; the button is
- * there so it is obvious where to click.
+ * rival generals, a Skirmish button, the game speed selector, the
+ * controls, and the build in the bottom-right corner. Any click off the
+ * selector starts a battle; the button is there so it is obvious where to
+ * click.
  */
+import { BUILD_VERSION } from '../game/buildVersion';
 import { PALETTE, SIDE_COLOUR, SIDE_NAME } from '../render/palette';
 import { LOGICAL_HEIGHT, LOGICAL_WIDTH } from '../render/renderConstants';
 import type { Side } from '../sim';
@@ -11,7 +13,7 @@ import { stackButtons } from './buttons';
 import type { ButtonRect } from './buttons';
 import { drawButton } from './drawButtons';
 import { drawSpeedSelector, speedSelectorRects } from './speedSelector';
-import { BUTTON, FONT, GAME_TITLE, SPEED_SELECTOR, TITLE_CONTROLS, TITLE_CONTROLS_TOP } from './uiConstants';
+import { BUILD_LABEL, BUTTON, FONT, GAME_TITLE, SPEED_SELECTOR, TITLE_CONTROLS, TITLE_CONTROLS_TOP } from './uiConstants';
 
 export function titleButtons(): ButtonRect[] {
   return stackButtons([{ id: 'start', label: 'Skirmish' }], LOGICAL_WIDTH / 2, LOGICAL_HEIGHT * 0.56, BUTTON.width, BUTTON.height, BUTTON.gap);
@@ -97,4 +99,9 @@ export function drawTitle(ctx: CanvasRenderingContext2D, speed: number): void {
   TITLE_CONTROLS.forEach((line, i) => {
     ctx.fillText(line, LOGICAL_WIDTH / 2, TITLE_CONTROLS_TOP + i * 26);
   });
+
+  ctx.font = FONT.debug;
+  ctx.fillStyle = PALETTE.textDim;
+  ctx.textAlign = 'right';
+  ctx.fillText(BUILD_VERSION, BUILD_LABEL.titleRight, BUILD_LABEL.titleBaseline);
 }

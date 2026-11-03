@@ -52,8 +52,13 @@ Add `?seed=123` to the URL to replay the same battle. The page exposes
 `window.__mm` with the seed, tick, command log and state, so a bug report
 can carry everything needed to reproduce a battle.
 
+The build the page came from (package version, short commit and UTC build
+date, for example `0.0.0+b11b13d 2026-11-03`) shows small in the
+bottom-right corner of the title screen and of the HUD, and as
+`window.__mm.build`, so a playtest can say exactly what it ran on.
+
 Press D during a battle for a debug overlay listing every soldier's HP,
-status, order and cooldown, with the seed, tick and state hash; add
+status, order and cooldown, with the seed, tick, state hash and build; add
 `?debug=1` to the URL to start with it showing.
 
 ## Run locally
@@ -107,7 +112,7 @@ failing. The names it accepts are the tunables in `src/sim/constants.ts`.
 shots, hits, hit rate, damage dealt and taken, downs inflicted, times
 downed, instant kills, seconds spent downed and medic calls used. **Copy
 report** puts a Markdown block on the clipboard with that table, the seed,
-the overrides and the full command log, ready to paste into an issue;
+the build, the overrides, the speed and the full command log, ready to paste into an issue;
 anyone can replay the battle from it. When the clipboard is unavailable the
 text appears in a box you can select by hand. `window.__mm.report()`
 returns the same text and `window.__mm.stats` the raw numbers.
