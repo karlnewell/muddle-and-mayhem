@@ -1,7 +1,7 @@
 /**
  * A scripted blue squad for `npm run measure -- --blue=holdline`: plays
  * more like a person than the shipped AI does. At tick 0 every soldier
- * walks to a fixed post by cover west of the left wall gap. At post it
+ * walks to a fixed post (per map) by cover west of the left wall gap. At post it
  * holds; when a majority of the standing squad can fire at the enemy
  * nearest the squad's centre it focuses fire on that one, and a soldier
  * whose target slips away holds again. It calls the medic for the first
@@ -15,25 +15,54 @@
  * `AI_THINK_TICKS`, issuing a command only when the order would change.
  * Tooling, not the shipped opponent: `src/sim/ai.ts` is untouched.
  */
-import type { BattleState, Command, Controller, Order, Side, Soldier, SoldierClass, TileCoord } from '../src/sim/index.ts';
-import { AI_REVIVE_PRIORITY, AI_THINK_TICKS, TILE_SIZE, WEAPONS, canFireAt, tileCenter, worldToTile } from '../src/sim/index.ts';
+import type { BattleState, Command, Controller, MapId, Order, Side, Soldier, SoldierClass, TileCoord, TileMap } from '../src/sim/index.ts';
+import { AI_REVIVE_PRIORITY, AI_THINK_TICKS, TILE_SIZE, WEAPONS, canFireAt, mapIdOf, tileCenter, worldToTile } from '../src/sim/index.ts';
+
+type Posts = Readonly<Record<SoldierClass, TileCoord>>;
 
 /**
- * Posts on Crossroads (Plan 6). The Gunner and Chucker stand on the west
- * faces of the two wall arms, with the wall between them and the road east
- * of the gap; the Scorcher waits in the open at the road mouth where a
- * charger through the gap must pass it; the Launcher is rearmost on the road
- * axis with a clear view down the road; the Blaster sits north of the
- * southern crate group, the crate at its back, with the gap's west end at
- * the edge of its range.
+ * Posts per map, looked up from `state.map` on every think.
+ *
+ * Crossroads (Plan 6): the Gunner and Chucker stand on the west faces of
+ * the two wall arms, with the wall between them and the road east of the
+ * gap; the Scorcher waits in the open at the road mouth where a charger
+ * through the gap must pass it; the Launcher is rearmost on the road axis
+ * with a clear view down the road; the Blaster sits north of the southern
+ * crate group, the crate at its back, with the gap's west end at the edge
+ * of its range.
+ *
+ * Compact Crossroads (Plan 7): the same pattern on the smaller map. The
+ * Gunner and Chucker on the west faces of the wall arms (column 6, rows 5
+ * and 9), the Launcher rearmost on the road axis, the Blaster just north
+ * of the southern road-mouth crate pair, and the Scorcher one tile behind
+ * the mouth rather than in it, so a charger has to round the arm ends to
+ * reach it. Chosen from measured candidates (see docs/decisions.md).
  */
-export const HOLD_TILES: Readonly<Record<SoldierClass, TileCoord>> = {
-  gunner: { tx: 11, ty: 8 },
-  launcher: { tx: 8, ty: 10 },
-  chucker: { tx: 11, ty: 12 },
-  scorcher: { tx: 11, ty: 10 },
-  blaster: { tx: 8, ty: 13 },
+export const HOLD_POSTS: Readonly<Record<MapId, Posts>> = {
+  crossroads: {
+    gunner: { tx: 11, ty: 8 },
+    launcher: { tx: 8, ty: 10 },
+    chucker: { tx: 11, ty: 12 },
+    scorcher: { tx: 11, ty: 10 },
+    blaster: { tx: 8, ty: 13 },
+  },
+  compact: {
+    gunner: { tx: 6, ty: 5 },
+    launcher: { tx: 3, ty: 7 },
+    chucker: { tx: 6, ty: 9 },
+    scorcher: { tx: 5, ty: 7 },
+    blaster: { tx: 4, ty: 9 },
+  },
 };
+
+/** The posts for `map`. Throws for a map without posts, rather than walking soldiers to another map's tiles. */
+export function holdTiles(map: TileMap): Posts {
+  const id = mapIdOf(map);
+  if (id === null) {
+    throw new Error(`no hold-line posts for map ${map.name}`);
+  }
+  return HOLD_POSTS[id];
+}
 
 /** A soldier within this of its post counts as there; a stuck arrival (ARRIVE_SLACK) is inside it. */
 const AT_POST = TILE_SIZE;
@@ -48,13 +77,13 @@ function standingOf(state: BattleState, side: Side): Soldier[] {
   return state.soldiers.filter((s) => s.side === side && s.status === 'standing');
 }
 
-function post(s: Soldier): { x: number; y: number } {
-  const t = HOLD_TILES[s.cls];
+function post(posts: Posts, s: Soldier): { x: number; y: number } {
+  const t = posts[s.cls];
   return tileCenter(t.tx, t.ty);
 }
 
-function atPost(s: Soldier): boolean {
-  const p = post(s);
+function atPost(posts: Posts, s: Soldier): boolean {
+  const p = post(posts, s);
   return dist2(s.x, s.y, p.x, p.y) <= AT_POST * AT_POST;
 }
 
@@ -138,16 +167,16 @@ function alreadyHolds(current: Order, desired: Order): boolean {
 }
 
 /** What the soldier should be doing now, under the rules in the file comment. */
-function desiredOrder(state: BattleState, s: Soldier, advance: Soldier | null, focus: Soldier | null): Order {
+function desiredOrder(state: BattleState, posts: Posts, s: Soldier, advance: Soldier | null, focus: Soldier | null): Order {
   if (advance !== null) {
     return { kind: 'attack', targetId: advance.id };
   }
-  const p = post(s);
-  const walkingToPost = s.order.kind === 'move' && worldToTile(s.order.x, s.order.y).tx === HOLD_TILES[s.cls].tx && worldToTile(s.order.x, s.order.y).ty === HOLD_TILES[s.cls].ty;
+  const p = post(posts, s);
+  const walkingToPost = s.order.kind === 'move' && worldToTile(s.order.x, s.order.y).tx === posts[s.cls].tx && worldToTile(s.order.x, s.order.y).ty === posts[s.cls].ty;
   if (walkingToPost) {
     return s.order; // let the walk finish; the sim turns it into hold on arrival
   }
-  if (!atPost(s)) {
+  if (!atPost(posts, s)) {
     return { kind: 'move', x: p.x, y: p.y };
   }
   if (focus !== null && canFireAt(state, s, focus)) {
@@ -164,6 +193,7 @@ export function createHoldLine(side: Side): Controller {
       if (state.winner !== null || state.tick - Math.floor(state.tick / AI_THINK_TICKS) * AI_THINK_TICKS !== 0) {
         return [];
       }
+      const posts = holdTiles(state.map);
       const own = standingOf(state, side);
       const enemies = standingOf(state, enemySide);
       const focus = focusTarget(state, own, enemies);
@@ -179,7 +209,7 @@ export function createHoldLine(side: Side): Controller {
       }
       const commands: Command[] = [];
       for (const s of own) {
-        const desired = desiredOrder(state, s, advance, focus);
+        const desired = desiredOrder(state, posts, s, advance, focus);
         if (alreadyHolds(s.order, desired)) {
           continue;
         }
