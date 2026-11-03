@@ -19,6 +19,8 @@ export interface FixedStepper {
   alpha(): number;
   /** Forget any partial tick (new battle). */
   reset(): void;
+  /** Scale real time by `speed` from the next frame on. */
+  setSpeed(speed: number): void;
 }
 
 export function createFixedStepper(tickMs: number, maxFrameMs: number, maxTicksPerFrame: number, speed = 1): FixedStepper {
@@ -40,6 +42,9 @@ export function createFixedStepper(tickMs: number, maxFrameMs: number, maxTicksP
     },
     reset(): void {
       accumulator = 0;
+    },
+    setSpeed(next: number): void {
+      speed = next;
     },
   };
 }

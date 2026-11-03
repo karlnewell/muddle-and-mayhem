@@ -13,7 +13,7 @@ import type { BattleState, Side, Soldier } from '../sim';
 import type { ButtonRect } from './buttons';
 import { roundRect } from './drawButtons';
 import { formatClock } from './text';
-import { formatSpeed } from '../game/speed';
+import { DEFAULT_SPEED, formatSpeed } from '../game/speed';
 import { CONTROLS_HINT, FONT, GAME_TITLE, HUD, SPEED_BADGE, STATUS_TEXT, TOP_BAR, TUNED_BADGE } from './uiConstants';
 
 export interface HudView {
@@ -22,7 +22,7 @@ export interface HudView {
   paused: boolean;
   /** True while a `?tune=` override is in force: the top bar shows the TUNED badge. */
   tuned: boolean;
-  /** The `?speed=` factor; below 1 the top bar shows the SPEED badge. Absent means full speed. */
+  /** The game speed; anything but the half-speed default shows the SPEED badge. Absent means the default. */
   speed?: number;
 }
 
@@ -181,7 +181,7 @@ function drawTopBar(ctx: CanvasRenderingContext2D, state: BattleState, view: Hud
   if (view.tuned) {
     drawBadge(ctx, tunedBadgeRect());
   }
-  if (view.speed !== undefined && view.speed !== 1) {
+  if (view.speed !== undefined && view.speed !== DEFAULT_SPEED) {
     drawBadge(ctx, speedBadgeRect(view.speed));
   }
   ctx.textBaseline = 'middle';

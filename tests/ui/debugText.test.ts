@@ -122,12 +122,13 @@ describe('formatDebugRows', () => {
 });
 
 describe('formatDebugHeader, speed', () => {
-  it('adds a speed line when slowed and the speed error when the parameter was rejected', () => {
+  it('always shows the speed, and the speed error after it when the parameter was rejected', () => {
     const state = createBattle({ seed: 7 });
-    expect(formatDebugHeader(state, { seed: 7, paused: true, hash: 1, speed: { speed: 0.5, error: null } })[3]).toBe('speed 0.5x');
-    expect(formatDebugHeader(state, { seed: 7, paused: true, hash: 1, speed: { speed: 1, error: 'speed: "2" is not one of 0.5, 0.75, 1' } })[3]).toBe(
+    expect(formatDebugHeader(state, { seed: 7, paused: true, hash: 1, speed: { speed: 0.5, error: null } }).slice(3)).toEqual(['speed 0.5x']);
+    expect(formatDebugHeader(state, { seed: 7, paused: true, hash: 1, speed: { speed: 1, error: null } }).slice(3)).toEqual(['speed 1x']);
+    expect(formatDebugHeader(state, { seed: 7, paused: true, hash: 1, speed: { speed: 0.5, error: 'speed: "2" is not one of 0.5, 0.75, 1' } }).slice(3)).toEqual([
+      'speed 0.5x',
       'speed error speed: "2" is not one of 0.5, 0.75, 1',
-    );
-    expect(formatDebugHeader(state, { seed: 7, paused: true, hash: 1, speed: { speed: 1, error: null } })).toHaveLength(3);
+    ]);
   });
 });

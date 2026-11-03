@@ -3,6 +3,7 @@ import type { Page } from '@playwright/test';
 import { LOGICAL_WIDTH } from '../src/render/renderConstants';
 import { speedBadgeRect, tunedBadgeRect } from '../src/ui/hud';
 import { resultButtons } from '../src/ui/result';
+import { titleSpeedRects } from '../src/ui/title';
 
 // Loads the game with a `tune` override and checks the three things a tuning
 // session relies on: the override is in force and shown as the TUNED badge,
@@ -94,16 +95,22 @@ test('a rejected tune parameter starts the battle on shipped balance without err
   expect(errors).toEqual([]);
 });
 
-test('?speed=0.5 shows the SPEED badge, steps slower, and keeps the battle replayable', async ({ page }) => {
-  const errors = collectErrors(page);
-  await page.goto('./?seed=7&speed=0.5');
-  await page.waitForFunction(() => window.__mm !== undefined && window.__mm.screen === 'title');
-  expect(await page.evaluate(() => [window.__mm!.speed, window.__mm!.speedError])).toEqual([0.5, null]);
+async function startBattle(page: Page): Promise<void> {
   const box = (await page.locator('canvas#game').boundingBox())!;
-  await page.mouse.click(box.x + box.width / 2, box.y + box.height / 2);
+  await page.mouse.click(box.x + 20, box.y + 20);
   await page.waitForFunction(() => window.__mm!.screen === 'battle');
   await page.waitForTimeout(100);
-  expectBadgeYellow(await badgePixel(page, speedBadgeRect(0.5)));
+}
+
+test('half speed is the default: no SPEED badge, slower steps, and a replayable battle', async ({ page }) => {
+  const errors = collectErrors(page);
+  await page.goto('./?seed=7');
+  await page.waitForFunction(() => window.__mm !== undefined && window.__mm.screen === 'title');
+  expect(await page.evaluate(() => [window.__mm!.speed, window.__mm!.speedError])).toEqual([0.5, null]);
+  await startBattle(page);
+  // no badge: the top bar's panel colour where the badge would be, far from the badge yellow
+  const where = await badgePixel(page, speedBadgeRect(0.5));
+  expect(Math.abs(where[0] - 0xff) + Math.abs(where[1] - 0xe6)).toBeGreaterThan(100);
 
   // Run one real second: about 15 ticks at half speed, never the 30 of full speed.
   await page.keyboard.press(' ');
@@ -117,10 +124,39 @@ test('?speed=0.5 shows the SPEED badge, steps slower, and keeps the battle repla
   expect(errors).toEqual([]);
 });
 
-test('a rejected speed parameter runs at full speed and says why', async ({ page }) => {
+test('?speed=1 shows the SPEED badge and wins over a stored choice', async ({ page }) => {
+  const errors = collectErrors(page);
+  await page.goto('./?seed=7');
+  await page.evaluate(() => window.localStorage.setItem('muddle-and-mayhem.speed', '0.75'));
+  await page.goto('./?seed=7&speed=1');
+  await page.waitForFunction(() => window.__mm !== undefined && window.__mm.screen === 'title');
+  expect(await page.evaluate(() => window.__mm!.speed)).toBe(1);
+  await startBattle(page);
+  expectBadgeYellow(await badgePixel(page, speedBadgeRect(1)));
+  expect(await page.evaluate(() => window.__mm!.report())).toContain('- Speed: 1x');
+  expect(errors).toEqual([]);
+});
+
+test('a speed picked on the title screen is remembered on the next visit', async ({ page }) => {
+  const errors = collectErrors(page);
+  await page.goto('./?seed=7');
+  await page.waitForFunction(() => window.__mm !== undefined && window.__mm.screen === 'title');
+  const seg = titleSpeedRects()[1];
+  const at = await page.evaluate(([x, y]) => window.__mm!.logicalToClient(x, y), [seg.x + seg.w / 2, seg.y + seg.h / 2] as const);
+  await page.mouse.click(at.x, at.y);
+  expect(await page.evaluate(() => [window.__mm!.screen, window.__mm!.speed])).toEqual(['title', 0.75]);
+  await page.keyboard.press('ArrowRight');
+  expect(await page.evaluate(() => window.__mm!.speed)).toBe(1);
+  await page.reload();
+  await page.waitForFunction(() => window.__mm !== undefined && window.__mm.screen === 'title');
+  expect(await page.evaluate(() => window.__mm!.speed)).toBe(1);
+  expect(errors).toEqual([]);
+});
+
+test('a rejected speed parameter runs at the default speed and says why', async ({ page }) => {
   const errors = collectErrors(page);
   await page.goto('./?seed=7&speed=2');
   await page.waitForFunction(() => window.__mm !== undefined && window.__mm.screen === 'title');
-  expect(await page.evaluate(() => [window.__mm!.speed, window.__mm!.speedError])).toEqual([1, 'speed: "2" is not one of 0.5, 0.75, 1']);
+  expect(await page.evaluate(() => [window.__mm!.speed, window.__mm!.speedError])).toEqual([0.5, 'speed: "2" is not one of 0.5, 0.75, 1']);
   expect(errors).toEqual([]);
 });

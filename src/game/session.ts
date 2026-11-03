@@ -29,6 +29,8 @@ export interface BattleSession {
   stepOnce(): BattleEvent[];
   /** Advance by a frame's delta: zero ticks when paused or finished, else whatever the stepper allows. Returns all events from the ticks stepped. */
   advance(dtMs: number): BattleEvent[];
+  /** Change the game speed from the next frame on; the ticks stepped stay the same. */
+  setSpeed(speed: number): void;
   /** Interpolation fraction for the renderer. */
   alpha(): number;
   /** True when replaying the log from the seed reproduces the current state hash. */
@@ -40,7 +42,8 @@ export interface BattleSession {
 /**
  * `overrides` are the `?tune=` values in force, recorded on the statistics so
  * a report carries them. `speed` is the `?speed=` factor: it scales real time
- * in the stepper only, so the ticks stepped are the same at any speed.
+ * in the stepper only, so the ticks stepped are the same at any speed, and
+ * `setSpeed` can change it mid-battle (the Esc menu).
  */
 export function createSession(seed: number, overrides: TuningOverrides = {}, speed = 1): BattleSession {
   const state = createBattle({ seed });
@@ -88,6 +91,9 @@ export function createSession(seed: number, overrides: TuningOverrides = {}, spe
         }
       }
       return events;
+    },
+    setSpeed(speed: number): void {
+      stepper.setSpeed(speed);
     },
     alpha(): number {
       return stepper.alpha();

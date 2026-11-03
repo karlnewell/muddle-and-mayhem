@@ -23,7 +23,7 @@ export interface DebugHook {
   readonly overrides: TuningOverrides;
   /** Why `?tune=` was rejected, or null. */
   readonly tuneError: string | null;
-  /** The `?speed=` factor in force (1 unless slowed). */
+  /** The game speed in force (0.5 by default). */
   readonly speed: number;
   /** Why `?speed=` was rejected, or null. */
   readonly speedError: string | null;

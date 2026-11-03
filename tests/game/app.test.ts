@@ -1,6 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import { createApp } from '../../src/game/app';
+import type { ButtonRect } from '../../src/ui/buttons';
+import { menuSpeedRects } from '../../src/ui/menu';
 import { resultButtons } from '../../src/ui/result';
+import { titleSpeedRects } from '../../src/ui/title';
 
 const FIXED = { seed: 7, fixed: true };
 const never = () => 0.5;
@@ -100,5 +103,51 @@ describe('volley cue', () => {
     expect(app.key('a', false, at)).toBe(true);
     expect(app.session!.paused).toBe(true);
     expect(app.volleyCue).toEqual({ soldierIds: [0, 1, 2, 3, 4], targetId: 8, startMs: null });
+  });
+});
+
+const mid = (r: ButtonRect): [number, number] => [r.x + r.w / 2, r.y + r.h / 2];
+
+describe('game speed choice', () => {
+  it('starts at half speed when given nothing', () => {
+    expect(createApp(FIXED, never, {}).speed).toEqual({ speed: 0.5, error: null });
+  });
+  it('a click on a title segment picks that speed and saves it without starting a battle', () => {
+    const saved: number[] = [];
+    const app = createApp(FIXED, never, { saveSpeed: (s) => saved.push(s) });
+    app.click(...mid(titleSpeedRects()[2]), 'left', false);
+    expect(app.screen.screen).toBe('title');
+    expect(app.speed.speed).toBe(1);
+    expect(saved).toEqual([1]);
+    app.click(10, 10, 'left', false);
+    expect(app.screen.screen).toBe('battle');
+    expect(app.report()).toContain('- Speed: 1x');
+  });
+  it('Left and Right step the speed on the title screen, stopping at the ends', () => {
+    const saved: number[] = [];
+    const app = createApp(FIXED, never, { saveSpeed: (s) => saved.push(s) });
+    expect(app.key('ArrowLeft', false)).toBe(true);
+    expect(app.speed.speed).toBe(0.5);
+    app.key('ArrowRight', false);
+    app.key('ArrowRight', false);
+    app.key('ArrowRight', false);
+    expect(app.speed.speed).toBe(1);
+    expect(saved).toEqual([0.75, 1]);
+    expect(app.key('x', false)).toBe(false);
+  });
+  it('the Esc menu changes the speed of the battle in progress', () => {
+    const app = createApp(FIXED, never, {});
+    app.click(10, 10, 'left', false);
+    app.key('Escape', false);
+    expect(app.screen.menuOpen).toBe(true);
+    app.click(...mid(menuSpeedRects()[1]), 'left', false);
+    expect(app.speed.speed).toBe(0.75);
+    expect(app.screen.menuOpen).toBe(true);
+    app.key('ArrowRight', false);
+    expect(app.speed.speed).toBe(1);
+    // arrows are not speed keys during play
+    app.key('Escape', false);
+    app.key('ArrowLeft', false);
+    expect(app.speed.speed).toBe(1);
   });
 });
