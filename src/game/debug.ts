@@ -23,6 +23,10 @@ export interface DebugHook {
   readonly overrides: TuningOverrides;
   /** Why `?tune=` was rejected, or null. */
   readonly tuneError: string | null;
+  /** The `?speed=` factor in force (1 unless slowed). */
+  readonly speed: number;
+  /** Why `?speed=` was rejected, or null. */
+  readonly speedError: string | null;
   readonly selection: readonly number[];
   readonly log: unknown;
   readonly pending: unknown;
@@ -71,6 +75,12 @@ export function createDebugHook(app: App, logicalToClient: (x: number, y: number
     },
     get tuneError() {
       return app.tuning.error;
+    },
+    get speed() {
+      return app.speed.speed;
+    },
+    get speedError() {
+      return app.speed.error;
     },
     get selection() {
       return app.selection;

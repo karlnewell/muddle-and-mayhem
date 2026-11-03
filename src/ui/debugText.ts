@@ -3,6 +3,8 @@
  * state to lines, so the layout is unit-tested and the drawing code only
  * places strings. Fixed-width columns, meant for a monospace font.
  */
+import { formatSpeed } from '../game/speed';
+import type { SpeedStatus } from '../game/speed';
 import type { TuneStatus } from '../game/tuning';
 import { soldierById, worldToTile } from '../sim';
 import type { BattleState, Soldier } from '../sim';
@@ -15,6 +17,8 @@ export interface DebugHeaderInfo {
   hash: number;
   /** The `?tune=` status; absent or inactive with no error adds nothing. */
   tuning?: TuneStatus;
+  /** The `?speed=` status; full speed with no error adds nothing. */
+  speed?: SpeedStatus;
 }
 
 /** Widest line of the overlay; a longer override JSON wraps to this. */
@@ -93,7 +97,15 @@ export function formatSoldierRow(state: BattleState, s: Soldier): string {
   );
 }
 
-/** Seed, tick and clock, pause flag, medic calls per side, hash, the tune lines when any, and the winner once set. */
+/** `speed 0.5x` when slowed, `speed error <message>` when rejected, nothing at full speed. */
+export function formatSpeedLines(speed: SpeedStatus): string[] {
+  if (speed.error !== null) {
+    return [`speed error ${speed.error}`];
+  }
+  return speed.speed === 1 ? [] : [`speed ${formatSpeed(speed.speed)}`];
+}
+
+/** Seed, tick and clock, pause flag, medic calls per side, hash, the tune and speed lines when any, and the winner once set. */
 export function formatDebugHeader(state: BattleState, info: DebugHeaderInfo): string[] {
   const lines = [
     `seed ${info.seed}   tick ${state.tick}   ${formatClock(state.tick)}   ${info.paused ? 'PAUSED' : 'RUNNING'}`,
@@ -102,6 +114,9 @@ export function formatDebugHeader(state: BattleState, info: DebugHeaderInfo): st
   ];
   if (info.tuning !== undefined) {
     lines.push(...formatTuneLines(info.tuning));
+  }
+  if (info.speed !== undefined) {
+    lines.push(...formatSpeedLines(info.speed));
   }
   if (state.winner !== null) {
     lines.push(`winner ${state.winner}`);

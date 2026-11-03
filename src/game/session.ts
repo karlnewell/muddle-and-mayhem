@@ -37,13 +37,17 @@ export interface BattleSession {
   stats(): BattleStats;
 }
 
-/** `overrides` are the `?tune=` values in force, recorded on the statistics so a report carries them. */
-export function createSession(seed: number, overrides: TuningOverrides = {}): BattleSession {
+/**
+ * `overrides` are the `?tune=` values in force, recorded on the statistics so
+ * a report carries them. `speed` is the `?speed=` factor: it scales real time
+ * in the stepper only, so the ticks stepped are the same at any speed.
+ */
+export function createSession(seed: number, overrides: TuningOverrides = {}, speed = 1): BattleSession {
   const state = createBattle({ seed });
   const ai: Controller = createAi('red', seed);
   const log: Command[] = [];
   const pending: Command[] = [];
-  const stepper = createFixedStepper(TICK_MS, MAX_FRAME_MS, MAX_TICKS_PER_FRAME);
+  const stepper = createFixedStepper(TICK_MS, MAX_FRAME_MS, MAX_TICKS_PER_FRAME, speed);
   const collector = createStatsCollector(seed, overrides);
 
   function stepOnce(): BattleEvent[] {

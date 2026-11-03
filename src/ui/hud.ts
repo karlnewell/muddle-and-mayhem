@@ -13,7 +13,8 @@ import type { BattleState, Side, Soldier } from '../sim';
 import type { ButtonRect } from './buttons';
 import { roundRect } from './drawButtons';
 import { formatClock } from './text';
-import { CONTROLS_HINT, FONT, GAME_TITLE, HUD, STATUS_TEXT, TOP_BAR, TUNED_BADGE } from './uiConstants';
+import { formatSpeed } from '../game/speed';
+import { CONTROLS_HINT, FONT, GAME_TITLE, HUD, SPEED_BADGE, STATUS_TEXT, TOP_BAR, TUNED_BADGE } from './uiConstants';
 
 export interface HudView {
   playerSide: Side;
@@ -21,6 +22,8 @@ export interface HudView {
   paused: boolean;
   /** True while a `?tune=` override is in force: the top bar shows the TUNED badge. */
   tuned: boolean;
+  /** The `?speed=` factor; below 1 the top bar shows the SPEED badge. Absent means full speed. */
+  speed?: number;
 }
 
 /** The TUNED badge rectangle, fixed so a test can read its pixels. */
@@ -28,8 +31,12 @@ export function tunedBadgeRect(): ButtonRect {
   return { id: 'tuned', label: 'TUNED', x: TUNED_BADGE.x, y: TUNED_BADGE.y, w: TUNED_BADGE.w, h: TUNED_BADGE.h };
 }
 
-function drawTunedBadge(ctx: CanvasRenderingContext2D): void {
-  const r = tunedBadgeRect();
+/** The SPEED badge rectangle, beside the TUNED badge's place whether or not that badge is shown. */
+export function speedBadgeRect(speed: number): ButtonRect {
+  return { id: 'speed', label: `SPEED ${formatSpeed(speed)}`, x: SPEED_BADGE.x, y: SPEED_BADGE.y, w: SPEED_BADGE.w, h: SPEED_BADGE.h };
+}
+
+function drawBadge(ctx: CanvasRenderingContext2D, r: ButtonRect): void {
   roundRect(ctx, r.x, r.y, r.w, r.h, TUNED_BADGE.radius);
   ctx.fillStyle = PALETTE.selection;
   ctx.fill();
@@ -172,7 +179,10 @@ function drawTopBar(ctx: CanvasRenderingContext2D, state: BattleState, view: Hud
   ctx.textAlign = 'left';
   ctx.fillText(GAME_TITLE, TOP_BAR.padding, TOP_BAR.height / 2 + 1);
   if (view.tuned) {
-    drawTunedBadge(ctx);
+    drawBadge(ctx, tunedBadgeRect());
+  }
+  if (view.speed !== undefined && view.speed !== 1) {
+    drawBadge(ctx, speedBadgeRect(view.speed));
   }
   ctx.textBaseline = 'middle';
   ctx.font = FONT.bodyBold;
