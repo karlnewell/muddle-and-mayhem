@@ -175,6 +175,6 @@ export function resultRowY(i: number): number;   // centre line of table row i
 
 ### Task 8: Measure on Compact Crossroads; tune only where a guard fails; close
 
-- [ ] **Step 1: Measure** on the compact map (seeds 1 to 60): `--blue=ai`, `--blue=passive`, `--blue=holdline`; check each section-6 guard.
-- [ ] **Step 2: For each failing guard, in lever order,** one PR: the candidate values measured (before and after table), the change in `constants.ts`, a decision line. Stop after splash radius and report any guard still failing.
-- [ ] **Step 3: Close.** Re-measure on seeds 1 to 60 and 61 to 180; a closing decision line with the final numbers and what was tried and rejected, in the last PR of the plan.
+- [x] **Step 1: Measure** on the compact map (seeds 1 to 60): `--blue=ai`, `--blue=passive`, `--blue=holdline`; check each section-6 guard.
+- [x] **Step 2: For each failing guard, in lever order,** one PR: the candidate values measured (before and after table), the change in `constants.ts`, a decision line. Stop after splash radius and report any guard still failing.
+- [x] **Step 3: Close.** Re-measure on seeds 1 to 60 and 61 to 180; a closing decision line with the final numbers and what was tried and rejected, in the last PR of the plan.
