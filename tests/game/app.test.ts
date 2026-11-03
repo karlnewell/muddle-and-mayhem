@@ -179,3 +179,75 @@ describe('app report map', () => {
     expect(md).toContain('MAPS.compact)');
   });
 });
+
+describe('drag to select', () => {
+  /** A paused battle with blue soldiers 0 and 1 at known screen points; the box corners sit 30 out, clear of the pick radius. */
+  function battle() {
+    const app = createApp(FIXED, never, {});
+    app.click(10, 10, 'left', false);
+    const [a, b] = [0, 1].map((id) => {
+      const s = app.session!.state.soldiers[id];
+      return app.renderer.projection.worldToScreen(s.x, s.y);
+    });
+    return { app, a, b };
+  }
+  const corners = (a: { x: number; y: number }, b: { x: number; y: number }) => ({
+    x0: Math.min(a.x, b.x) - 30,
+    y0: Math.min(a.y, b.y) - 30,
+    x1: Math.max(a.x, b.x) + 30,
+    y1: Math.max(a.y, b.y) + 30,
+  });
+
+  it('a drag on empty ground selects the soldiers inside on release, while paused', () => {
+    const { app, a, b } = battle();
+    const box = corners(a, b);
+    app.press(box.x0, box.y0, 'left', false);
+    expect(app.dragBox).toBeNull();
+    app.pointerMove(box.x1, box.y1);
+    expect(app.dragBox).not.toBeNull();
+    expect(app.selection).toEqual([]);
+    app.release(box.x1, box.y1);
+    expect(app.session!.paused).toBe(true);
+    expect(app.dragBox).toBeNull();
+    expect(app.selection).toEqual([0, 1]);
+    expect(app.session!.pending.filter((c) => c.type === 'select')).toHaveLength(1);
+  });
+  it('a press on a friendly soldier selects it at once and starts no drag', () => {
+    const { app, a } = battle();
+    app.press(a.x, a.y, 'left', false);
+    expect(app.selection).toEqual([0]);
+    app.pointerMove(a.x + 60, a.y + 60);
+    expect(app.dragBox).toBeNull();
+    app.release(a.x + 60, a.y + 60);
+    expect(app.selection).toEqual([0]);
+  });
+  it('a press and release without travel is a click on empty ground', () => {
+    const { app, a } = battle();
+    app.click(a.x, a.y, 'left', false);
+    const ground = app.renderer.projection.worldToScreen(416, 240);
+    app.press(ground.x, ground.y, 'left', false);
+    expect(app.selection).toEqual([0]);
+    app.release(ground.x + 1, ground.y);
+    expect(app.selection).toEqual([]);
+  });
+  it('right press and presses off the field keep their click meaning', () => {
+    const { app, a } = battle();
+    app.click(a.x, a.y, 'left', false);
+    const ground = app.renderer.projection.worldToScreen(416, 240);
+    app.press(ground.x, ground.y, 'right', false);
+    expect(app.session!.pending.map((c) => c.type)).toEqual(['select', 'move']);
+    const card = hudCardRects('blue')[3];
+    app.press(...mid(card), 'left', false);
+    expect(app.selection).toEqual([3]);
+    expect(app.dragBox).toBeNull();
+  });
+  it('a drag in progress is dropped when the menu opens', () => {
+    const { app, a, b } = battle();
+    const box = corners(a, b);
+    app.press(box.x0, box.y0, 'left', false);
+    app.pointerMove(box.x1, box.y1);
+    app.key('Escape', false);
+    app.release(box.x1, box.y1);
+    expect(app.selection).toEqual([]);
+  });
+});

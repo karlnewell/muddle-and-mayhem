@@ -186,12 +186,12 @@ export const DEBUG_OVERLAY = {
 
 /** The keys in two lines, at the foot of the Esc menu; the title screen has the longer `TITLE_CONTROLS`. */
 export const CONTROLS_HINT_LINES: readonly string[] = [
-  'Left click: select   Right click: move / attack / medic   A: volley   H: hold',
+  'Left click or drag a box: select   Right click: move / attack / medic   A: volley   H: hold',
   'M: medic   1-5: slots   S: all   Space: pause   Esc: menu',
 ];
 
 export const TITLE_CONTROLS: readonly string[] = [
-  'Left click a blue soldier to select it (shift adds). Keys 1 to 5 pick by slot, S all.',
+  'Left click a blue soldier or drag a box round several to select (shift adds). 1 to 5, S all.',
   'Right click the ground to move, an enemy to attack, a downed friend to call the medic.',
   'A: the whole squad fires at the enemy nearest the cursor without moving. H holds position.',
   'M calls the medic for a selected downed soldier. Three calls per side.',

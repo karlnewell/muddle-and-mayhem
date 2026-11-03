@@ -30,6 +30,7 @@ while paused are taken at once and shown as faint markers.
 | Input | What it does |
 |---|---|
 | Left click a blue soldier | Select it (Shift adds to the selection) |
+| Left drag a box on the battlefield | Select every blue soldier inside it, downed ones too (Shift adds); a box with nobody inside clears the selection. Works while paused |
 | Keys 1 to 5, or click a soldier card in the side panel | Select by slot (Shift adds) |
 | S | Select the whole squad, so the next right click moves or attacks with everyone |
 | Right click the ground | Move the selected soldiers there |

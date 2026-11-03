@@ -13,11 +13,13 @@ test('page loads, canvas is painted, no console errors', async ({ page }) => {
   await expect(page).toHaveTitle('Muddle & Mayhem');
   const canvas = page.locator('canvas#game');
   await expect(canvas).toBeVisible();
-  const painted = await canvas.evaluate((c: HTMLCanvasElement) => {
-    const d = c.getContext('2d')!.getImageData(0, 0, c.width, c.height).data;
-    for (let i = 3; i < d.length; i += 4) if (d[i] !== 0) return true;
-    return false;
-  });
-  expect(painted).toBe(true);
+  // polled: under parallel load the first animation frame can land after the canvas is visible
+  const painted = () =>
+    canvas.evaluate((c: HTMLCanvasElement) => {
+      const d = c.getContext('2d')!.getImageData(0, 0, c.width, c.height).data;
+      for (let i = 3; i < d.length; i += 4) if (d[i] !== 0) return true;
+      return false;
+    });
+  await expect.poll(painted).toBe(true);
   expect(errors).toEqual([]);
 });

@@ -177,3 +177,32 @@ test('A volleys the whole squad at the enemy under the cursor and S selects it',
   expect(await page.evaluate(() => [...window.__mm!.selection])).toEqual([2]);
   expect(errors).toEqual([]);
 });
+
+test('dragging a box selects the soldiers inside and a right click moves them', async ({ page }) => {
+  const errors = collectErrors(page);
+  await page.goto('./?seed=7');
+  await page.waitForFunction(() => window.__mm !== undefined && window.__mm.screen === 'title');
+  const box = (await page.locator('canvas#game').boundingBox())!;
+  await page.mouse.click(box.x + box.width / 2, box.y + box.height / 2);
+  await page.waitForFunction(() => window.__mm!.screen === 'battle');
+
+  // A box from above-left of soldier 0 to below-right of soldier 1, clear of both pick circles; the battle stays paused.
+  const first = await soldierClient(page, 0);
+  const second = await soldierClient(page, 1);
+  const margin = (second.y - first.y) / 2;
+  await page.mouse.move(first.x - margin, first.y - margin);
+  await page.mouse.down();
+  await page.mouse.move(second.x + margin, second.y + margin, { steps: 5 });
+  await page.mouse.up();
+  expect(await page.evaluate(() => [...window.__mm!.selection])).toEqual([0, 1]);
+
+  const ground = await page.evaluate(() => window.__mm!.worldToClient(400, 200));
+  await page.mouse.click(ground.x, ground.y, { button: 'right' });
+  const pending = await page.evaluate(() => (window.__mm!.pending as { type: string; soldierIds?: number[] }[]).map((c) => [c.type, c.soldierIds]));
+  expect(pending).toEqual([
+    ['select', [0, 1]],
+    ['move', [0, 1]],
+  ]);
+  expect(await page.evaluate(() => window.__mm!.paused)).toBe(true);
+  expect(errors).toEqual([]);
+});
