@@ -12,7 +12,8 @@
  *
  * Usage:
  *   npm run measure                                  defaults: 60 seeds, AI versus AI
- *   npm run measure -- '{"MOVE_SPEED":2}'           override tunables for this run
+ *   npm run measure -- '{"MEDIC_SPEED":4}'          override tunables for this run
+ *   npm run measure -- '{"CLASS_STATS":{"scorcher":{"maxHp":100}}}'   per-class health and speed
  *   MM_OVERRIDES='{"WEAPONS":{"gunner":{"cooldown":10}}}' npm run measure
  *   npm run measure -- --seeds=100 --blue=passive    a blue squad that never moves
  *   npm run measure -- --blue=holdline               a scripted blue squad that holds the left wall gap

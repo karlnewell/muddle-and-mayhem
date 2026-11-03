@@ -6,7 +6,7 @@
  * their destination and a reticle on their attack target. The flame cone
  * of a firing Scorcher is drawn here too, since it hangs off the soldier.
  */
-import { MAX_HP, WEAPONS, soldierById } from '../sim';
+import { WEAPONS, hpFraction, soldierById } from '../sim';
 import type { BattleState, Command, Side, Soldier, Vec2 } from '../sim';
 import { lerpPosition } from './interpolate';
 import { CLASS_LETTER, PALETTE, SIDE_COLOUR, SIDE_COLOUR_DIM, SOLDIER_DRAW } from './palette';
@@ -53,7 +53,7 @@ function drawBars(ctx: CanvasRenderingContext2D, s: Soldier, p: Vec2): void {
   const h = SOLDIER_DRAW.hpBarHeight;
   const x = p.x - w / 2;
   const y = p.y - SOLDIER_DRAW.hpBarOffset;
-  const fraction = Math.max(0, Math.min(1, s.hp / MAX_HP));
+  const fraction = hpFraction(s);
   ctx.fillStyle = PALETTE.hpBack;
   ctx.fillRect(x - 1, y - 1, w + 2, h + 2);
   ctx.fillStyle = hpColour(fraction);

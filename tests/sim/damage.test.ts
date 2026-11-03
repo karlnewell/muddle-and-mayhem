@@ -1,9 +1,13 @@
 import { describe, expect, it } from 'vitest';
 import { createBattle } from '../../src/sim/battle';
-import { COVER_SPLASH_FRACTION, INSTANT_KILL_CHANCE, MAX_HP, WEAPONS, overrideTuning } from '../../src/sim/constants';
+import { COVER_SPLASH_FRACTION, INSTANT_KILL_CHANCE, CLASS_STATS, WEAPONS, overrideTuning } from '../../src/sim/constants';
 import { applyDamage, applySplash } from '../../src/sim/damage';
 import { parseMap } from '../../src/sim/map';
 import type { BattleState, Soldier, TileMap } from '../../src/sim/types';
+
+import type { SoldierClass } from '../../src/sim/types';
+/** Full health of a soldier's class. */
+const maxHp = (s: { cls: SoldierClass }): number => CLASS_STATS[s.cls].maxHp;
 
 const SEEDS = 200;
 
@@ -37,7 +41,7 @@ describe('applyDamage', () => {
     const state = createBattle({ seed: 1 });
     const target = state.soldiers[5];
     applyDamage(state, target, WEAPONS.gunner.damage, 'gunner', 9);
-    expect(target.hp).toBe(MAX_HP - WEAPONS.gunner.damage);
+    expect(target.hp).toBe(maxHp(target) - WEAPONS.gunner.damage);
     expect(target.status).toBe('standing');
     expect(state.events).toEqual([
       { kind: 'damage', soldierId: 5, amount: WEAPONS.gunner.damage, weapon: 'gunner', sourceId: 9 },
@@ -47,7 +51,7 @@ describe('applyDamage', () => {
   it('never drops hp below zero', () => {
     const state = createBattle({ seed: 1 });
     const target = state.soldiers[5];
-    applyDamage(state, target, MAX_HP + 50, 'gunner', 9);
+    applyDamage(state, target, maxHp(target) + 50, 'gunner', 9);
     expect(target.hp).toBe(0);
   });
 
@@ -55,7 +59,7 @@ describe('applyDamage', () => {
     for (let seed = 0; seed < SEEDS; seed++) {
       const state = createBattle({ seed });
       const target = state.soldiers[5];
-      applyDamage(state, target, MAX_HP, 'gunner', 9);
+      applyDamage(state, target, maxHp(target), 'gunner', 9);
       expect(target.hp).toBe(0);
       expect(target.status).toBe('downed');
     }
@@ -67,7 +71,7 @@ describe('applyDamage', () => {
     for (let seed = 0; seed < SEEDS; seed++) {
       const state = createBattle({ seed });
       const target = state.soldiers[5];
-      applyDamage(state, target, MAX_HP, 'launcher', 9);
+      applyDamage(state, target, maxHp(target), 'launcher', 9);
       expect(target.hp).toBe(0);
       if (target.status === 'dead') {
         dead++;
@@ -88,7 +92,7 @@ describe('applyDamage', () => {
     // A gunner hit that downs: stream untouched.
     const a = createBattle({ seed: 9 });
     const ref = createBattle({ seed: 9 });
-    applyDamage(a, a.soldiers[5], MAX_HP, 'gunner', 9);
+    applyDamage(a, a.soldiers[5], maxHp(a.soldiers[5]), 'gunner', 9);
     expect(a.rng.next()).toBe(ref.rng.next());
 
     // A launcher hit that merely wounds: stream untouched.
@@ -100,7 +104,7 @@ describe('applyDamage', () => {
     // A launcher hit that downs: exactly one draw consumed.
     const c = createBattle({ seed: 9 });
     const refC = createBattle({ seed: 9 });
-    applyDamage(c, c.soldiers[5], MAX_HP, 'launcher', 9);
+    applyDamage(c, c.soldiers[5], maxHp(c.soldiers[5]), 'launcher', 9);
     refC.rng.next();
     expect(c.rng.next()).toBe(refC.rng.next());
   });
@@ -112,7 +116,7 @@ describe('applyDamage', () => {
     target.path = [{ x: 1, y: 2 }];
     target.targetId = 0;
     target.firing = true;
-    applyDamage(state, target, MAX_HP, 'gunner', 9);
+    applyDamage(state, target, maxHp(target), 'gunner', 9);
     expect(target.order).toEqual({ kind: 'hold' });
     expect(target.path).toEqual([]);
     expect(target.targetId).toBeNull();
@@ -143,9 +147,9 @@ describe('applyDamage', () => {
 
   it('emits damage then downed', () => {
     const state = createBattle({ seed: 1 });
-    applyDamage(state, state.soldiers[5], MAX_HP, 'gunner', 9);
+    applyDamage(state, state.soldiers[5], maxHp(state.soldiers[5]), 'gunner', 9);
     expect(state.events).toEqual([
-      { kind: 'damage', soldierId: 5, amount: MAX_HP, weapon: 'gunner', sourceId: 9 },
+      { kind: 'damage', soldierId: 5, amount: maxHp(state.soldiers[5]), weapon: 'gunner', sourceId: 9 },
       { kind: 'downed', soldierId: 5 },
     ]);
   });
@@ -154,11 +158,11 @@ describe('applyDamage', () => {
     let seen = false;
     for (let seed = 0; seed < SEEDS && !seen; seed++) {
       const state = createBattle({ seed });
-      applyDamage(state, state.soldiers[5], MAX_HP, 'launcher', 9);
+      applyDamage(state, state.soldiers[5], maxHp(state.soldiers[5]), 'launcher', 9);
       if (state.soldiers[5].status === 'dead') {
         seen = true;
         expect(state.events).toEqual([
-          { kind: 'damage', soldierId: 5, amount: MAX_HP, weapon: 'launcher', sourceId: 9 },
+          { kind: 'damage', soldierId: 5, amount: maxHp(state.soldiers[5]), weapon: 'launcher', sourceId: 9 },
           { kind: 'killed', soldierId: 5 },
         ]);
       }
@@ -185,11 +189,11 @@ describe('applySplash', () => {
 
     applySplash(state, 400, 320, radius, amount, 'chucker', 4, 2);
 
-    expect(state.soldiers[2].hp).toBe(MAX_HP - amount);
-    expect(state.soldiers[7].hp).toBe(MAX_HP - amount);
-    expect(state.soldiers[8].hp).toBe(MAX_HP - amount);
-    expect(state.soldiers[9].hp).toBe(MAX_HP);
-    expect(state.soldiers[4].hp).toBe(MAX_HP);
+    expect(state.soldiers[2].hp).toBe(maxHp(state.soldiers[2]) - amount);
+    expect(state.soldiers[7].hp).toBe(maxHp(state.soldiers[7]) - amount);
+    expect(state.soldiers[8].hp).toBe(maxHp(state.soldiers[8]) - amount);
+    expect(state.soldiers[9].hp).toBe(maxHp(state.soldiers[9]));
+    expect(state.soldiers[4].hp).toBe(maxHp(state.soldiers[4]));
     expect(state.soldiers[6].hp).toBe(0);
     expect(state.soldiers[6].status).toBe('downed');
     expect(state.events).toEqual([
@@ -216,7 +220,7 @@ describe('applySplash', () => {
     scatterFar(state);
     place(state, 7, 400 + 40 + 1, 400);
     applySplash(state, 400, 400, 40, 10, 'chucker', null, 2);
-    expect(state.soldiers[7].hp).toBe(MAX_HP);
+    expect(state.soldiers[7].hp).toBe(maxHp(state.soldiers[7]));
     expect(state.events).toEqual([]);
   });
 
@@ -225,13 +229,13 @@ describe('applySplash', () => {
     scatterFar(state);
     place(state, 0, 400, 400);
     place(state, 5, 405, 405);
-    applySplash(state, 400, 400, 40, MAX_HP, 'chucker', null, 2);
+    applySplash(state, 400, 400, 40, maxHp(state.soldiers[0]), 'chucker', null, 2);
     expect(state.soldiers[0].status).toBe('downed');
     expect(state.soldiers[5].status).toBe('downed');
     expect(state.events).toEqual([
-      { kind: 'damage', soldierId: 0, amount: MAX_HP, weapon: 'chucker', sourceId: 2 },
+      { kind: 'damage', soldierId: 0, amount: maxHp(state.soldiers[0]), weapon: 'chucker', sourceId: 2 },
       { kind: 'downed', soldierId: 0 },
-      { kind: 'damage', soldierId: 5, amount: MAX_HP, weapon: 'chucker', sourceId: 2 },
+      { kind: 'damage', soldierId: 5, amount: maxHp(state.soldiers[0]), weapon: 'chucker', sourceId: 2 },
       { kind: 'downed', soldierId: 5 },
     ]);
   });
@@ -244,8 +248,8 @@ describe('applySplash and cover', () => {
     place(state, 7, 530, 112);   // beyond the crate, 60 from the burst
     place(state, 2, 470, 160);   // open ground, 48 from the burst, nothing between
     applySplash(state, 470, 112, 80, 40, 'chucker', null, 2);
-    expect(state.soldiers[2].hp).toBe(MAX_HP - 40);
-    expect(state.soldiers[7].hp).toBe(MAX_HP - 40 * COVER_SPLASH_FRACTION);
+    expect(state.soldiers[2].hp).toBe(maxHp(state.soldiers[2]) - 40);
+    expect(state.soldiers[7].hp).toBe(maxHp(state.soldiers[7]) - 40 * COVER_SPLASH_FRACTION);
     expect(state.events).toEqual([
       { kind: 'damage', soldierId: 2, amount: 40, weapon: 'chucker', sourceId: 2 },
       { kind: 'damage', soldierId: 7, amount: 40 * COVER_SPLASH_FRACTION, weapon: 'chucker', sourceId: 2 },
@@ -258,8 +262,8 @@ describe('applySplash and cover', () => {
     place(state, 2, 470, 112);   // west of the crate, 26 from a burst inside it
     place(state, 7, 522, 112);   // east of the crate, 26 from it
     applySplash(state, 496, 112, 40, 40, 'blaster', null, 4, true);
-    expect(state.soldiers[2].hp).toBe(MAX_HP - 40 * COVER_SPLASH_FRACTION);
-    expect(state.soldiers[7].hp).toBe(MAX_HP - 40 * COVER_SPLASH_FRACTION);
+    expect(state.soldiers[2].hp).toBe(maxHp(state.soldiers[2]) - 40 * COVER_SPLASH_FRACTION);
+    expect(state.soldiers[7].hp).toBe(maxHp(state.soldiers[7]) - 40 * COVER_SPLASH_FRACTION);
   });
 
   it('still emits a damage event of the soaked amount when the fraction is zero', () => {
@@ -270,7 +274,7 @@ describe('applySplash and cover', () => {
       scatterFar(state);
       place(state, 7, 530, 112);
       applySplash(state, 470, 112, 80, 40, 'chucker', null, 2);
-      expect(state.soldiers[7].hp).toBe(MAX_HP);
+      expect(state.soldiers[7].hp).toBe(maxHp(state.soldiers[7]));
       expect(state.events).toEqual([{ kind: 'damage', soldierId: 7, amount: 0, weapon: 'chucker', sourceId: 2 }]);
     } finally {
       overrideTuning({ COVER_SPLASH_FRACTION: before });

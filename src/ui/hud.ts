@@ -10,7 +10,7 @@
  */
 import { CLASS_NAME, PALETTE, SIDE_COLOUR, SIDE_NAME } from '../render/palette';
 import { FIELD_WIDTH, LOGICAL_WIDTH, TOP_BAR_HEIGHT, battleLayout } from '../render/renderConstants';
-import { CLASS_ORDER, MAX_HP, WEAPONS, standingCount } from '../sim';
+import { CLASS_ORDER, WEAPONS, hpFraction, standingCount } from '../sim';
 import type { BattleState, Side, Soldier } from '../sim';
 import type { ButtonRect } from './buttons';
 import { roundRect } from './drawButtons';
@@ -130,7 +130,7 @@ function drawCard(ctx: CanvasRenderingContext2D, rect: ButtonRect, slot: number,
   const barY = rect.y + 46;
   ctx.fillStyle = PALETTE.hpBack;
   ctx.fillRect(barX, barY, barW, HUD.hpBarHeight);
-  const fraction = Math.max(0, Math.min(1, s.hp / MAX_HP));
+  const fraction = hpFraction(s);
   ctx.fillStyle = hpColour(fraction);
   ctx.fillRect(barX, barY, barW * fraction, HUD.hpBarHeight);
   // cooldown bar

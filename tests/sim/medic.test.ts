@@ -1,9 +1,13 @@
 import { describe, expect, it } from 'vitest';
 import { createBattle, step } from '../../src/sim/battle';
-import { MAX_HP, MEDIC_CALLS, MEDIC_SPEED, REVIVE_FRACTION, SOLDIER_RADIUS } from '../../src/sim/constants';
+import { CLASS_STATS, MEDIC_CALLS, MEDIC_SPEED, REVIVE_FRACTION, SOLDIER_RADIUS } from '../../src/sim/constants';
 import { mapWidthUnits, parseMap } from '../../src/sim/map';
 import { advanceMedics, callMedic } from '../../src/sim/medic';
 import type { BattleEvent, BattleState, Soldier, TileMap } from '../../src/sim/types';
+
+import type { SoldierClass } from '../../src/sim/types';
+/** Full health of a soldier's class. */
+const maxHp = (s: { cls: SoldierClass }): number => CLASS_STATS[s.cls].maxHp;
 
 /** A cooldown no test runs long enough to exhaust: a muzzled soldier never fires. */
 const NEVER_FIRES = 1_000_000_000;
@@ -41,7 +45,7 @@ function isolate(state: BattleState, keep: readonly number[]): void {
 function bystander(state: BattleState, id: number, x: number, y: number): Soldier {
   const s = state.soldiers[id];
   s.status = 'standing';
-  s.hp = MAX_HP;
+  s.hp = maxHp(s);
   s.cooldown = NEVER_FIRES;
   place(s, x, y);
   return s;
@@ -232,7 +236,7 @@ describe('advanceMedics', () => {
     callMedic(state, 'blue', 1);
     state.events = [];
     advanceMedics(state);
-    expect(body.hp).toBe(Math.floor(MAX_HP * REVIVE_FRACTION));
+    expect(body.hp).toBe(Math.floor(maxHp(body) * REVIVE_FRACTION));
     expect(body.status).toBe('standing');
     expect(body.order).toEqual({ kind: 'hold' });
     expect(body.path).toEqual([]);
@@ -362,7 +366,7 @@ describe('medics through step', () => {
     expect(revivedAt).toBeGreaterThan(notBefore);
     expect(revivedAt).toBeLessThanOrEqual(by);
     expect(body.status).toBe('standing');
-    expect(body.hp).toBe(Math.floor(MAX_HP * REVIVE_FRACTION));
+    expect(body.hp).toBe(Math.floor(maxHp(body) * REVIVE_FRACTION));
     expect(body.order).toEqual({ kind: 'hold' });
     expect(state.medics).toEqual([]);
     expect(state.winner).toBeNull();

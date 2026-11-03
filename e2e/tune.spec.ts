@@ -11,7 +11,7 @@ import { titleSpeedRects } from '../src/ui/title';
 // same Markdown on the clipboard. The seed is fixed; the debug hook
 // (window.__mm) reads what the canvas alone cannot expose.
 
-const OVERRIDES = { WEAPONS: { launcher: { cooldown: 180 } } };
+const OVERRIDES = { WEAPONS: { launcher: { cooldown: 180 } }, CLASS_STATS: { scorcher: { maxHp: 100 } } };
 const TUNE = encodeURIComponent(JSON.stringify(OVERRIDES));
 
 function collectErrors(page: Page): string[] {
@@ -57,6 +57,8 @@ test('a tune override shows the TUNED badge, reaches a result with a report, and
   const box = (await canvas.boundingBox())!;
   await page.mouse.click(box.x + box.width / 2, box.y + box.height / 2);
   await page.waitForFunction(() => window.__mm!.screen === 'battle');
+  // The red Scorcher (id 8) starts at the overridden class maximum.
+  expect(await page.evaluate(() => (window.__mm!.state as { soldiers: { hp: number }[] }).soldiers[8].hp)).toBe(100);
   await page.waitForTimeout(100);
   expectBadgeYellow(await badgePixel(page));
 
@@ -67,7 +69,7 @@ test('a tune override shows the TUNED badge, reaches a result with a report, and
   const report = await page.evaluate(() => window.__mm!.report());
   expect(report).toContain('Seed: 7');
   expect(report).toContain('| blue | Gunner |');
-  expect(report).toContain('Overrides: `{"WEAPONS":{"launcher":{"cooldown":180}}}`');
+  expect(report).toContain(`Overrides: \`${JSON.stringify(OVERRIDES)}\``);
   expect(report).toContain('"side":"red"');
   const stats = await page.evaluate(() => window.__mm!.stats as { sides: { blue: { gunner: { shots: number } } } });
   expect(stats.sides.blue.gunner.shots).toBeGreaterThan(0);

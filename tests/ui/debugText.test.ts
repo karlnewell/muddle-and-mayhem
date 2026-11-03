@@ -42,9 +42,9 @@ describe('formatDebugHeader', () => {
   });
   it('adds the active overrides as JSON after the hash line', () => {
     const state = battle();
-    const lines = formatDebugHeader(state, { seed: 7, paused: true, hash: 1, tuning: { overrides: { MOVE_SPEED: 2 }, active: true, error: null } });
+    const lines = formatDebugHeader(state, { seed: 7, paused: true, hash: 1, tuning: { overrides: { MEDIC_SPEED: 2 }, active: true, error: null } });
     expect(lines).toHaveLength(4);
-    expect(lines[3]).toBe('tune {"MOVE_SPEED":2}');
+    expect(lines[3]).toBe('tune {"MEDIC_SPEED":2}');
   });
   it('adds the tune error when the parameter was rejected', () => {
     const state = battle();

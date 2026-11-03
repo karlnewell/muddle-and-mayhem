@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { createBattle, step } from '../../src/sim/battle';
 import { applyCommand } from '../../src/sim/commands';
-import { FIRING_MOVE_FRACTION, MOVE_SPEED, SOLDIER_RADIUS, overrideTuning } from '../../src/sim/constants';
+import { CLASS_STATS, FIRING_MOVE_FRACTION, SOLDIER_RADIUS, overrideTuning } from '../../src/sim/constants';
 import { circleOverlapsCover, mapHeightUnits, mapWidthUnits, parseMap, tileCenter } from '../../src/sim/map';
 import { moveSoldiers } from '../../src/sim/movement';
 import type { BattleState, Soldier, TileMap } from '../../src/sim/types';
@@ -94,7 +94,7 @@ describe('moveSoldiers', () => {
     const destX = s.x + 64;
     const destY = s.y;
     applyCommand(state, { tick: 0, side: 'blue', type: 'move', soldierIds: [0], x: destX, y: destY });
-    const budget = Math.ceil(64 / MOVE_SPEED) + 5;
+    const budget = Math.ceil(64 / CLASS_STATS.gunner.speed) + 5;
     let arrivedAt = -1;
     for (let t = 0; t < budget; t++) {
       step(state, []);
@@ -105,7 +105,7 @@ describe('moveSoldiers', () => {
     }
     expect(arrivedAt).toBeGreaterThan(0);
     expect(arrivedAt).toBeLessThanOrEqual(budget);
-    expect(arrivedAt).toBeGreaterThanOrEqual(Math.floor(64 / MOVE_SPEED));
+    expect(arrivedAt).toBeGreaterThanOrEqual(Math.floor(64 / CLASS_STATS.gunner.speed));
     expect(s.x).toBe(destX);
     expect(s.y).toBe(destY);
     expect(s.path).toEqual([]);
@@ -126,8 +126,8 @@ describe('moveSoldiers', () => {
     s.prevY = start.y;
     applyCommand(state, { tick: 0, side: 'blue', type: 'move', soldierIds: [0], x: dest.x, y: dest.y });
     expect(s.path.length).toBeGreaterThan(7); // longer than the straight line of 7 tiles
-    // Generous budget: a detour of about 11 tiles plus slack at MOVE_SPEED.
-    const budget = Math.ceil((14 * 32) / MOVE_SPEED);
+    // Generous budget: a detour of about 11 tiles plus slack at the Gunner's speed.
+    const budget = Math.ceil((14 * 32) / CLASS_STATS.gunner.speed);
     for (let t = 0; t < budget && s.order.kind !== 'hold'; t++) {
       step(state, []);
       expect(circleOverlapsCover(map, s.x, s.y, SOLDIER_RADIUS)).toBe(false);
@@ -223,7 +223,7 @@ describe('moveSoldiers', () => {
     dead.y = walker.y;
     const before = JSON.stringify([downed, dead]);
     applyCommand(state, { tick: 0, side: 'blue', type: 'move', soldierIds: [0], x: walker.x + 96, y: walker.y });
-    for (let t = 0; t < Math.ceil(96 / MOVE_SPEED) + 5; t++) {
+    for (let t = 0; t < Math.ceil(96 / CLASS_STATS.gunner.speed) + 5; t++) {
       step(state, []);
     }
     expect(walker.order).toEqual({ kind: 'hold' });
@@ -291,8 +291,8 @@ describe('moveSoldiers', () => {
       // The first plan takes the short way through the blocked corridor.
       expect(mover.path.length).toBeLessThan(8);
       let farthestX = mover.x;
-      // Budget: about 25 tiles of detour at MOVE_SPEED, plus the stuck wait.
-      const budget = Math.ceil((28 * 32) / MOVE_SPEED);
+      // Budget: about 25 tiles of detour at the Gunner's speed, plus the stuck wait.
+      const budget = Math.ceil((28 * 32) / CLASS_STATS.gunner.speed);
       for (let t = 0; t < budget && mover.order.kind !== 'hold'; t++) {
         step(state, []);
         farthestX = Math.max(farthestX, mover.x);
@@ -350,18 +350,18 @@ describe('FIRING_MOVE_FRACTION', () => {
     return { state, s };
   }
 
-  it('slows a soldier whose weapon discharged last tick to the fraction of MOVE_SPEED', () => {
+  it('slows a soldier whose weapon discharged last tick to the fraction of its class speed', () => {
     const before = FIRING_MOVE_FRACTION;
     overrideTuning({ FIRING_MOVE_FRACTION: 0.5 });
     try {
       const firing = walker();
       firing.s.firing = true;
       moveSoldiers(firing.state, never);
-      expect(firing.s.x).toBeCloseTo(64 + MOVE_SPEED * 0.5, 9);
+      expect(firing.s.x).toBeCloseTo(64 + CLASS_STATS.scorcher.speed * 0.5, 9);
       const idle = walker();
       idle.s.firing = false;
       moveSoldiers(idle.state, never);
-      expect(idle.s.x).toBeCloseTo(64 + MOVE_SPEED, 9);
+      expect(idle.s.x).toBeCloseTo(64 + CLASS_STATS.scorcher.speed, 9);
     } finally {
       overrideTuning({ FIRING_MOVE_FRACTION: before });
     }
@@ -374,11 +374,11 @@ describe('FIRING_MOVE_FRACTION', () => {
       const { state, s } = walker();
       s.firing = true;              // as if it burned last tick; nothing is in range now
       step(state, []);
-      expect(s.x).toBeCloseTo(64 + MOVE_SPEED * 0.5, 9);
+      expect(s.x).toBeCloseTo(64 + CLASS_STATS.scorcher.speed * 0.5, 9);
       expect(s.firing).toBe(false); // fireWeapons found no target
       const x1 = s.x;
       step(state, []);
-      expect(s.x - x1).toBeCloseTo(MOVE_SPEED, 9);
+      expect(s.x - x1).toBeCloseTo(CLASS_STATS.scorcher.speed, 9);
     } finally {
       overrideTuning({ FIRING_MOVE_FRACTION: before });
     }

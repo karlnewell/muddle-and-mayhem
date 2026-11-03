@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { createBattle, step } from '../../src/sim/battle';
 import { applyCommand } from '../../src/sim/commands';
 import {
-  DIRECTIONS16, GUNNER_JAM_CHANCE, GUNNER_JAM_TICKS, MAX_HP, MOVE_SPEED,
+  DIRECTIONS16, GUNNER_JAM_CHANCE, GUNNER_JAM_TICKS, CLASS_STATS,
   TILE_SIZE, WEAPONS, overrideTuning,
 } from '../../src/sim/constants';
 import { parseMap } from '../../src/sim/map';
@@ -10,6 +10,10 @@ import { createRng } from '../../src/sim/rng';
 import type { BattleState, Soldier, TileMap } from '../../src/sim/types';
 import { dist2, normalize } from '../../src/sim/vec';
 import { fireWeapons, scatterAim } from '../../src/sim/weapons';
+
+import type { SoldierClass } from '../../src/sim/types';
+/** Full health of a soldier's class. */
+const maxHp = (s: { cls: SoldierClass }): number => CLASS_STATS[s.cls].maxHp;
 
 /** A cooldown no test runs long enough to exhaust: a muzzled soldier never fires. */
 const NEVER_FIRES = 1_000_000_000;
@@ -259,7 +263,7 @@ describe('fireWeapons', () => {
     const t = state.soldiers[5];
     applyCommand(state, { tick: 0, side: 'blue', type: 'attack', soldierIds: [0], targetId: 5 });
     // Walk 76 units into range, then enough ticks for several rounds: at the Gunner's spread most miss.
-    const budget = Math.ceil(76 / MOVE_SPEED) + 8 * WEAPONS.gunner.cooldown;
+    const budget = Math.ceil(76 / CLASS_STATS.gunner.speed) + 8 * WEAPONS.gunner.cooldown;
     let shots = 0;
     for (let i = 0; i < budget; i++) {
       step(state, []);
@@ -267,10 +271,10 @@ describe('fireWeapons', () => {
     }
     const d = Math.sqrt(dist2(g.x, g.y, t.x, t.y));
     expect(d).toBeLessThanOrEqual(WEAPONS.gunner.range);
-    expect(d).toBeGreaterThan(WEAPONS.gunner.range - 2 * MOVE_SPEED);
+    expect(d).toBeGreaterThan(WEAPONS.gunner.range - 2 * CLASS_STATS.gunner.speed);
     expect(g.order).toEqual({ kind: 'attack', targetId: 5 });
     expect(shots).toBeGreaterThan(0);
-    expect(t.hp).toBeLessThan(MAX_HP);
+    expect(t.hp).toBeLessThan(maxHp(t));
   });
 });
 

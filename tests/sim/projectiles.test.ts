@@ -1,10 +1,13 @@
 import { describe, expect, it } from 'vitest';
 import { createBattle } from '../../src/sim/battle';
-import { MAX_HP, SOLDIER_RADIUS, WEAPONS } from '../../src/sim/constants';
+import { CLASS_STATS, SOLDIER_RADIUS, WEAPONS } from '../../src/sim/constants';
 import { parseMap } from '../../src/sim/map';
 import { advanceProjectiles } from '../../src/sim/projectiles';
 import type { BattleEvent, BattleState, Projectile, Soldier, SoldierClass, TileMap } from '../../src/sim/types';
 import { normalize } from '../../src/sim/vec';
+
+/** Full health of a soldier's class. */
+const maxHp = (s: { cls: SoldierClass }): number => CLASS_STATS[s.cls].maxHp;
 
 /** A 30 by 10 arena: wall down column 15 on rows 0 to 6 (x in [480, 512)), open lanes on rows 7 and 8. */
 function arena(): TileMap {
@@ -95,7 +98,7 @@ describe('advanceProjectiles, direct kind', () => {
     const ticks = flyUntilDone(state, 7);
     expect(state.projectiles).toHaveLength(0);
     expect(ticks).toBeLessThanOrEqual(7);
-    expect(target.hp).toBe(MAX_HP - WEAPONS.gunner.damage);
+    expect(target.hp).toBe(maxHp(target) - WEAPONS.gunner.damage);
     const hits = impacts(state);
     expect(hits).toHaveLength(1);
     expect(hits[0].weapon).toBe('gunner');
@@ -129,7 +132,7 @@ describe('advanceProjectiles, direct kind', () => {
     shoot(state, shooter, 'gunner', 560, 112);
     flyUntilDone(state, 20);
     expect(state.projectiles).toHaveLength(0);
-    expect(target.hp).toBe(MAX_HP);
+    expect(target.hp).toBe(maxHp(target));
     const hits = impacts(state);
     expect(hits).toHaveLength(1);
     expect(Math.abs(hits[0].x - 480)).toBeLessThanOrEqual(1);
@@ -147,7 +150,7 @@ describe('advanceProjectiles, direct kind', () => {
     place(target, 108, 266);
     shoot(state, shooter, 'gunner', 900, 256);
     advanceProjectiles(state);
-    expect(target.hp).toBe(MAX_HP - WEAPONS.gunner.damage);
+    expect(target.hp).toBe(maxHp(target) - WEAPONS.gunner.damage);
     expect(state.projectiles).toHaveLength(0);
   });
 
@@ -160,7 +163,7 @@ describe('advanceProjectiles, direct kind', () => {
     // Speed 40: the segment runs from 100 to 140, both endpoints 20 from the centre.
     shoot(state, shooter, 'gunner', 900, 256, 40);
     advanceProjectiles(state);
-    expect(target.hp).toBe(MAX_HP - WEAPONS.gunner.damage);
+    expect(target.hp).toBe(maxHp(target) - WEAPONS.gunner.damage);
     const hits = impacts(state);
     expect(hits).toHaveLength(1);
     expect(hits[0].x).toBeCloseTo(120 - SOLDIER_RADIUS, 6);
@@ -174,7 +177,7 @@ describe('advanceProjectiles, direct kind', () => {
     place(target, 116, 256);
     shoot(state, shooter, 'gunner', 900, 256);
     advanceProjectiles(state);
-    expect(target.hp).toBe(MAX_HP - WEAPONS.gunner.damage);
+    expect(target.hp).toBe(maxHp(target) - WEAPONS.gunner.damage);
     expect(state.projectiles).toHaveLength(0);
   });
 
@@ -186,7 +189,7 @@ describe('advanceProjectiles, direct kind', () => {
     place(target, 105, 256);
     shoot(state, shooter, 'gunner', 900, 256);
     advanceProjectiles(state);
-    expect(target.hp).toBe(MAX_HP - WEAPONS.gunner.damage);
+    expect(target.hp).toBe(maxHp(target) - WEAPONS.gunner.damage);
     const hits = impacts(state);
     expect(hits).toHaveLength(1);
     expect(hits[0].x).toBe(100);
@@ -203,8 +206,8 @@ describe('advanceProjectiles, direct kind', () => {
     place(enemy, 200, 256);
     shoot(state, shooter, 'gunner', 200, 256);
     flyUntilDone(state, 20);
-    expect(friend.hp).toBe(MAX_HP);
-    expect(enemy.hp).toBe(MAX_HP - WEAPONS.gunner.damage);
+    expect(friend.hp).toBe(maxHp(friend));
+    expect(enemy.hp).toBe(maxHp(enemy) - WEAPONS.gunner.damage);
     expect(state.projectiles).toHaveLength(0);
   });
 
@@ -216,8 +219,8 @@ describe('advanceProjectiles, direct kind', () => {
     place(state.soldiers[6], 150, 256);
     shoot(state, shooter, 'gunner', 200, 256);
     flyUntilDone(state, 20);
-    expect(state.soldiers[6].hp).toBe(MAX_HP - WEAPONS.gunner.damage);
-    expect(state.soldiers[5].hp).toBe(MAX_HP);
+    expect(state.soldiers[6].hp).toBe(maxHp(state.soldiers[6]) - WEAPONS.gunner.damage);
+    expect(state.soldiers[5].hp).toBe(maxHp(state.soldiers[5]));
   });
 
   it('applies launcher damage to the soldier hit and splash to others in radius, not outside it', () => {
@@ -234,9 +237,9 @@ describe('advanceProjectiles, direct kind', () => {
     place(enemyFar, 200, 301);
     shoot(state, shooter, 'launcher', 200, 256);
     flyUntilDone(state, 20);
-    expect(enemyHit.hp).toBe(MAX_HP - w.damage);
-    expect(friendNear.hp).toBe(MAX_HP - w.splashDamage);
-    expect(enemyFar.hp).toBe(MAX_HP);
+    expect(enemyHit.hp).toBe(maxHp(enemyHit) - w.damage);
+    expect(friendNear.hp).toBe(maxHp(friendNear) - w.splashDamage);
+    expect(enemyFar.hp).toBe(maxHp(enemyFar));
     const hits = impacts(state);
     expect(hits).toHaveLength(1);
     expect(hits[0].weapon).toBe('launcher');
@@ -253,8 +256,8 @@ describe('advanceProjectiles, direct kind', () => {
     place(state.soldiers[6], 470, 90);    // near side, off the rocket's line, 24 from the impact point, inside the 32 splash
     shoot(state, shooter, 'launcher', 560, 112);
     flyUntilDone(state, 20);
-    expect(state.soldiers[5].hp).toBe(MAX_HP);
-    expect(state.soldiers[6].hp).toBe(MAX_HP - w.splashDamage);
+    expect(state.soldiers[5].hp).toBe(maxHp(state.soldiers[5]));
+    expect(state.soldiers[6].hp).toBe(maxHp(state.soldiers[6]) - w.splashDamage);
     const hits = impacts(state);
     expect(hits).toHaveLength(1);
     expect(Math.abs(hits[0].x - 480)).toBeLessThanOrEqual(1);
@@ -278,7 +281,7 @@ describe('advanceProjectiles, direct kind', () => {
     expect(state.projectiles).toHaveLength(0);
     expect(ticks).toBe(4); // 16, 32, 48, 64 >= 50
     expect(sawImpact).toBe(false);
-    expect(state.soldiers[5].hp).toBe(MAX_HP);
+    expect(state.soldiers[5].hp).toBe(maxHp(state.soldiers[5]));
   });
 
   it('keeps surviving projectiles in their original order when one is removed', () => {
@@ -306,7 +309,7 @@ describe('advanceProjectiles, direct kind', () => {
     place(target, 492, 112);
     shoot(state, shooter, 'gunner', 900, 112);
     advanceProjectiles(state);
-    expect(target.hp).toBe(MAX_HP - WEAPONS.gunner.damage);
+    expect(target.hp).toBe(maxHp(target) - WEAPONS.gunner.damage);
     const hits = impacts(state);
     expect(hits).toHaveLength(1);
     expect(Math.abs(hits[0].x - 480)).toBeLessThanOrEqual(1e-9);
