@@ -73,13 +73,13 @@ describe('app report', () => {
 });
 
 describe('app volley key', () => {
-  it('A with the cursor over an enemy queues one attack for the whole standing squad', () => {
+  it('A with the cursor over an enemy queues one stand-fast attack for the whole standing squad', () => {
     const app = createApp(FIXED, never, {});
     app.click(10, 10, 'left', false);
     const enemy = app.session!.state.soldiers[7];
     const p = app.renderer.projection.worldToScreen(enemy.x, enemy.y);
     expect(app.key('a', false, p)).toBe(true);
-    expect(app.session!.pending).toEqual([{ tick: 0, side: 'blue', type: 'attack', soldierIds: [0, 1, 2, 3, 4], targetId: 7 }]);
+    expect(app.session!.pending).toEqual([{ tick: 0, side: 'blue', type: 'attack', soldierIds: [0, 1, 2, 3, 4], targetId: 7, stand: true }]);
     expect(app.selection).toEqual([]);
   });
   it('A without a cursor position is not used', () => {

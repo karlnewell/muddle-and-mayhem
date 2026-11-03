@@ -19,7 +19,7 @@ export interface TileCoord { tx: number; ty: number }
 export type Order =
   | { kind: 'hold' }
   | { kind: 'move'; x: number; y: number }
-  | { kind: 'attack'; targetId: number };
+  | { kind: 'attack'; targetId: number; stand?: true }; // stand: never move, fire from where it is
 
 export interface Soldier {
   id: number;
@@ -82,7 +82,7 @@ export type BattleEvent =
 export type Command =
   | { tick: number; side: Side; type: 'select'; soldierIds: number[] }
   | { tick: number; side: Side; type: 'move'; soldierIds: number[]; x: number; y: number }
-  | { tick: number; side: Side; type: 'attack'; soldierIds: number[]; targetId: number }
+  | { tick: number; side: Side; type: 'attack'; soldierIds: number[]; targetId: number; stand?: true }
   | { tick: number; side: Side; type: 'hold'; soldierIds: number[] }
   | { tick: number; side: Side; type: 'medic'; targetId: number };
 

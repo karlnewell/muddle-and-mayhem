@@ -13,7 +13,8 @@
  * second press helps the next one, 1-5 select by slot, Space toggles pause,
  * Escape toggles the menu, D toggles the debug overlay. `A` is the volley:
  * every standing soldier on the side, selected or not, attacks the standing
- * enemy nearest the cursor (world coordinates; ties to the lower id). `S`
+ * enemy nearest the cursor (world coordinates; ties to the lower id) without
+ * moving: a stand-fast order, so each fires from where it stands. `S`
  * selects the whole squad, standing and downed, as a click would.
  */
 import { PICK_RADIUS } from '../render/renderConstants';
@@ -139,7 +140,7 @@ function nearestStandingEnemy(state: BattleState, side: Side, p: WorldPoint): So
   return best;
 }
 
-/** The volley: the whole standing squad attacks the standing enemy nearest the cursor. */
+/** The volley: the whole standing squad attacks the standing enemy nearest the cursor, standing fast. */
 function volley(state: BattleState, selection: readonly number[], side: Side, cursor: WorldPoint | null): InputResult {
   const keep = [...selection];
   const target = cursor === null ? null : nearestStandingEnemy(state, side, cursor);
@@ -147,7 +148,7 @@ function volley(state: BattleState, selection: readonly number[], side: Side, cu
   if (target === null || ids.length === 0) {
     return { selection: keep, commands: [] };
   }
-  return { selection: keep, commands: [{ tick: state.tick, side, type: 'attack', soldierIds: ids, targetId: target.id }] };
+  return { selection: keep, commands: [{ tick: state.tick, side, type: 'attack', soldierIds: ids, targetId: target.id, stand: true }] };
 }
 
 /** The id of the soldier in `side`'s slot (0-4, class order), or null if the slot is dead or missing. */

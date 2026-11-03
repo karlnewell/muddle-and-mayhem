@@ -109,7 +109,7 @@ export const CONTROLS_HINT =
 export const TITLE_CONTROLS: readonly string[] = [
   'Left click a blue soldier to select it (shift adds). Keys 1 to 5 pick by slot, S all.',
   'Right click the ground to move, an enemy to attack, a downed friend to call the medic.',
-  'A: the whole squad attacks the enemy nearest the cursor. H holds position.',
+  'A: the whole squad fires at the enemy nearest the cursor without moving. H holds position.',
   'M calls the medic for a selected downed soldier. Three calls per side.',
   'Space pauses and resumes. The battle starts paused so you can give the first orders.',
   'Esc opens the menu. Last squad standing wins.',
