@@ -1,12 +1,15 @@
 import { describe, expect, it } from 'vitest';
 import { createBattle, step } from '../../src/sim/battle';
-import { COVER_SPLASH_FRACTION, DIRECTIONS16, MAX_HP, WEAPONS, overrideTuning } from '../../src/sim/constants';
+import { COVER_SPLASH_FRACTION, DIRECTIONS16, CLASS_STATS, WEAPONS, overrideTuning } from '../../src/sim/constants';
 import { hasLineOfSight } from '../../src/sim/los';
 import { parseMap } from '../../src/sim/map';
 import { advanceProjectiles } from '../../src/sim/projectiles';
 import { createRng } from '../../src/sim/rng';
 import type { BattleEvent, BattleState, Soldier, SoldierClass, TileMap } from '../../src/sim/types';
 import { dist2 } from '../../src/sim/vec';
+
+/** Full health of a soldier's class. */
+const maxHp = (s: { cls: SoldierClass }): number => CLASS_STATS[s.cls].maxHp;
 
 /** A cooldown no test runs long enough to exhaust: a muzzled soldier never fires. */
 const NEVER_FIRES = 1_000_000_000;
@@ -44,7 +47,7 @@ function isolate(state: BattleState, keep: readonly number[]): void {
 function bystander(state: BattleState, id: number, x: number, y: number): Soldier {
   const s = state.soldiers[id];
   s.status = 'standing';
-  s.hp = MAX_HP;
+  s.hp = maxHp(s);
   s.cooldown = NEVER_FIRES;
   place(s, x, y);
   return s;
@@ -208,13 +211,13 @@ describe('lobbed weapons', () => {
     }
     expect(impactStep).toBe(1 + w.flightTicks);
     expect(state.projectiles).toHaveLength(0);
-    expect(friend.hp).toBe(MAX_HP - w.splashDamage);
-    expect(enemy.hp).toBe(MAX_HP - w.splashDamage);
-    expect(enemyNear.hp).toBe(MAX_HP - w.splashDamage);
-    expect(enemyFar.hp).toBe(MAX_HP);
+    expect(friend.hp).toBe(maxHp(friend) - w.splashDamage);
+    expect(enemy.hp).toBe(maxHp(enemy) - w.splashDamage);
+    expect(enemyNear.hp).toBe(maxHp(enemyNear) - w.splashDamage);
+    expect(enemyFar.hp).toBe(maxHp(enemyFar));
     expect(downed.hp).toBe(0);
     expect(downed.status).toBe('downed');
-    expect(chucker.hp).toBe(MAX_HP);
+    expect(chucker.hp).toBe(maxHp(chucker));
     expect(state.winner).toBeNull();
   });
 
@@ -250,7 +253,7 @@ describe('lobbed weapons', () => {
       step(state, []);
     }
     expect(ofKind(state, 'impact')).toHaveLength(1);
-    expect(thrower.hp).toBe(MAX_HP - w.splashDamage);
+    expect(thrower.hp).toBe(maxHp(thrower) - w.splashDamage);
   });
 
   it('arcs over cover: a grenade landing beyond a wall splashes at full strength with nothing between it and the target', () => {
@@ -263,7 +266,7 @@ describe('lobbed weapons', () => {
       step(state, []);
     }
     expect(ofKind(state, 'impact')).toHaveLength(1);
-    expect(target.hp).toBe(MAX_HP - w.splashDamage);
+    expect(target.hp).toBe(maxHp(target) - w.splashDamage);
     expect(state.projectiles).toHaveLength(0);
   });
 
@@ -277,8 +280,8 @@ describe('lobbed weapons', () => {
     lob(state, state.soldiers[2], 'chucker', 496, 112);
     advanceProjectiles(state);
     expect(ofKind(state, 'impact')).toHaveLength(1);
-    expect(west.hp).toBe(MAX_HP - w.splashDamage * COVER_SPLASH_FRACTION);
-    expect(east.hp).toBe(MAX_HP - w.splashDamage * COVER_SPLASH_FRACTION);
+    expect(west.hp).toBe(maxHp(west) - w.splashDamage * COVER_SPLASH_FRACTION);
+    expect(east.hp).toBe(maxHp(east) - w.splashDamage * COVER_SPLASH_FRACTION);
   });
 
   it('landing in the open beside a wall soaks only the soldier on the far side', () => {
@@ -290,8 +293,8 @@ describe('lobbed weapons', () => {
     const far = bystander(state, 6, 514, 112);    // 38 east of it, the wall between
     lob(state, state.soldiers[2], 'chucker', 476, 112);
     advanceProjectiles(state);
-    expect(near.hp).toBe(MAX_HP - w.splashDamage);
-    expect(far.hp).toBe(MAX_HP - w.splashDamage * COVER_SPLASH_FRACTION);
+    expect(near.hp).toBe(maxHp(near) - w.splashDamage);
+    expect(far.hp).toBe(maxHp(far) - w.splashDamage * COVER_SPLASH_FRACTION);
   });
 
   it('is absorbed when it lands off the map edge', () => {
@@ -302,7 +305,7 @@ describe('lobbed weapons', () => {
     const edge = bystander(state, 1, 20, 256);    // 25 inside the map from a landing just outside it
     lob(state, state.soldiers[2], 'chucker', -5, 256);
     advanceProjectiles(state);
-    expect(edge.hp).toBe(MAX_HP - w.splashDamage * COVER_SPLASH_FRACTION);
+    expect(edge.hp).toBe(maxHp(edge) - w.splashDamage * COVER_SPLASH_FRACTION);
   });
 
   /** Count downed and killed outcomes of a single lobbed shot at a 1 hp enemy over seeds 0..199. */

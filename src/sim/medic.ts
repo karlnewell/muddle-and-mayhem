@@ -6,7 +6,7 @@
  * touches the rng.
  */
 import type { BattleState, MedicRun, Side, Soldier } from './types';
-import { MAX_HP, MEDIC_SPEED, REVIVE_FRACTION, SOLDIER_RADIUS } from './constants';
+import { CLASS_STATS, MEDIC_SPEED, REVIVE_FRACTION, SOLDIER_RADIUS } from './constants';
 import { mapWidthUnits } from './map';
 import { soldierById } from './soldiers';
 import { dist2, normalize } from './vec';
@@ -43,9 +43,9 @@ export function callMedic(state: BattleState, side: Side, targetId: number): boo
   return true;
 }
 
-/** Bring a downed soldier back at floor(MAX_HP * REVIVE_FRACTION), standing and holding where it lies. */
+/** Bring a downed soldier back at floor(maxHp * REVIVE_FRACTION) of its class, standing and holding where it lies. */
 function revive(state: BattleState, s: Soldier): void {
-  s.hp = Math.floor(MAX_HP * REVIVE_FRACTION);
+  s.hp = Math.floor(CLASS_STATS[s.cls].maxHp * REVIVE_FRACTION);
   s.status = 'standing';
   s.downedTick = -1;
   s.order = { kind: 'hold' };

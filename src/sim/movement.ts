@@ -9,7 +9,7 @@
  */
 import type { BattleState, Soldier, Vec2 } from './types';
 import {
-  ARRIVE_SLACK, DIRECTIONS16, FIRING_MOVE_FRACTION, MOVE_SPEED, REPATH_TICKS, SOLDIER_RADIUS,
+  ARRIVE_SLACK, CLASS_STATS, DIRECTIONS16, FIRING_MOVE_FRACTION, REPATH_TICKS, SOLDIER_RADIUS,
   STUCK_EPSILON, STUCK_TICKS, WAYPOINT_EPSILON,
 } from './constants';
 import { coverPushOut, mapHeightUnits, mapWidthUnits, tileIndex, worldToTile } from './map';
@@ -97,13 +97,14 @@ function updateAttack(state: BattleState, s: Soldier, canFireAt: CanFireAt): voi
 
 /**
  * One step toward the next waypoint; land on it when within reach. The
- * step is MOVE_SPEED, or MOVE_SPEED * FIRING_MOVE_FRACTION when the
+ * step is the class's CLASS_STATS speed, times FIRING_MOVE_FRACTION when the
  * soldier's weapon discharged on the previous tick (`firing` is set by the
  * firing phase, which runs after movement in `step`): a soldier that
  * fights while it walks walks slower.
  */
 function followPath(s: Soldier): void {
-  const speed = s.firing ? MOVE_SPEED * FIRING_MOVE_FRACTION : MOVE_SPEED;
+  const base = CLASS_STATS[s.cls].speed;
+  const speed = s.firing ? base * FIRING_MOVE_FRACTION : base;
   const wp = s.path[0];
   const dx = wp.x - s.x;
   const dy = wp.y - s.y;

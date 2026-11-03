@@ -104,10 +104,13 @@ play session cheap enough to count as a measurement.
 
 **Try values in the browser.** Add `tune=` to the URL with a JSON object of
 constant overrides, the same shape `npm run measure` accepts. Scalars go by
-name; weapon fields are merged per class:
+name; weapon fields (`WEAPONS`) and each class's health and walking speed
+(`CLASS_STATS`, fields `maxHp` and `speed`) are merged per class, so naming
+one field of one class leaves everything else as shipped:
 
 ```
 https://karlnewell.github.io/muddle-and-mayhem/?seed=7&tune={"WEAPONS":{"launcher":{"cooldown":180}}}
+https://karlnewell.github.io/muddle-and-mayhem/?seed=7&tune={"CLASS_STATS":{"scorcher":{"maxHp":100,"speed":2.07}}}
 ```
 
 The values apply before the battle exists and stay for Play again and
@@ -116,6 +119,9 @@ is active, so a screenshot is never mistaken for shipped balance. The debug
 overlay (`D`) prints the overrides, or the error if the JSON was rejected;
 a rejected `tune=` starts the battle with shipped balance rather than
 failing. The names it accepts are the tunables in `src/sim/constants.ts`.
+Health and speed have been per class since Plan 8: the old `MAX_HP` and
+`MOVE_SPEED` names are rejected, so a report from before then whose
+overrides named them no longer applies them.
 
 **Read the report.** The result screen shows a table per side and class:
 shots, hits, hit rate, damage dealt and taken, downs inflicted, times

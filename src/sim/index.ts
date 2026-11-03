@@ -16,7 +16,7 @@ export type { MapId } from './maps/registry';
 export { parseMap, worldToTile, tileCenter, isBlocked, mapWidthUnits, mapHeightUnits } from './map';
 export { hasLineOfSight } from './los';
 export { canFireAt, inRange } from './targeting';
-export { soldierById, isActive, standingCount } from './soldiers';
+export { soldierById, isActive, standingCount, hpFraction } from './soldiers';
 export { createRng } from './rng';
 export type { Rng } from './rng';
 export * from './constants';

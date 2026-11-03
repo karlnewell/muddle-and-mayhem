@@ -1,8 +1,12 @@
 import { describe, expect, it } from 'vitest';
 import { createBattle, step } from '../../src/sim/battle';
-import { CLASS_ORDER, MAX_HP, MEDIC_CALLS, SQUAD_NAMES } from '../../src/sim/constants';
+import { CLASS_ORDER, CLASS_STATS, MEDIC_CALLS, SQUAD_NAMES } from '../../src/sim/constants';
 import { COMPACT_CROSSROADS } from '../../src/sim/maps/compactCrossroads';
 import type { Command } from '../../src/sim/types';
+
+import type { SoldierClass } from '../../src/sim/types';
+/** Full health of a soldier's class. */
+const maxHp = (s: { cls: SoldierClass }): number => CLASS_STATS[s.cls].maxHp;
 
 describe('createBattle', () => {
   it('builds ten standing soldiers on the Compact Crossroads spawns (the default map) in class order', () => {
@@ -29,7 +33,7 @@ describe('createBattle', () => {
       expect(s.name).toBe(SQUAD_NAMES[side][i]);
       expect({ x: s.x, y: s.y }).toEqual(COMPACT_CROSSROADS.spawns[side][i]);
       expect({ x: s.prevX, y: s.prevY }).toEqual(COMPACT_CROSSROADS.spawns[side][i]);
-      expect(s.hp).toBe(MAX_HP);
+      expect(s.hp).toBe(maxHp(s));
       expect(s.status).toBe('standing');
       expect(s.order).toEqual({ kind: 'hold' });
       expect(s.path).toEqual([]);

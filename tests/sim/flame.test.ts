@@ -1,12 +1,16 @@
 import { describe, expect, it } from 'vitest';
 import { createBattle, step } from '../../src/sim/battle';
-import { MAX_HP, WEAPONS, overrideTuning } from '../../src/sim/constants';
+import { CLASS_STATS, WEAPONS, overrideTuning } from '../../src/sim/constants';
 import { applyFlame, inCone } from '../../src/sim/flame';
 import { applyCommand } from '../../src/sim/commands';
 import { fireWeapons } from '../../src/sim/weapons';
 import { hasLineOfSight } from '../../src/sim/los';
 import { parseMap } from '../../src/sim/map';
 import type { BattleEvent, BattleState, Soldier, TileMap } from '../../src/sim/types';
+
+import type { SoldierClass } from '../../src/sim/types';
+/** Full health of a soldier's class. */
+const maxHp = (s: { cls: SoldierClass }): number => CLASS_STATS[s.cls].maxHp;
 
 /** A cooldown no test runs long enough to exhaust: a muzzled soldier never fires. */
 const NEVER_FIRES = 1_000_000_000;
@@ -46,7 +50,7 @@ function isolate(state: BattleState, keep: readonly number[]): void {
 function bystander(state: BattleState, id: number, x: number, y: number): Soldier {
   const s = state.soldiers[id];
   s.status = 'standing';
-  s.hp = MAX_HP;
+  s.hp = maxHp(s);
   s.cooldown = NEVER_FIRES;
   place(s, x, y);
   return s;
@@ -146,9 +150,9 @@ describe('flame cone', () => {
       expect(damage[0]).toEqual({ kind: 'damage', soldierId: 1, amount: SCORCHER.damage, weapon: 'scorcher', sourceId: 3 });
       expect(damage[1]).toEqual({ kind: 'damage', soldierId: 5, amount: SCORCHER.damage, weapon: 'scorcher', sourceId: 3 });
     }
-    expect(enemy.hp).toBeCloseTo(MAX_HP - 10 * SCORCHER.damage, 9);
-    expect(friend.hp).toBeCloseTo(MAX_HP - 10 * SCORCHER.damage, 9);
-    expect(scorcher.hp).toBe(MAX_HP);
+    expect(enemy.hp).toBeCloseTo(maxHp(enemy) - 10 * SCORCHER.damage, 9);
+    expect(friend.hp).toBeCloseTo(maxHp(friend) - 10 * SCORCHER.damage, 9);
+    expect(scorcher.hp).toBe(maxHp(scorcher));
     expect(state.winner).toBeNull();
   });
 
@@ -170,8 +174,8 @@ describe('flame cone', () => {
       expect(inCone(scorcher, covered.x, covered.y, SCORCHER.range)).toBe(true);
       expect(ofKind(state, 'damage').map((e) => e.soldierId)).toEqual([5]);
     }
-    expect(visible.hp).toBeCloseTo(MAX_HP - 5 * SCORCHER.damage, 9);
-    expect(covered.hp).toBe(MAX_HP);
+    expect(visible.hp).toBeCloseTo(maxHp(visible) - 5 * SCORCHER.damage, 9);
+    expect(covered.hp).toBe(maxHp(covered));
   });
 
   it('does not burn a downed soldier in the cone', () => {
@@ -188,7 +192,7 @@ describe('flame cone', () => {
     }
     expect(downed.hp).toBe(0);
     expect(downed.status).toBe('downed');
-    expect(state.soldiers[5].hp).toBeCloseTo(MAX_HP - 5 * SCORCHER.damage, 9);
+    expect(state.soldiers[5].hp).toBeCloseTo(maxHp(state.soldiers[5]) - 5 * SCORCHER.damage, 9);
   });
 
   it('has firing false and deals no damage with no target in range', () => {
@@ -201,7 +205,7 @@ describe('flame cone', () => {
       expect(scorcher.targetId).toBeNull();
       expect(ofKind(state, 'damage')).toHaveLength(0);
     }
-    expect(enemy.hp).toBe(MAX_HP);
+    expect(enemy.hp).toBe(maxHp(enemy));
     expect(scorcher.x).toBe(100);
     expect(scorcher.y).toBe(256);
   });
@@ -215,7 +219,7 @@ describe('flame cone', () => {
     scorcher.firing = true;
     applyFlame(state);
     expect(ofKind(state, 'damage').map((e) => e.soldierId)).toEqual([5]);
-    expect(scorcher.hp).toBe(MAX_HP);
+    expect(scorcher.hp).toBe(maxHp(scorcher));
   });
 
   it('kills outright sometimes when finishing an enemy with one tick of hp left', () => {
@@ -263,12 +267,12 @@ describe('fireWhileMoving', () => {
       applyFlame(state);
       expect(scorcher.firing).toBe(false);
       expect(scorcher.targetId).toBeNull();
-      expect(target.hp).toBe(MAX_HP);
+      expect(target.hp).toBe(maxHp(target));
       scorcher.path = [];
       fireWeapons(state);
       applyFlame(state);
       expect(scorcher.firing).toBe(true);
-      expect(target.hp).toBe(MAX_HP - SCORCHER.damage);
+      expect(target.hp).toBe(maxHp(target) - SCORCHER.damage);
     });
   });
 
@@ -284,8 +288,8 @@ describe('fireWhileMoving', () => {
       for (let i = 0; i < 150; i++) {
         step(state, []);
       }
-      expect(passed.hp).toBe(MAX_HP);
-      expect(target.hp).toBeLessThan(MAX_HP);
+      expect(passed.hp).toBe(maxHp(passed));
+      expect(target.hp).toBeLessThan(maxHp(target));
       expect(scorcher.path).toEqual([]);
     });
   });
@@ -300,6 +304,6 @@ describe('fireWhileMoving', () => {
     for (let i = 0; i < 150; i++) {
       step(state, []);
     }
-    expect(passed.hp).toBeLessThan(MAX_HP);
+    expect(passed.hp).toBeLessThan(maxHp(passed));
   });
 });

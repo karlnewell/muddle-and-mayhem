@@ -115,7 +115,7 @@ describe('createSession', () => {
   });
 
   it('carries the overrides it was given into the statistics', () => {
-    expect(createSession(7, { MOVE_SPEED: 2 }).stats().overrides).toEqual({ MOVE_SPEED: 2 });
+    expect(createSession(7, { MEDIC_SPEED: 2 }).stats().overrides).toEqual({ MEDIC_SPEED: 2 });
     expect(createSession(7).stats().overrides).toEqual({});
   });
 });

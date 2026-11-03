@@ -134,7 +134,7 @@ describe('createStatsCollector', () => {
 
   it('reports the last observed tick, the winner, the seed and the overrides', () => {
     const state = createBattle({ seed: 42 });
-    const c = createStatsCollector(42, { MOVE_SPEED: 2 });
+    const c = createStatsCollector(42, { MEDIC_SPEED: 2 });
     expect(c.stats().ticks).toBe(0);
     expect(c.stats().winner).toBeNull();
     state.tick = 300;
@@ -145,7 +145,7 @@ describe('createStatsCollector', () => {
     expect(s.ticks).toBe(300);
     expect(s.winner).toBe('red');
     expect(s.seed).toBe(42);
-    expect(s.overrides).toEqual({ MOVE_SPEED: 2 });
+    expect(s.overrides).toEqual({ MEDIC_SPEED: 2 });
   });
 
   it('collects a real AI-versus-AI battle through runBattle', () => {

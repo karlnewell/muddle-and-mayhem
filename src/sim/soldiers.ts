@@ -3,12 +3,12 @@
  * red ids 5-9, each side in CLASS_ORDER, one per spawn point of the map.
  */
 import type { BattleState, Side, Soldier, TileMap } from './types';
-import { CLASS_ORDER, MAX_HP, SIDES, SQUAD_NAMES } from './constants';
+import { CLASS_ORDER, CLASS_STATS, SIDES, SQUAD_NAMES } from './constants';
 import { normalize } from './vec';
 
 /**
  * Ten soldiers: blue ids 0-4 then red ids 5-9, each side in CLASS_ORDER, placed
- * on map.spawns[side][i], names from SQUAD_NAMES, hp MAX_HP, status standing,
+ * on map.spawns[side][i], names from SQUAD_NAMES, hp the class's CLASS_STATS maxHp, status standing,
  * order hold, facing toward the other side (blue faceX 1, red faceX -1),
  * cooldown 0, targetId null, firing false, stuckTicks 0, lastRepathTick -1, downedTick -1, orderTick -1.
  */
@@ -29,7 +29,7 @@ export function createSoldiers(map: TileMap): Soldier[] {
         prevY: spawn.y,
         faceX: side === 'blue' ? 1 : -1,
         faceY: 0,
-        hp: MAX_HP,
+        hp: CLASS_STATS[CLASS_ORDER[i]].maxHp,
         status: 'standing',
         order: { kind: 'hold' },
         path: [],
@@ -83,4 +83,9 @@ export function faceToward(s: Soldier, dx: number, dy: number): void {
     s.faceX = dir.x;
     s.faceY = dir.y;
   }
+}
+
+/** Health as a fraction of the soldier's own class maximum, clamped to 0 to 1: what both health bars draw. */
+export function hpFraction(s: Soldier): number {
+  return Math.max(0, Math.min(1, s.hp / CLASS_STATS[s.cls].maxHp));
 }
