@@ -24,7 +24,8 @@ engine, no UI framework.
   shots, hits, damage and downs; pass a JSON object of constant overrides to compare candidates,
   and `--blue=passive` or `--blue=holdline` for a scripted blue squad. Judge every tuning change by its output.
 - Open the game with `?seed=N` to pin a battle and `?tune={...}` to try constant overrides (the
-  same JSON the measure script takes; a TUNED badge shows while any is active). The result screen
+  same JSON the measure script takes; a TUNED badge shows while any is active). `?speed=0.5` or
+  `0.75` slows real time only (a SPEED badge shows); the battle, log and replay are unchanged. The result screen
   shows a per-class report and Copy report puts it on the clipboard as Markdown with the command
   log. `window.__mm` exposes seed, tick, log, state, overrides, stats and `report()`.
 

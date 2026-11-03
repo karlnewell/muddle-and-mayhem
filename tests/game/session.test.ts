@@ -119,3 +119,23 @@ describe('createSession', () => {
     expect(createSession(7).stats().overrides).toEqual({});
   });
 });
+
+describe('session speed', () => {
+  it('at 0.5 steps half the ticks for the same real time, and the battle it steps is the same', () => {
+    const full = createSession(242832287);
+    const half = createSession(242832287, {}, 0.5);
+    full.paused = false;
+    half.paused = false;
+    for (let i = 0; i < 120; i++) {
+      full.advance(1000 / 60);
+    }
+    for (let i = 0; i < 240; i++) {
+      half.advance(1000 / 60);
+    }
+    expect(full.state.tick).toBeGreaterThan(55);
+    expect(half.state.tick).toBe(full.state.tick);
+    expect(hashState(half.state)).toBe(hashState(full.state));
+    expect(half.log).toEqual(full.log);
+    expect(half.replayMatches()).toBe(true);
+  });
+});

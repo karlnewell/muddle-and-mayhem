@@ -72,7 +72,16 @@ describe('formatReportMarkdown', () => {
     const stats = createStatsCollector(3, {}).stats();
     const md = formatReportMarkdown(stats, []);
     expect(md).toContain('Overrides: none');
+    expect(md).toContain('- Speed: 1x');
     expect(md).toContain('First contact: never');
     expect(md).toContain('Winner: none yet');
+  });
+});
+
+describe('formatReportMarkdown, speed', () => {
+  it('lists the game speed in the summary, full speed when not given', () => {
+    const md = formatReportMarkdown(sample(), [], 0.5);
+    expect(md).toContain('- Speed: 0.5x\n');
+    expect(formatReportMarkdown(sample(), [])).toContain('- Speed: 1x\n');
   });
 });

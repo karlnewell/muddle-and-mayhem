@@ -7,6 +7,7 @@
 import { createApp } from './game/app';
 import { createDebugHook, installDebugHook } from './game/debug';
 import { seedFromSearch } from './game/seed';
+import { readSpeed } from './game/speed';
 import { applyTune } from './game/tuning';
 import { debugFromSearch } from './game/urlFlags';
 import { attachInput } from './input/dom';
@@ -34,6 +35,7 @@ const tuning = applyTune(window.location.search);
 const app = createApp(seedFromSearch(window.location.search, Math.random), Math.random, {
   debugOverlay: debugFromSearch(window.location.search),
   tuning,
+  speed: readSpeed(window.location.search),
   async copyText(text) {
     try {
       await navigator.clipboard.writeText(text);

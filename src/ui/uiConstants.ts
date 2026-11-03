@@ -55,6 +55,15 @@ export const TUNED_BADGE = {
   radius: 4,
 } as const;
 
+/** The SPEED badge, just right of the TUNED badge's place, shown while `?speed=` is below 1. */
+export const SPEED_BADGE = {
+  x: TUNED_BADGE.x + TUNED_BADGE.w + 8,
+  y: TUNED_BADGE.y,
+  w: 104,
+  h: TUNED_BADGE.h,
+  radius: TUNED_BADGE.radius,
+} as const;
+
 export const BUTTON = {
   width: 260,
   height: 44,

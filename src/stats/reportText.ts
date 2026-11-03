@@ -74,11 +74,12 @@ export function formatReportRows(stats: BattleStats): string[] {
 }
 
 /**
- * A Markdown block for an issue: a summary list, the per-class table, and
+ * A Markdown block for an issue: a summary list (with the `?speed=` factor,
+ * so a slowed battle is never mistaken for full speed), the per-class table, and
  * the command log in a collapsed section so anyone can replay the battle
  * with `replayBattle(seed, log, ticks)` after applying the same overrides.
  */
-export function formatReportMarkdown(stats: BattleStats, log: readonly Command[]): string {
+export function formatReportMarkdown(stats: BattleStats, log: readonly Command[], speed = 1): string {
   const overrides = Object.keys(stats.overrides).length === 0 ? 'none' : `\`${JSON.stringify(stats.overrides)}\``;
   const contact = stats.firstContactTick === null ? 'never' : `${seconds(stats.firstContactTick)} s (tick ${stats.firstContactTick})`;
   const lines = [
@@ -89,6 +90,7 @@ export function formatReportMarkdown(stats: BattleStats, log: readonly Command[]
     `- Time: ${seconds(stats.ticks)} s (${stats.ticks} ticks)`,
     `- First contact: ${contact}`,
     `- Overrides: ${overrides}`,
+    `- Speed: ${speed}x`,
     '',
     `| ${HEADERS.join(' | ')} |`,
     `|${HEADERS.map(() => '---').join('|')}|`,

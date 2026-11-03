@@ -31,6 +31,8 @@ import { nextSeed } from './seed';
 import type { SeedChoice } from './seed';
 import { createSession } from './session';
 import type { BattleSession } from './session';
+import { FULL_SPEED } from './speed';
+import type { SpeedStatus } from './speed';
 import { NO_TUNING } from './tuning';
 import type { TuneStatus } from './tuning';
 
@@ -41,6 +43,8 @@ export interface AppOptions {
   debugOverlay?: boolean;
   /** The `?tune=` status, already applied by the caller; shown as the TUNED badge and in the overlay. */
   tuning?: TuneStatus;
+  /** The `?speed=` status: the factor every battle's stepper scales real time by, shown as the SPEED badge. */
+  speed?: SpeedStatus;
   /**
    * Put the report text where the player can take it: resolve true when the
    * clipboard took it, false when it was shown another way (the DOM fallback).
@@ -59,6 +63,8 @@ export interface App {
   readonly debugOverlay: boolean;
   /** The `?tune=` overrides in force, if any, and any parse error. */
   readonly tuning: TuneStatus;
+  /** The `?speed=` factor in force and any parse error. */
+  readonly speed: SpeedStatus;
   /** What the Copy report button says about its last press. */
   readonly copyState: CopyState;
   /** The Markdown battle report for the current battle, or null before one. */
@@ -81,6 +87,7 @@ export function createApp(initialSeed: SeedChoice, random: () => number, options
   const renderer = createTopDownRenderer();
   let debugOverlay = options.debugOverlay === true;
   const tuning = options.tuning ?? NO_TUNING;
+  const speed = options.speed ?? FULL_SPEED;
   const copyText = options.copyText ?? (() => Promise.resolve(false));
   let copyState: CopyState = 'idle';
   let screen: ScreenState = INITIAL_SCREEN;
@@ -92,7 +99,7 @@ export function createApp(initialSeed: SeedChoice, random: () => number, options
 
   function startBattle(seed: SeedChoice): void {
     seedChoice = seed;
-    session = createSession(seed.seed, tuning.overrides);
+    session = createSession(seed.seed, tuning.overrides, speed.speed);
     selection = [];
     effects = [];
     lastNow = null;
@@ -100,7 +107,7 @@ export function createApp(initialSeed: SeedChoice, random: () => number, options
   }
 
   function report(): string | null {
-    return session === null ? null : formatReportMarkdown(session.stats(), session.log);
+    return session === null ? null : formatReportMarkdown(session.stats(), session.log, speed.speed);
   }
 
   /** Hand the report to the clipboard callback; the label follows the outcome, and a stale battle's answer is ignored. */
@@ -240,7 +247,7 @@ export function createApp(initialSeed: SeedChoice, random: () => number, options
     }
     const state = session.state;
     renderer.draw(ctx, state, { selection, alpha: session.alpha(), effects, playerSide: PLAYER_SIDE, pending: session.pending });
-    drawHud(ctx, state, { playerSide: PLAYER_SIDE, selection, paused: session.paused, tuned: tuning.active });
+    drawHud(ctx, state, { playerSide: PLAYER_SIDE, selection, paused: session.paused, tuned: tuning.active, speed: speed.speed });
     if (screen.screen === 'result') {
       drawResult(ctx, state, PLAYER_SIDE, { rows: formatReportRows(session.stats()), copyState });
     } else if (screen.menuOpen) {
@@ -248,7 +255,7 @@ export function createApp(initialSeed: SeedChoice, random: () => number, options
     }
     if (debugOverlay) {
       // Drawn last so it stays readable over the menu and result panels.
-      drawDebugOverlay(ctx, state, { seed: session.seed, paused: session.paused, hash: hashState(state), tuning });
+      drawDebugOverlay(ctx, state, { seed: session.seed, paused: session.paused, hash: hashState(state), tuning, speed });
     }
   }
 
@@ -271,6 +278,9 @@ export function createApp(initialSeed: SeedChoice, random: () => number, options
     },
     get tuning() {
       return tuning;
+    },
+    get speed() {
+      return speed;
     },
     get copyState() {
       return copyState;

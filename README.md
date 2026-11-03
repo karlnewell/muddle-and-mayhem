@@ -37,6 +37,11 @@ Walls, crates and trees block movement and straight shots. Grenades and
 dynamite go over them. Rockets, flame and dynamite can kill outright; a
 killed soldier leaves ash and no medic can help.
 
+Add `?speed=0.5` (or `0.75`) to the URL to slow the game down while you
+learn it: the battle is exactly the same, only slower on screen, and a
+SPEED badge in the top bar says so. Any other value runs at full speed and
+the debug overlay says why.
+
 Add `?seed=123` to the URL to replay the same battle. The page exposes
 `window.__mm` with the seed, tick, command log and state, so a bug report
 can carry everything needed to reproduce a battle.

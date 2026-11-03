@@ -7,6 +7,10 @@
  * Two guards keep a stalled tab from snowballing: a frame's delta is clamped
  * to `maxFrameMs`, and at most `maxTicksPerFrame` ticks are returned per
  * frame, with the excess dropped rather than carried.
+ *
+ * `speed` (default 1) scales each clamped frame delta before it is added, so
+ * at 0.5 the same real time yields half the ticks: the battle runs slower on
+ * screen while every tick it steps is the same fixed tick.
  */
 export interface FixedStepper {
   /** Add a frame's delta; returns the number of whole ticks to run now. */
@@ -17,11 +21,11 @@ export interface FixedStepper {
   reset(): void;
 }
 
-export function createFixedStepper(tickMs: number, maxFrameMs: number, maxTicksPerFrame: number): FixedStepper {
+export function createFixedStepper(tickMs: number, maxFrameMs: number, maxTicksPerFrame: number, speed = 1): FixedStepper {
   let accumulator = 0;
   return {
     accumulate(dtMs: number): number {
-      const dt = Math.max(0, Math.min(maxFrameMs, dtMs));
+      const dt = Math.max(0, Math.min(maxFrameMs, dtMs)) * speed;
       accumulator += dt;
       let ticks = Math.floor(accumulator / tickMs);
       if (ticks > maxTicksPerFrame) {

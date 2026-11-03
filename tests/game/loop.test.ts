@@ -41,4 +41,33 @@ describe('createFixedStepper', () => {
     expect(s.alpha()).toBe(0);
     expect(s.accumulate(30)).toBe(0);
   });
+  it('at speed 0.5 runs half the ticks for the same real time', () => {
+    const full = createFixedStepper(TICK_MS, 250, 8);
+    const half = createFixedStepper(TICK_MS, 250, 8, 0.5);
+    let fullTicks = 0;
+    let halfTicks = 0;
+    for (let i = 0; i < 600; i++) {
+      fullTicks += full.accumulate(1000 / 60);
+      halfTicks += half.accumulate(1000 / 60);
+    }
+    expect(fullTicks).toBe(300);
+    expect(halfTicks).toBe(150);
+  });
+  it('at speed 0.75 runs three quarters of the ticks, and alpha follows the scaled time', () => {
+    const s = createFixedStepper(TICK_MS, 250, 8, 0.75);
+    let ticks = 0;
+    for (let i = 0; i < 400; i++) {
+      ticks += s.accumulate(10);
+    }
+    // 4000 ms real is 3000 ms of game time, 90 ticks; summing 7.5 ms steps lands a hair under, as at full speed
+    expect(ticks).toBeGreaterThanOrEqual(89);
+    expect(ticks + s.accumulate(1)).toBe(90);
+    const t = createFixedStepper(TICK_MS, 250, 8, 0.5);
+    expect(t.accumulate(TICK_MS)).toBe(0);
+    expect(t.alpha()).toBeCloseTo(0.5, 9);
+  });
+  it('clamps the real frame before scaling it', () => {
+    const s = createFixedStepper(TICK_MS, 250, 100, 0.5);
+    expect(s.accumulate(5000)).toBe(3); // floor(125 / 33.33)
+  });
 });

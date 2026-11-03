@@ -1,7 +1,7 @@
 import { expect, test } from '@playwright/test';
 import type { Page } from '@playwright/test';
 import { LOGICAL_WIDTH } from '../src/render/renderConstants';
-import { tunedBadgeRect } from '../src/ui/hud';
+import { speedBadgeRect, tunedBadgeRect } from '../src/ui/hud';
 import { resultButtons } from '../src/ui/result';
 
 // Loads the game with a `tune` override and checks the three things a tuning
@@ -23,8 +23,7 @@ function collectErrors(page: Page): string[] {
 }
 
 /** The canvas pixel just inside the left edge of the TUNED badge (fill, not lettering), as [r, g, b]. */
-async function badgePixel(page: Page): Promise<number[]> {
-  const r = tunedBadgeRect();
+async function badgePixel(page: Page, r = tunedBadgeRect()): Promise<number[]> {
   return page.locator('canvas#game').evaluate(
     (c: HTMLCanvasElement, [lx, ly, logicalWidth]) => {
       const scale = c.width / logicalWidth;
@@ -92,5 +91,36 @@ test('a rejected tune parameter starts the battle on shipped balance without err
   const box = (await canvas.boundingBox())!;
   await page.mouse.click(box.x + box.width / 2, box.y + box.height / 2);
   await page.waitForFunction(() => window.__mm!.screen === 'battle');
+  expect(errors).toEqual([]);
+});
+
+test('?speed=0.5 shows the SPEED badge, steps slower, and keeps the battle replayable', async ({ page }) => {
+  const errors = collectErrors(page);
+  await page.goto('./?seed=7&speed=0.5');
+  await page.waitForFunction(() => window.__mm !== undefined && window.__mm.screen === 'title');
+  expect(await page.evaluate(() => [window.__mm!.speed, window.__mm!.speedError])).toEqual([0.5, null]);
+  const box = (await page.locator('canvas#game').boundingBox())!;
+  await page.mouse.click(box.x + box.width / 2, box.y + box.height / 2);
+  await page.waitForFunction(() => window.__mm!.screen === 'battle');
+  await page.waitForTimeout(100);
+  expectBadgeYellow(await badgePixel(page, speedBadgeRect(0.5)));
+
+  // Run one real second: about 15 ticks at half speed, never the 30 of full speed.
+  await page.keyboard.press(' ');
+  await page.waitForTimeout(1000);
+  await page.keyboard.press(' ');
+  const tick = await page.evaluate(() => window.__mm!.tick);
+  expect(tick).toBeGreaterThan(5);
+  expect(tick).toBeLessThan(25);
+  expect(await page.evaluate(() => window.__mm!.replayMatches())).toBe(true);
+  expect(await page.evaluate(() => window.__mm!.report())).toContain('- Speed: 0.5x');
+  expect(errors).toEqual([]);
+});
+
+test('a rejected speed parameter runs at full speed and says why', async ({ page }) => {
+  const errors = collectErrors(page);
+  await page.goto('./?seed=7&speed=2');
+  await page.waitForFunction(() => window.__mm !== undefined && window.__mm.screen === 'title');
+  expect(await page.evaluate(() => [window.__mm!.speed, window.__mm!.speedError])).toEqual([1, 'speed: "2" is not one of 0.5, 0.75, 1']);
   expect(errors).toEqual([]);
 });
