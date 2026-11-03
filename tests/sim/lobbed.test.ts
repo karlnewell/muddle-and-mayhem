@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { createBattle, step } from '../../src/sim/battle';
-import { COVER_SPLASH_FRACTION, DIRECTIONS16, MAX_HP, WEAPONS } from '../../src/sim/constants';
+import { COVER_SPLASH_FRACTION, DIRECTIONS16, MAX_HP, WEAPONS, overrideTuning } from '../../src/sim/constants';
 import { hasLineOfSight } from '../../src/sim/los';
 import { parseMap } from '../../src/sim/map';
 import { advanceProjectiles } from '../../src/sim/projectiles';
@@ -329,7 +329,16 @@ describe('lobbed weapons', () => {
   }
 
   it('lets a blaster kill outright sometimes', () => {
-    const r = outcomes(4);
+    // Aim scatter (spread 30) can land a burst beyond the splash radius (24), and this test is about the
+    // kill roll, not the scatter: aim true for it.
+    const spread = WEAPONS.blaster.spread;
+    overrideTuning({ WEAPONS: { blaster: { spread: 0 } } });
+    let r: { downed: number; killed: number };
+    try {
+      r = outcomes(4);
+    } finally {
+      overrideTuning({ WEAPONS: { blaster: { spread } } });
+    }
     expect(r.killed).toBeGreaterThan(0);
     expect(r.downed).toBeGreaterThan(0);
     expect(r.killed / 200).toBeGreaterThanOrEqual(0.03);

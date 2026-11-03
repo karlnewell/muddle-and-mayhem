@@ -148,7 +148,9 @@ seeds, the computer wins 55% against itself,
 100% against the passive squad and 72% against the hold-line squad (100%
 before Plan 6 moved its posts beside the wall arms, made cover soak splash
 and had the computer's lobbers wait for contact), which is a result about
-static defence as much as about balance.
+static defence as much as about balance. On Compact Crossroads, the map
+the game plays, over 180 seeds a blue computer squad wins 47% against the red one, and red wins 100%
+against the passive squad and 71% against the hold-line squad.
 
 **The loop, one change at a time.**
 

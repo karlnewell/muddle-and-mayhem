@@ -80,6 +80,7 @@ export interface WeaponStats {
  *
  * Plan 4 set these for 60 to 90 second battles: long cooldowns, wide spread
  * so most shots miss, and small splash so one grenade rarely catches two.
+ * Plan 7 cut the Blaster's splash radius from 32 to 24 for the compact map.
  * `npm run measure` prints the numbers any change should be judged by.
  */
 export let WEAPONS: Readonly<Record<SoldierClass, Readonly<WeaponStats>>> = {
@@ -87,7 +88,7 @@ export let WEAPONS: Readonly<Record<SoldierClass, Readonly<WeaponStats>>> = {
   launcher: { shot: 'direct', range: 352, cooldown: 270, damage: 35,  splashRadius: 32, splashDamage: 20, speed: 10, flightTicks: 0,  spread: 16, instantKill: true, fireWhileMoving: true },
   chucker:  { shot: 'lobbed', range: 224, cooldown: 210, damage: 0,   splashRadius: 40, splashDamage: 30, speed: 0,  flightTicks: 30, spread: 36, instantKill: false, fireWhileMoving: true },
   scorcher: { shot: 'flame',  range: 72,  cooldown: 0,   damage: 0.5, splashRadius: 0,  splashDamage: 0,  speed: 0,  flightTicks: 0,  spread: 0,  instantKill: true, fireWhileMoving: true },
-  blaster:  { shot: 'lobbed', range: 160, cooldown: 300, damage: 0,   splashRadius: 32, splashDamage: 55, speed: 0,  flightTicks: 36, spread: 30, instantKill: true, fireWhileMoving: true },
+  blaster:  { shot: 'lobbed', range: 160, cooldown: 300, damage: 0,   splashRadius: 24, splashDamage: 55, speed: 0,  flightTicks: 36, spread: 30, instantKill: true, fireWhileMoving: true },
 };
 /** 16 unit vectors at 22.5° steps, as literals (no Math.sin/cos in sim code). */
 export const DIRECTIONS16: readonly Vec2[] = [
