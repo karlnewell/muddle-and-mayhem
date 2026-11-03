@@ -102,6 +102,7 @@ describe('step', () => {
       { tick: 0, side: 'blue', type: 'move', soldierIds: [0, 1], x: 400, y: 300 },
       { tick: 0, side: 'red', type: 'attack', soldierIds: [5, 6, 7], targetId: 0 },
       { tick: 10, side: 'blue', type: 'attack', soldierIds: [2, 3, 4], targetId: 9 },
+      { tick: 20, side: 'blue', type: 'attack', soldierIds: [1], targetId: 8, stand: true },
       { tick: 40, side: 'red', type: 'move', soldierIds: [8, 9], x: 700, y: 352 },
       { tick: 60, side: 'blue', type: 'hold', soldierIds: [0] },
     ];

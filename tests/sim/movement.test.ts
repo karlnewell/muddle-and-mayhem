@@ -384,3 +384,90 @@ describe('FIRING_MOVE_FRACTION', () => {
     }
   });
 });
+
+describe('stand-fast attack order', () => {
+  /**
+   * Open map, blue 0 (Gunner, range 224) at its spawn, red 9 its ordered
+   * target at the far spawn well out of range, every other soldier downed.
+   * Red never fires, so nobody goes down unless a test says so.
+   */
+  function standoff(keep: readonly number[] = [0, 9]): { state: BattleState; s: Soldier } {
+    const state = createBattle({ seed: 1, map: openMap() });
+    isolate(state, keep);
+    for (const id of keep) {
+      if (state.soldiers[id].side === 'red') {
+        state.soldiers[id].cooldown = NEVER_FIRES;
+      }
+    }
+    return { state, s: state.soldiers[0] };
+  }
+
+  it('never moves toward an out-of-range target and fires at an enemy it can reach', () => {
+    const { state, s } = standoff([0, 5, 9]);
+    const near = state.soldiers[5];
+    near.x = s.x + 100;
+    near.y = s.y;
+    applyCommand(state, { tick: 0, side: 'blue', type: 'attack', soldierIds: [0], targetId: 9, stand: true });
+    const x = s.x;
+    const y = s.y;
+    const firedAt = new Set<number>();
+    for (let t = 0; t < 200; t++) {
+      step(state, []);
+      expect(s.x).toBe(x);
+      expect(s.y).toBe(y);
+      expect(s.path).toEqual([]);
+      if (s.targetId !== null) {
+        firedAt.add(s.targetId);
+      }
+    }
+    expect(firedAt).toEqual(new Set([5]));
+    expect(s.order).toEqual({ kind: 'attack', targetId: 9, stand: true });
+  });
+
+  it('clears a path it already had', () => {
+    const { state, s } = standoff();
+    applyCommand(state, { tick: 0, side: 'blue', type: 'move', soldierIds: [0], x: s.x + 200, y: s.y });
+    step(state, []);
+    expect(s.path.length).toBeGreaterThan(0);
+    applyCommand(state, { tick: 1, side: 'blue', type: 'attack', soldierIds: [0], targetId: 9, stand: true });
+    expect(s.path).toEqual([]);
+    const x = s.x;
+    step(state, []);
+    expect(s.x).toBe(x);
+  });
+
+  it('shoots the ordered target once it walks into range', () => {
+    const { state, s } = standoff();
+    applyCommand(state, { tick: 0, side: 'blue', type: 'attack', soldierIds: [0], targetId: 9, stand: true });
+    applyCommand(state, { tick: 0, side: 'red', type: 'move', soldierIds: [9], x: s.x + 120, y: s.y });
+    const x = s.x;
+    let shotAt9 = false;
+    for (let t = 0; t < 400 && !shotAt9; t++) {
+      step(state, []);
+      expect(s.x).toBe(x);
+      shotAt9 = s.targetId === 9;
+    }
+    expect(shotAt9).toBe(true);
+  });
+
+  it('turns into hold when the target goes down', () => {
+    const { state, s } = standoff();
+    applyCommand(state, { tick: 0, side: 'blue', type: 'attack', soldierIds: [0], targetId: 9, stand: true });
+    step(state, []);
+    state.soldiers[9].status = 'downed';
+    step(state, []);
+    expect(s.order).toEqual({ kind: 'hold' });
+    expect(s.path).toEqual([]);
+  });
+
+  it('leaves the ordinary attack order walking in', () => {
+    const { state, s } = standoff();
+    applyCommand(state, { tick: 0, side: 'blue', type: 'attack', soldierIds: [0], targetId: 9 });
+    const x = s.x;
+    for (let t = 0; t < 20; t++) {
+      step(state, []);
+    }
+    expect(s.x).toBeGreaterThan(x);
+    expect(s.order).toEqual({ kind: 'attack', targetId: 9 });
+  });
+});

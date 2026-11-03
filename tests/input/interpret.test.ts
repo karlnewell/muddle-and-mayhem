@@ -171,12 +171,12 @@ describe('interpretKey, volley', () => {
     s.x = x;
     s.y = y;
   };
-  it('A orders every standing friendly to attack the standing enemy nearest the cursor', () => {
+  it('A orders every standing friendly to attack, standing fast, the standing enemy nearest the cursor', () => {
     const state = battle();
     const e = at(state, 8);
     const r = interpretKey(state, [1], 'a', false, 'blue', { x: e.x + 3, y: e.y - 2 });
     expect(r.selection).toEqual([1]);
-    expect(r.commands).toEqual([{ tick: 12, side: 'blue', type: 'attack', soldierIds: [0, 1, 2, 3, 4], targetId: 8 }]);
+    expect(r.commands).toEqual([{ tick: 12, side: 'blue', type: 'attack', soldierIds: [0, 1, 2, 3, 4], targetId: 8, stand: true }]);
     expect(interpretKey(state, [], 'A', true, 'blue', e).commands[0]).toMatchObject({ type: 'attack', targetId: 8 });
   });
   it('picks by squared distance to the cursor, not by id or slot', () => {
@@ -217,7 +217,7 @@ describe('interpretKey, volley', () => {
     soldierById(state, 3)!.status = 'dead';
     const e = at(state, 5);
     expect(interpretKey(state, [1, 3], 'a', false, 'blue', e).commands).toEqual([
-      { tick: 12, side: 'blue', type: 'attack', soldierIds: [0, 2, 4], targetId: 5 },
+      { tick: 12, side: 'blue', type: 'attack', soldierIds: [0, 2, 4], targetId: 5, stand: true },
     ]);
     for (const id of [0, 2, 4]) {
       soldierById(state, id)!.status = 'downed';
@@ -228,7 +228,7 @@ describe('interpretKey, volley', () => {
     const state = battle();
     const b = at(state, 2);
     expect(interpretKey(state, [], 'a', false, 'red', b).commands).toEqual([
-      { tick: 12, side: 'red', type: 'attack', soldierIds: [5, 6, 7, 8, 9], targetId: 2 },
+      { tick: 12, side: 'red', type: 'attack', soldierIds: [5, 6, 7, 8, 9], targetId: 2, stand: true },
     ]);
     expect(interpretKey(state, [], 'a', false, 'blue')).toEqual({ selection: [], commands: [] });
     expect(interpretKey(state, [], 'a', false, 'blue', null)).toEqual({ selection: [], commands: [] });

@@ -75,7 +75,8 @@ export function applyCommand(state: BattleState, cmd: Command): void {
         return;
       }
       for (const s of ownStanding(state, cmd.side, cmd.soldierIds)) {
-        s.order = { kind: 'attack', targetId: target.id };
+        // stand is set only when given, so an ordinary attack order serialises as before
+        s.order = cmd.stand === true ? { kind: 'attack', targetId: target.id, stand: true } : { kind: 'attack', targetId: target.id };
         s.path = [];
         s.stuckTicks = 0;
         s.orderTick = state.tick;

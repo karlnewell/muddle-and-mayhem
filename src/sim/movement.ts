@@ -67,7 +67,11 @@ function orderDest(state: BattleState, s: Soldier): Vec2 | null {
   return null;
 }
 
-/** Attack order: drop it when the target is down, stop when fireable, else keep a plan toward it. */
+/**
+ * Attack order: drop it when the target is down, stop when fireable, else
+ * keep a plan toward it. A stand-fast order never plans: the soldier stays
+ * put and the firing phase picks the ordered target or the nearest it can hit.
+ */
 function updateAttack(state: BattleState, s: Soldier, canFireAt: CanFireAt): void {
   if (s.order.kind !== 'attack') {
     return;
@@ -80,6 +84,10 @@ function updateAttack(state: BattleState, s: Soldier, canFireAt: CanFireAt): voi
   if (canFireAt(s, target)) {
     s.path = [];
     faceToward(s, target.x - s.x, target.y - s.y);
+    return;
+  }
+  if (s.order.stand === true) {
+    s.path = [];
     return;
   }
   if (s.path.length === 0 || state.tick - s.lastRepathTick >= REPATH_TICKS) {

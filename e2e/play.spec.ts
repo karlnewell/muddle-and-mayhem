@@ -133,13 +133,13 @@ test('A volleys the whole squad at the enemy under the cursor and S selects it',
   await page.mouse.click(box.x + box.width / 2, box.y + box.height / 2);
   await page.waitForFunction(() => window.__mm!.screen === 'battle');
 
-  // Nothing selected: the volley still orders every standing soldier, and waits in pending while paused.
+  // Nothing selected: the volley still orders every standing soldier to stand fast, and waits in pending while paused.
   const target = await soldierClient(page, 8);
   await page.mouse.move(target.x + 3, target.y + 2);
   await page.keyboard.press('a');
   expect(await page.evaluate(() => [...window.__mm!.selection])).toEqual([]);
   expect(await page.evaluate(() => window.__mm!.pending)).toEqual([
-    { tick: 0, side: 'blue', type: 'attack', soldierIds: [0, 1, 2, 3, 4], targetId: 8 },
+    { tick: 0, side: 'blue', type: 'attack', soldierIds: [0, 1, 2, 3, 4], targetId: 8, stand: true },
   ]);
 
   // S selects the whole squad.
