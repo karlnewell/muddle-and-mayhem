@@ -6,7 +6,7 @@
  * whether the clipboard took the text or the fallback overlay has it.
  */
 import { PALETTE, SIDE_COLOUR, SIDE_NAME } from '../render/palette';
-import { LOGICAL_HEIGHT, LOGICAL_WIDTH } from '../render/renderConstants';
+import { LOGICAL_HEIGHT, LOGICAL_WIDTH, TOP_BAR_HEIGHT } from '../render/renderConstants';
 import { standingCount } from '../sim';
 import type { BattleState, Side } from '../sim';
 import { stackButtons } from './buttons';
@@ -29,8 +29,9 @@ const COPY_LABEL: Readonly<Record<CopyState, string>> = {
   shown: 'Report shown below',
 };
 
+/** Centred in the space below the top bar. */
 function panelTop(): number {
-  return (LOGICAL_HEIGHT - RESULT.panelHeight) / 2;
+  return TOP_BAR_HEIGHT + (LOGICAL_HEIGHT - TOP_BAR_HEIGHT - RESULT.panelHeight) / 2;
 }
 
 /** The panel, centred on the canvas. */
@@ -59,7 +60,7 @@ export function resultButtons(copyState: CopyState): ButtonRect[] {
     panelTop() + RESULT.buttonsTop,
     BUTTON.width,
     BUTTON.height,
-    BUTTON.gap,
+    RESULT.buttonGap,
   );
 }
 
@@ -89,7 +90,7 @@ function drawTable(ctx: CanvasRenderingContext2D, panelX: number, rows: readonly
 }
 
 export function drawResult(ctx: CanvasRenderingContext2D, state: BattleState, playerSide: Side, view: ResultView): void {
-  const panel = drawOverlayPanel(ctx, LOGICAL_WIDTH, LOGICAL_HEIGHT, RESULT.panelWidth, RESULT.panelHeight);
+  const panel = drawOverlayPanel(ctx, LOGICAL_WIDTH, LOGICAL_HEIGHT, RESULT.panelWidth, RESULT.panelHeight, panelTop());
   const winner = state.winner;
   ctx.textAlign = 'center';
   ctx.textBaseline = 'alphabetic';

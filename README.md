@@ -7,13 +7,21 @@ with Claude Code as a learning project.
 
 **Play it:** https://karlnewell.github.io/muddle-and-mayhem/
 
-![A paused battle on the Crossroads map](docs/screenshots/battle.png)
+![A paused battle on Compact Crossroads, with the squad's cards in the side panel](docs/screenshots/battle.png)
 
 ## How to play
 
 You are General Muddle (blue, left). The computer is General Mayhem (red,
 right). Each side has five soldiers, one per class: Gunner, Launcher,
 Chucker, Scorcher, Blaster. Last squad standing wins.
+
+The battlefield is **Compact Crossroads**: 26 by 15 tiles, the whole field
+on one screen, two roads crossing between four wall arms, with crates and
+trees for cover and the squads starting 23 tiles apart. Beside it, on your
+side, a side panel holds your five soldier cards (name, class, HP and
+status, in slot order), both sides' medic calls, the pause status and the
+build. The top bar shows the clock and how many soldiers each side has
+standing.
 
 The battle starts **paused** so you can give the first orders. Press Space
 to let it run; press Space again whenever you want to think. Orders given
@@ -22,7 +30,7 @@ while paused are taken at once and shown as faint markers.
 | Input | What it does |
 |---|---|
 | Left click a blue soldier | Select it (Shift adds to the selection) |
-| Keys 1 to 5, or click a HUD card | Select by slot (Shift adds) |
+| Keys 1 to 5, or click a soldier card in the side panel | Select by slot (Shift adds) |
 | S | Select the whole squad, so the next right click moves or attacks with everyone |
 | Right click the ground | Move the selected soldiers there |
 | Right click an enemy | Attack it: move into range, fire until it drops, then hold |
@@ -31,7 +39,7 @@ while paused are taken at once and shown as faint markers.
 | H | Hold position and fire at anything in range |
 | M | Call the medic for a selected downed soldier |
 | Space | Pause and resume |
-| Esc | Menu: resume, restart, back to the title, game speed |
+| Esc | Menu: resume, restart, back to the title, game speed, and a reminder of the keys |
 | Left / Right arrows | On the title screen or in the menu, step the game speed between 0.5x, 0.75x and 1x |
 
 Walls, crates and trees block movement and straight shots. Grenades and
@@ -54,7 +62,7 @@ can carry everything needed to reproduce a battle.
 
 The build the page came from (package version, short commit and UTC build
 date, for example `0.0.0+b11b13d 2026-11-03`) shows small in the
-bottom-right corner of the title screen and of the HUD, and as
+bottom-right corner of the title screen and at the foot of the side panel, and as
 `window.__mm.build`, so a playtest can say exactly what it ran on.
 
 Press D during a battle for a debug overlay listing every soldier's HP,
@@ -112,8 +120,10 @@ failing. The names it accepts are the tunables in `src/sim/constants.ts`.
 shots, hits, hit rate, damage dealt and taken, downs inflicted, times
 downed, instant kills, seconds spent downed and medic calls used. **Copy
 report** puts a Markdown block on the clipboard with that table, the seed,
-the build, the overrides, the speed and the full command log, ready to paste into an issue;
-anyone can replay the battle from it. When the clipboard is unavailable the
+the build, the map, the overrides, the speed and the full command log, ready to paste into an issue;
+anyone can replay the battle from it with the `replayBattle` call it names
+(reports from before the map changed have no `Map:` line and ran on
+Crossroads: `replayBattle(seed, log, ticks, MAPS.crossroads)`). When the clipboard is unavailable the
 text appears in a box you can select by hand. `window.__mm.report()`
 returns the same text and `window.__mm.stats` the raw numbers.
 
@@ -126,12 +136,15 @@ the browser report shows. Pass the same JSON:
 npm run measure -- '{"WEAPONS":{"launcher":{"cooldown":180}}}'
 ```
 
-`--seeds=N`, `--first-seed=N` and `--cap=SECONDS` widen the run.
+`--seeds=N`, `--first-seed=N` and `--cap=SECONDS` widen the run;
+`--map=compact` (the default, the map the game plays) or `--map=crossroads`
+(the larger map before Plan 7) picks the battlefield.
 `--blue=passive` plays a blue squad that never moves; `--blue=holdline` a
 scripted squad that walks to cover by the left wall gap, holds, focuses
 fire on the enemy most of the squad can see, calls medics when a body is
-not under fire and advances only when it outnumbers the enemy. Under the
-shipped balance, over 180 seeds, the computer wins 55% against itself,
+not under fire and advances only when it outnumbers the enemy; it has its
+own posts on each map. On Crossroads under the shipped balance, over 180
+seeds, the computer wins 55% against itself,
 100% against the passive squad and 72% against the hold-line squad (100%
 before Plan 6 moved its posts beside the wall arms, made cover soak splash
 and had the computer's lobbers wait for contact), which is a result about
@@ -154,7 +167,9 @@ static defence as much as about balance.
 
 The whole battle runs without a browser. `runBattle` drives it with
 controllers and records every command; `replayBattle` rebuilds it from the
-seed and that log alone. Same seed plus same log gives the same state, bit
+seed and that log alone (pass the map as a fourth argument, for example
+`MAPS.crossroads`, for a battle that did not run on the default map). Same
+seed plus same log gives the same state, bit
 for bit, which is what `tests/sim/replay.test.ts` asserts under `npm test`.
 `state.events` holds only the current tick's events and is cleared at the
 start of every `step`, so a caller that runs several steps per frame must

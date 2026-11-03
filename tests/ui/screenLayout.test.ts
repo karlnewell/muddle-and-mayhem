@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { LOGICAL_HEIGHT, LOGICAL_WIDTH } from '../../src/render/renderConstants';
+import { LOGICAL_HEIGHT, LOGICAL_WIDTH, TOP_BAR_HEIGHT } from '../../src/render/renderConstants';
 import type { Rect } from '../../src/ui/buttons';
 import { menuButtons, menuHintLines, menuPanelRect, menuSpeedRects } from '../../src/ui/menu';
 import { resultButtons, resultPanelRect, resultRowY } from '../../src/ui/result';
@@ -76,6 +76,8 @@ describe('result screen layout', () => {
   it('fits the panel in the canvas, every table row inside the panel above the buttons', () => {
     const panel = resultPanelRect();
     inside(panel, CANVAS);
+    // below the top bar, so the TUNED and SPEED badges stay visible behind the overlay
+    expect(panel.y).toBeGreaterThanOrEqual(TOP_BAR_HEIGHT);
     const firstButton = resultButtons('idle')[0];
     for (let i = 0; i < RESULT.tableRows; i++) {
       const y = resultRowY(i);

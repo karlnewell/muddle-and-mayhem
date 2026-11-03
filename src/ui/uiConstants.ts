@@ -152,10 +152,14 @@ export const MENU = {
   hintStep: 18,
 } as const;
 
-/** The result screen: a wider panel holding the winner lines, the per-class report table and three buttons. */
+/**
+ * The result screen: a wider panel holding the winner lines, the per-class
+ * report table and three buttons. It sits below the top bar, so the TUNED
+ * and SPEED badges stay visible (dimmed) behind the overlay.
+ */
 export const RESULT = {
   panelWidth: 760,
-  panelHeight: 500,
+  panelHeight: 470,
   headingY: 44,
   standingY: 72,
   infoY: 94,
@@ -164,7 +168,8 @@ export const RESULT = {
   rowHeight: 15,
   /** Header plus five classes and a total per side. */
   tableRows: 13,
-  buttonsTop: 318,
+  buttonsTop: 310,
+  buttonGap: 10,
 } as const;
 
 /** The debug overlay: a translucent panel in the top-right corner of the battlefield, below the paused banner. */
