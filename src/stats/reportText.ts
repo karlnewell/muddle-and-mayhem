@@ -5,8 +5,8 @@
  * Depends on `src/sim` types and `./battleStats` only; class labels are
  * local so this file never imports the renderer.
  */
-import { CLASS_ORDER, SIDES, TICK_RATE } from '../sim';
-import type { Command, Side, SoldierClass } from '../sim';
+import { CLASS_ORDER, DEFAULT_MAP_ID, MAPS, SIDES, TICK_RATE } from '../sim';
+import type { Command, MapId, Side, SoldierClass } from '../sim';
 import { hitRate, sideTotals } from './battleStats';
 import type { BattleStats, ClassStats } from './battleStats';
 
@@ -78,9 +78,11 @@ export function formatReportRows(stats: BattleStats): string[] {
  * playtest result is tied to the commit it ran on, and the `?speed=` factor,
  * so a slowed battle is never mistaken for full speed), the per-class table, and
  * the command log in a collapsed section so anyone can replay the battle
- * with `replayBattle(seed, log, ticks)` after applying the same overrides.
+ * with `replayBattle(seed, log, ticks, MAPS.<map>)` after applying the same
+ * overrides. The map is named because the default map changed in Plan 7:
+ * a report without a `Map:` line ran on Crossroads.
  */
-export function formatReportMarkdown(stats: BattleStats, log: readonly Command[], speed = 1, build = 'dev'): string {
+export function formatReportMarkdown(stats: BattleStats, log: readonly Command[], speed = 1, build = 'dev', map: MapId = DEFAULT_MAP_ID): string {
   const overrides = Object.keys(stats.overrides).length === 0 ? 'none' : `\`${JSON.stringify(stats.overrides)}\``;
   const contact = stats.firstContactTick === null ? 'never' : `${seconds(stats.firstContactTick)} s (tick ${stats.firstContactTick})`;
   const lines = [
@@ -88,6 +90,7 @@ export function formatReportMarkdown(stats: BattleStats, log: readonly Command[]
     '',
     `- Seed: ${stats.seed}`,
     `- Build: ${build}`,
+    `- Map: ${MAPS[map].name} (\`${map}\`)`,
     `- Winner: ${stats.winner ?? 'none yet'}`,
     `- Time: ${seconds(stats.ticks)} s (${stats.ticks} ticks)`,
     `- First contact: ${contact}`,
@@ -103,7 +106,7 @@ export function formatReportMarkdown(stats: BattleStats, log: readonly Command[]
     '<details>',
     `<summary>Command log (${log.length} commands)</summary>`,
     '',
-    `Replay with \`overrideTuning(overrides)\` (when any) then \`replayBattle(${stats.seed}, log, ${stats.ticks})\`.`,
+    `Replay with \`overrideTuning(overrides)\` (when any) then \`replayBattle(${stats.seed}, log, ${stats.ticks}, MAPS.${map})\`.`,
     '',
     '```json',
     JSON.stringify(log),

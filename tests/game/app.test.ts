@@ -170,3 +170,12 @@ describe('side panel cards', () => {
     expect([...app.selection].sort()).toEqual([0, 4]);
   });
 });
+
+describe('app report map', () => {
+  it('names the map the battle ran on', () => {
+    const { app } = finished(true);
+    const md = app.report()!;
+    expect(md).toContain('- Map: Compact Crossroads (`compact`)');
+    expect(md).toContain('MAPS.compact)');
+  });
+});
