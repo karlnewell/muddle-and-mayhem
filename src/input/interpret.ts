@@ -11,15 +11,23 @@
  * standing selected soldiers. `H` holds, `M` calls the medic for the first
  * downed soldier in the selection that no medic is already running to, so a
  * second press helps the next one, 1-5 select by slot, Space toggles pause,
- * Escape toggles the menu, D toggles the debug overlay.
+ * Escape toggles the menu, D toggles the debug overlay. `A` is the volley:
+ * every standing soldier on the side, selected or not, attacks the standing
+ * enemy nearest the cursor (world coordinates; ties to the lower id).
  */
 import { PICK_RADIUS } from '../render/renderConstants';
 import { CLASS_ORDER, soldierById } from '../sim';
 import type { BattleState, Command, Side, Soldier } from '../sim';
-import { DEBUG_KEY, HOLD_KEY, MEDIC_KEY, MENU_KEY, PAUSE_KEY, SLOT_KEYS } from './keys';
+import { DEBUG_KEY, HOLD_KEY, MEDIC_KEY, MENU_KEY, PAUSE_KEY, SLOT_KEYS, VOLLEY_KEY } from './keys';
 import { pickSoldier } from './picking';
 
 export type Button = 'left' | 'right';
+
+/** A point in world coordinates, such as the cursor over the battlefield. */
+export interface WorldPoint {
+  x: number;
+  y: number;
+}
 
 export interface InputResult {
   selection: number[];
@@ -101,6 +109,41 @@ export function interpretClick(
   return { selection: keep, commands: [{ tick: state.tick, side, type: 'move', soldierIds: ids, x, y }] };
 }
 
+/** Every standing soldier of `side`, in id order. */
+function standingSquad(state: BattleState, side: Side): number[] {
+  return state.soldiers.filter((s) => s.side === side && s.status === 'standing').map((s) => s.id);
+}
+
+/** The standing enemy of `side` nearest `p` by squared distance, ties to the lower id; null if none stands. */
+function nearestStandingEnemy(state: BattleState, side: Side, p: WorldPoint): Soldier | null {
+  let best: Soldier | null = null;
+  let bestD2 = 0;
+  for (const s of state.soldiers) {
+    if (s.side === side || s.status !== 'standing') {
+      continue;
+    }
+    const dx = s.x - p.x;
+    const dy = s.y - p.y;
+    const d2 = dx * dx + dy * dy;
+    if (best === null || d2 < bestD2 || (d2 === bestD2 && s.id < best.id)) {
+      best = s;
+      bestD2 = d2;
+    }
+  }
+  return best;
+}
+
+/** The volley: the whole standing squad attacks the standing enemy nearest the cursor. */
+function volley(state: BattleState, selection: readonly number[], side: Side, cursor: WorldPoint | null): InputResult {
+  const keep = [...selection];
+  const target = cursor === null ? null : nearestStandingEnemy(state, side, cursor);
+  const ids = standingSquad(state, side);
+  if (target === null || ids.length === 0) {
+    return { selection: keep, commands: [] };
+  }
+  return { selection: keep, commands: [{ tick: state.tick, side, type: 'attack', soldierIds: ids, targetId: target.id }] };
+}
+
 /** The id of the soldier in `side`'s slot (0-4, class order), or null if the slot is dead or missing. */
 function slotSoldier(state: BattleState, side: Side, slot: number): Soldier | null {
   const sideIndex = side === 'blue' ? 0 : 1;
@@ -108,7 +151,19 @@ function slotSoldier(state: BattleState, side: Side, slot: number): Soldier | nu
   return s !== undefined && s.side === side && s.status !== 'dead' ? s : null;
 }
 
-export function interpretKey(state: BattleState, selection: readonly number[], key: string, shift: boolean, side: Side): InputResult {
+/**
+ * A key press. `cursor` is the pointer's last position over the canvas in
+ * world coordinates, or null when it has not been over the canvas; only the
+ * volley reads it.
+ */
+export function interpretKey(
+  state: BattleState,
+  selection: readonly number[],
+  key: string,
+  shift: boolean,
+  side: Side,
+  cursor: WorldPoint | null = null,
+): InputResult {
   const keep = [...selection];
   if (key === PAUSE_KEY) {
     return { selection: keep, commands: [], togglePause: true };
@@ -134,6 +189,9 @@ export function interpretKey(state: BattleState, selection: readonly number[], k
       return { selection: keep, commands: [] };
     }
     return { selection: keep, commands: [{ tick: state.tick, side, type: 'hold', soldierIds: ids }] };
+  }
+  if (lower === VOLLEY_KEY) {
+    return volley(state, selection, side, cursor);
   }
   if (lower === MEDIC_KEY) {
     for (const id of selection) {

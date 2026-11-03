@@ -164,3 +164,73 @@ describe('interpretKey, debug overlay', () => {
   });
 });
 
+
+describe('interpretKey, volley', () => {
+  const place = (state: BattleState, id: number, x: number, y: number) => {
+    const s = soldierById(state, id)!;
+    s.x = x;
+    s.y = y;
+  };
+  it('A orders every standing friendly to attack the standing enemy nearest the cursor', () => {
+    const state = battle();
+    const e = at(state, 8);
+    const r = interpretKey(state, [1], 'a', false, 'blue', { x: e.x + 3, y: e.y - 2 });
+    expect(r.selection).toEqual([1]);
+    expect(r.commands).toEqual([{ tick: 12, side: 'blue', type: 'attack', soldierIds: [0, 1, 2, 3, 4], targetId: 8 }]);
+    expect(interpretKey(state, [], 'A', true, 'blue', e).commands[0]).toMatchObject({ type: 'attack', targetId: 8 });
+  });
+  it('picks by squared distance to the cursor, not by id or slot', () => {
+    const state = battle();
+    place(state, 5, 600, 300);
+    place(state, 9, 520, 300);
+    place(state, 6, 900, 600);
+    place(state, 7, 900, 600);
+    place(state, 8, 900, 600);
+    expect(interpretKey(state, [], 'a', false, 'blue', { x: 500, y: 300 }).commands[0]).toMatchObject({ targetId: 9 });
+    expect(interpretKey(state, [], 'a', false, 'blue', { x: 590, y: 300 }).commands[0]).toMatchObject({ targetId: 5 });
+  });
+  it('breaks a tie toward the lower id', () => {
+    const state = battle();
+    place(state, 6, 500, 300);
+    place(state, 8, 500, 300);
+    expect(interpretKey(state, [], 'a', false, 'blue', { x: 400, y: 300 }).commands[0]).toMatchObject({ targetId: 6 });
+    place(state, 6, 520, 300);
+    place(state, 8, 480, 300);
+    expect(interpretKey(state, [], 'a', false, 'blue', { x: 500, y: 300 }).commands[0]).toMatchObject({ targetId: 6 });
+  });
+  it('skips downed and dead enemies', () => {
+    const state = battle();
+    const e = at(state, 7);
+    soldierById(state, 7)!.status = 'downed';
+    const r = interpretKey(state, [], 'a', false, 'blue', e);
+    expect(r.commands).toHaveLength(1);
+    expect(r.commands[0]).toMatchObject({ type: 'attack' });
+    expect(r.commands[0]).not.toMatchObject({ targetId: 7 });
+    for (const id of [5, 6, 8, 9]) {
+      soldierById(state, id)!.status = id % 2 === 0 ? 'dead' : 'downed';
+    }
+    expect(interpretKey(state, [], 'a', false, 'blue', e).commands).toEqual([]);
+  });
+  it('leaves downed and dead friendlies out of the order, and does nothing with none standing', () => {
+    const state = battle();
+    soldierById(state, 1)!.status = 'downed';
+    soldierById(state, 3)!.status = 'dead';
+    const e = at(state, 5);
+    expect(interpretKey(state, [1, 3], 'a', false, 'blue', e).commands).toEqual([
+      { tick: 12, side: 'blue', type: 'attack', soldierIds: [0, 2, 4], targetId: 5 },
+    ]);
+    for (const id of [0, 2, 4]) {
+      soldierById(state, id)!.status = 'downed';
+    }
+    expect(interpretKey(state, [], 'a', false, 'blue', e).commands).toEqual([]);
+  });
+  it('works for the red side and does nothing without a cursor position', () => {
+    const state = battle();
+    const b = at(state, 2);
+    expect(interpretKey(state, [], 'a', false, 'red', b).commands).toEqual([
+      { tick: 12, side: 'red', type: 'attack', soldierIds: [5, 6, 7, 8, 9], targetId: 2 },
+    ]);
+    expect(interpretKey(state, [], 'a', false, 'blue')).toEqual({ selection: [], commands: [] });
+    expect(interpretKey(state, [], 'a', false, 'blue', null)).toEqual({ selection: [], commands: [] });
+  });
+});

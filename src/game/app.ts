@@ -67,8 +67,12 @@ export interface App {
   frame(ctx: CanvasRenderingContext2D, nowMs: number): void;
   /** A mouse button pressed at logical canvas coordinates. */
   click(x: number, y: number, button: Button, shift: boolean): void;
-  /** A key pressed (`KeyboardEvent.key`). Returns true when the key was used. */
-  key(key: string, shift: boolean): boolean;
+  /**
+   * A key pressed (`KeyboardEvent.key`), with the pointer's last logical canvas
+   * position if it has been over the canvas (the volley aims there). Returns
+   * true when the key was used.
+   */
+  key(key: string, shift: boolean, cursor?: { x: number; y: number } | null): boolean;
   /** Step the current battle `n` ticks right now, pause or not (debug and tests). */
   advanceTicks(n: number): void;
 }
@@ -300,7 +304,7 @@ export function createApp(initialSeed: SeedChoice, random: () => number, options
       }
       battleClick(x, y, button, shift);
     },
-    key(key: string, shift: boolean): boolean {
+    key(key: string, shift: boolean, cursor: { x: number; y: number } | null = null): boolean {
       if (screen.screen === 'title' || session === null) {
         return false;
       }
@@ -316,7 +320,8 @@ export function createApp(initialSeed: SeedChoice, random: () => number, options
         }
         return false;
       }
-      const result = interpretKey(session.state, selection, key, shift, PLAYER_SIDE);
+      const world = cursor === null ? null : renderer.projection.screenToWorld(cursor.x, cursor.y);
+      const result = interpretKey(session.state, selection, key, shift, PLAYER_SIDE, world);
       const used =
         result.commands.length > 0 ||
         result.togglePause === true ||

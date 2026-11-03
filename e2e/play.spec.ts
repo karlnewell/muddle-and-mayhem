@@ -124,3 +124,22 @@ test('a battle can be started, ordered, run, and finished', async ({ page }) => 
 
   expect(errors).toEqual([]);
 });
+
+test('A volleys the whole squad at the enemy under the cursor', async ({ page }) => {
+  const errors = collectErrors(page);
+  await page.goto('./?seed=7');
+  await page.waitForFunction(() => window.__mm !== undefined && window.__mm.screen === 'title');
+  const box = (await page.locator('canvas#game').boundingBox())!;
+  await page.mouse.click(box.x + box.width / 2, box.y + box.height / 2);
+  await page.waitForFunction(() => window.__mm!.screen === 'battle');
+
+  // Nothing selected: the volley still orders every standing soldier, and waits in pending while paused.
+  const target = await soldierClient(page, 8);
+  await page.mouse.move(target.x + 3, target.y + 2);
+  await page.keyboard.press('a');
+  expect(await page.evaluate(() => [...window.__mm!.selection])).toEqual([]);
+  expect(await page.evaluate(() => window.__mm!.pending)).toEqual([
+    { tick: 0, side: 'blue', type: 'attack', soldierIds: [0, 1, 2, 3, 4], targetId: 8 },
+  ]);
+  expect(errors).toEqual([]);
+});

@@ -26,6 +26,7 @@ while paused are taken at once and shown as faint markers.
 | Right click the ground | Move the selected soldiers there |
 | Right click an enemy | Attack it: move into range, fire until it drops, then hold |
 | Right click a downed friend | Call the medic (three calls per side, back at half health) |
+| A | Volley: every standing soldier attacks the enemy nearest the cursor, selected or not |
 | H | Hold position and fire at anything in range |
 | M | Call the medic for a selected downed soldier |
 | Space | Pause and resume |
