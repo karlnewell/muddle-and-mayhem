@@ -6,6 +6,8 @@
  * into. It never writes to simulation state: every action becomes a
  * `Command` queued on the session.
  */
+import { dragWorldBox, interpretDrag, isDrag, startsDrag } from '../input/boxSelect';
+import type { ScreenPoint, WorldBox } from '../input/boxSelect';
 import { interpretClick, interpretKey } from '../input/interpret';
 import type { Button, InputResult } from '../input/interpret';
 import { MENU_KEY, SLOT_KEYS } from '../input/keys';
@@ -79,8 +81,19 @@ export interface App {
   report(): string | null;
   /** Advance time and draw. `nowMs` is a monotonic clock in milliseconds. */
   frame(ctx: CanvasRenderingContext2D, nowMs: number): void;
-  /** A mouse button pressed at logical canvas coordinates. */
+  /** A mouse button pressed at logical canvas coordinates, acted on at once. */
   click(x: number, y: number, button: Button, shift: boolean): void;
+  /**
+   * A mouse button went down. A left press on open battlefield starts a
+   * drag box, settled on `release`; every other press is a `click`.
+   */
+  press(x: number, y: number, button: Button, shift: boolean): void;
+  /** The pointer moved, in logical canvas coordinates; only a drag in progress reads it. */
+  pointerMove(x: number, y: number): void;
+  /** The left button came up: a drag in progress selects its box, or clicks if it never travelled. */
+  release(x: number, y: number): void;
+  /** The drag box to draw, in world coordinates, once the drag has passed the threshold; else null. */
+  readonly dragBox: WorldBox | null;
   /**
    * A key pressed (`KeyboardEvent.key`), with the pointer's last logical canvas
    * position if it has been over the canvas (the volley aims there). Returns
@@ -106,6 +119,8 @@ export function createApp(initialSeed: SeedChoice, random: () => number, options
   let volleyCue: VolleyCue | null = null;
   let seedChoice = initialSeed;
   let lastNow: number | null = null;
+  /** A left press on open ground, waiting for release; dropped if the battle or the screen changes first. */
+  let drag: { start: ScreenPoint; end: ScreenPoint; shift: boolean; owner: BattleSession } | null = null;
 
   function startBattle(seed: SeedChoice): void {
     seedChoice = seed;
@@ -289,6 +304,34 @@ export function createApp(initialSeed: SeedChoice, random: () => number, options
     return view;
   }
 
+  function click(x: number, y: number, button: Button, shift: boolean): void {
+    if (screen.screen === 'title') {
+      if (button !== 'left') {
+        return;
+      }
+      const picked = speedFromButton(hitButton(titleSpeedRects(), x, y));
+      if (picked !== null) {
+        setSpeed(picked);
+      } else {
+        dispatch('start');
+      }
+      return;
+    }
+    if (screen.screen === 'result') {
+      resultClick(x, y, button);
+      return;
+    }
+    battleClick(x, y, button, shift);
+  }
+
+  /** The drag box once it has passed the threshold and while orders are open; null otherwise. */
+  function dragBox(): WorldBox | null {
+    if (drag === null || session !== drag.owner || screen.screen !== 'battle' || screen.menuOpen || !isDrag(drag.start, drag.end)) {
+      return null;
+    }
+    return dragWorldBox(renderer.projection, drag.start, drag.end);
+  }
+
   function draw(ctx: CanvasRenderingContext2D, nowMs: number): void {
     ctx.fillStyle = PALETTE.pageBackground;
     ctx.fillRect(0, 0, LOGICAL_WIDTH, LOGICAL_HEIGHT);
@@ -297,7 +340,7 @@ export function createApp(initialSeed: SeedChoice, random: () => number, options
       return;
     }
     const state = session.state;
-    renderer.draw(ctx, state, { selection, alpha: session.alpha(), effects, playerSide: PLAYER_SIDE, pending: session.pending, volley: volleyView(nowMs) });
+    renderer.draw(ctx, state, { selection, alpha: session.alpha(), effects, playerSide: PLAYER_SIDE, pending: session.pending, volley: volleyView(nowMs), dragBox: dragBox() });
     drawHud(ctx, state, { playerSide: PLAYER_SIDE, selection, paused: session.paused, tuned: tuning.active, speed: speed.speed });
     if (screen.screen === 'result') {
       drawResult(ctx, state, PLAYER_SIDE, { rows: formatReportRows(session.stats()), copyState });
@@ -355,24 +398,30 @@ export function createApp(initialSeed: SeedChoice, random: () => number, options
       }
       draw(ctx, nowMs);
     },
-    click(x: number, y: number, button: Button, shift: boolean): void {
-      if (screen.screen === 'title') {
-        if (button !== 'left') {
-          return;
-        }
-        const picked = speedFromButton(hitButton(titleSpeedRects(), x, y));
-        if (picked !== null) {
-          setSpeed(picked);
-        } else {
-          dispatch('start');
-        }
+    click,
+    press(x: number, y: number, button: Button, shift: boolean): void {
+      drag = null;
+      if (button === 'left' && session !== null && screen.screen === 'battle' && !screen.menuOpen && renderer.onField(x, y) && startsDrag(session.state, renderer.projection, { x, y }, PLAYER_SIDE)) {
+        drag = { start: { x, y }, end: { x, y }, shift, owner: session };
         return;
       }
-      if (screen.screen === 'result') {
-        resultClick(x, y, button);
+      click(x, y, button, shift);
+    },
+    pointerMove(x: number, y: number): void {
+      if (drag !== null) {
+        drag.end = { x, y };
+      }
+    },
+    release(x: number, y: number): void {
+      const d = drag;
+      drag = null;
+      if (d === null || session !== d.owner || screen.screen !== 'battle' || screen.menuOpen) {
         return;
       }
-      battleClick(x, y, button, shift);
+      applyInput(interpretDrag(session.state, selection, renderer.projection, d.start, { x, y }, d.shift, PLAYER_SIDE));
+    },
+    get dragBox() {
+      return dragBox();
     },
     key(key: string, shift: boolean, cursor: { x: number; y: number } | null = null): boolean {
       if (screen.screen === 'title' || session === null) {

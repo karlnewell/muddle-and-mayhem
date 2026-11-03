@@ -15,7 +15,8 @@
  * every standing soldier on the side, selected or not, attacks the standing
  * enemy nearest the cursor (world coordinates; ties to the lower id) without
  * moving: a stand-fast order, so each fires from where it stands. `S`
- * selects the whole squad, standing and downed, as a click would.
+ * selects the whole squad, standing and downed, as a click would. Dragging
+ * a box with the left button is in `boxSelect.ts`.
  */
 import { PICK_RADIUS } from '../render/renderConstants';
 import { CLASS_ORDER, soldierById } from '../sim';
@@ -44,7 +45,7 @@ function sameIds(a: readonly number[], b: readonly number[]): boolean {
 }
 
 /** The new selection plus, when it changed, the `select` command that records it. */
-function select(state: BattleState, previous: readonly number[], next: number[], side: Side): InputResult {
+export function select(state: BattleState, previous: readonly number[], next: number[], side: Side): InputResult {
   const commands: Command[] = sameIds(previous, next) ? [] : [{ tick: state.tick, side, type: 'select', soldierIds: next }];
   return { selection: next, commands };
 }
@@ -73,7 +74,7 @@ function runUnderWay(state: BattleState, id: number): boolean {
   return state.medics.some((m) => m.targetId === id);
 }
 
-function selectable(s: Soldier | null, side: Side): s is Soldier {
+export function selectable(s: Soldier | null, side: Side): s is Soldier {
   return s !== null && s.side === side && s.status !== 'dead';
 }
 

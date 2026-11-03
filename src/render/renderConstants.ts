@@ -42,6 +42,11 @@ export const MAX_TICKS_PER_FRAME = 8;
 
 /** Soldiers are picked within this many world units of their centre. */
 export const PICK_RADIUS = 18;
+/** A left press that travels more than this many logical pixels before release is a drag box, not a click. */
+export const DRAG_SELECT_THRESHOLD = 4;
+/** The drag box: a thin outline in the player's side colour over a faint fill of the same colour. */
+export const DRAG_BOX_LINE_WIDTH = 1;
+export const DRAG_BOX_FILL_ALPHA = 0.15;
 
 /** Effect lifetimes, in sim ticks, so pause freezes them. */
 export const IMPACT_EFFECT_TICKS = 12;

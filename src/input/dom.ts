@@ -1,7 +1,9 @@
 /**
  * DOM listeners. Converts mouse buttons and client coordinates into the
  * logical canvas space the app understands, and forwards key names with
- * the pointer's last position over the canvas (the volley aims there). The
+ * the pointer's last position over the canvas (the volley aims there).
+ * Pointer moves and the left button's release are followed on the window,
+ * so a drag box still ends when the pointer leaves the canvas. The
  * context menu is suppressed on the canvas so the right button is free
  * for orders; Space and the slot keys are prevented from scrolling or
  * being typed.
@@ -10,7 +12,9 @@ import type { Button } from './interpret';
 import { keyFromEvent } from './keys';
 
 export interface DomTarget {
-  click(x: number, y: number, button: Button, shift: boolean): void;
+  press(x: number, y: number, button: Button, shift: boolean): void;
+  pointerMove(x: number, y: number): void;
+  release(x: number, y: number): void;
   /** `cursor` is the pointer's last logical position over the canvas, or null before it has been there. */
   key(key: string, shift: boolean, cursor: { x: number; y: number } | null): boolean;
 }
@@ -34,7 +38,17 @@ export function attachInput(canvas: HTMLCanvasElement, target: DomTarget, mappin
     e.preventDefault();
     const p = mapping.clientToLogical(e.clientX, e.clientY);
     cursor = p;
-    target.click(p.x, p.y, button, e.shiftKey);
+    target.press(p.x, p.y, button, e.shiftKey);
+  });
+  window.addEventListener('mousemove', (e) => {
+    const p = mapping.clientToLogical(e.clientX, e.clientY);
+    target.pointerMove(p.x, p.y);
+  });
+  window.addEventListener('mouseup', (e) => {
+    if (e.button === 0) {
+      const p = mapping.clientToLogical(e.clientX, e.clientY);
+      target.release(p.x, p.y);
+    }
   });
   window.addEventListener('keydown', (e) => {
     if (e.repeat || e.metaKey || e.ctrlKey || e.altKey) {

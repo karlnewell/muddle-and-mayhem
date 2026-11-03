@@ -6,6 +6,8 @@
  * projection and draw modules, and nothing in input, HUD or app changes.
  */
 import type { BattleState, Command, Side } from '../sim';
+import type { WorldBox } from '../input/boxSelect';
+import { drawDragBox } from './drawDragBox';
 import { drawEffects } from './drawEffects';
 import { drawMap } from './drawMap';
 import { drawMedics, drawProjectiles } from './drawProjectiles';
@@ -26,6 +28,8 @@ export interface ViewState {
   pending: readonly Command[];
   /** The volley cue still showing, if any. */
   volley?: VolleyView | null;
+  /** The drag-select box in world coordinates while the player drags one. */
+  dragBox?: WorldBox | null;
 }
 
 export interface BattleRenderer {
@@ -60,6 +64,9 @@ export function createTopDownRenderer(playerSide: Side): BattleRenderer {
       drawEffects(ctx, state, view.effects, view.alpha);
       if (view.volley) {
         drawVolleyCue(ctx, state, view.volley, view.alpha);
+      }
+      if (view.dragBox) {
+        drawDragBox(ctx, view.dragBox, view.playerSide);
       }
       ctx.restore();
     },
