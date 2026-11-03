@@ -95,10 +95,10 @@ export const DEBUG_OVERLAY = {
 } as const;
 
 export const CONTROLS_HINT =
-  'Left click: select   Right click: move / attack / medic   A: volley   H: hold   M: medic   1-5: slots   Space: pause   Esc: menu';
+  'Left click: select   Right click: move / attack / medic   A: volley   H: hold   M: medic   1-5: slots   S: all   Space: pause   Esc: menu';
 
 export const TITLE_CONTROLS: readonly string[] = [
-  'Left click a blue soldier to select it (shift adds). Keys 1 to 5 pick by slot.',
+  'Left click a blue soldier to select it (shift adds). Keys 1 to 5 pick by slot, S all.',
   'Right click the ground to move, an enemy to attack, a downed friend to call the medic.',
   'A: the whole squad attacks the enemy nearest the cursor. H holds position.',
   'M calls the medic for a selected downed soldier. Three calls per side.',

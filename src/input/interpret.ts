@@ -13,12 +13,13 @@
  * second press helps the next one, 1-5 select by slot, Space toggles pause,
  * Escape toggles the menu, D toggles the debug overlay. `A` is the volley:
  * every standing soldier on the side, selected or not, attacks the standing
- * enemy nearest the cursor (world coordinates; ties to the lower id).
+ * enemy nearest the cursor (world coordinates; ties to the lower id). `S`
+ * selects the whole squad, standing and downed, as a click would.
  */
 import { PICK_RADIUS } from '../render/renderConstants';
 import { CLASS_ORDER, soldierById } from '../sim';
 import type { BattleState, Command, Side, Soldier } from '../sim';
-import { DEBUG_KEY, HOLD_KEY, MEDIC_KEY, MENU_KEY, PAUSE_KEY, SLOT_KEYS, VOLLEY_KEY } from './keys';
+import { DEBUG_KEY, HOLD_KEY, MEDIC_KEY, MENU_KEY, PAUSE_KEY, SELECT_ALL_KEY, SLOT_KEYS, VOLLEY_KEY } from './keys';
 import { pickSoldier } from './picking';
 
 export type Button = 'left' | 'right';
@@ -114,6 +115,11 @@ function standingSquad(state: BattleState, side: Side): number[] {
   return state.soldiers.filter((s) => s.side === side && s.status === 'standing').map((s) => s.id);
 }
 
+/** Every soldier of `side` a click could select (standing or downed), in id order. */
+function selectableSquad(state: BattleState, side: Side): number[] {
+  return state.soldiers.filter((s) => selectable(s, side)).map((s) => s.id);
+}
+
 /** The standing enemy of `side` nearest `p` by squared distance, ties to the lower id; null if none stands. */
 function nearestStandingEnemy(state: BattleState, side: Side, p: WorldPoint): Soldier | null {
   let best: Soldier | null = null;
@@ -189,6 +195,9 @@ export function interpretKey(
       return { selection: keep, commands: [] };
     }
     return { selection: keep, commands: [{ tick: state.tick, side, type: 'hold', soldierIds: ids }] };
+  }
+  if (lower === SELECT_ALL_KEY) {
+    return select(state, selection, selectableSquad(state, side), side);
   }
   if (lower === VOLLEY_KEY) {
     return volley(state, selection, side, cursor);

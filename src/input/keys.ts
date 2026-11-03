@@ -2,6 +2,7 @@
 export const SLOT_KEYS: readonly string[] = ['1', '2', '3', '4', '5'];
 export const HOLD_KEY = 'h';
 export const MEDIC_KEY = 'm';
+export const SELECT_ALL_KEY = 's'; // selects the whole squad, standing and downed
 export const VOLLEY_KEY = 'a'; // the whole standing squad attacks the enemy nearest the cursor
 export const PAUSE_KEY = ' ';
 export const MENU_KEY = 'Escape';
