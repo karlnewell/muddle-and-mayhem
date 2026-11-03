@@ -103,7 +103,7 @@ export function hpFraction(s: Soldier): number;  // clamp(hp / CLASS_STATS[s.cls
 - [x] **Step 3: Set the values** and a comment on `CLASS_STATS` naming the roles (spec section 4).
 - [x] **Step 4: `npm run check` and the e2e tests green.**
 - [x] **Step 5: Measure** `ai`, `passive`, `holdline` on seeds 1 to 60 and 61 to 180 before (today's values) and after; a table of every guard, before and after, into the PR body and a decision line. Commit `Fragile Scorcher, heavy Launcher`. Open PR 3 "Fragile Scorcher, heavy Launcher", cut from PR 2's branch; its body asks the owner to play the PR 2 link and paste two or three reports before merging.
-- [ ] **Step 6: Stop and report.** Lever PRs start only if a guard fails on Step 5's numbers.
+- [x] **Step 6: Stop and report.** Lever PRs start only if a guard fails on Step 5's numbers.
 
 ### Task 4: Levers, only where a guard fails (PR 4 onward)
 
@@ -113,4 +113,4 @@ export function hpFraction(s: Soldier): number;  // clamp(hp / CLASS_STATS[s.cls
 
 ### Task 5: Close (last PR of the plan)
 
-- [ ] Re-measure on seeds 1 to 60 and 61 to 180; a closing decision line with the final numbers, what was tried and rejected; roadmap item 13 marked done in the roadmap's style (removed from the roadmap, which lists only work still to do, and the closing line says so). If no lever PR is needed, this goes in PR 3.
+- [x] Re-measure on seeds 1 to 60 and 61 to 180; a closing decision line with the final numbers, what was tried and rejected; roadmap item 13 marked done in the roadmap's style (removed from the roadmap, which lists only work still to do, and the closing line says so). If no lever PR is needed, this goes in PR 3.
